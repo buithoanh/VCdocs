@@ -5,6 +5,14 @@ import { expressToOas, getContract, OperationInfo } from '../contract/openapi';
 import { Errors } from './errors';
 import { getCtx } from './context';
 
+/**
+ * BE nhận lỏng hơn hợp đồng ở vài trường bắt buộc (không làm hỏng FE gửi đủ),
+ * lý do ghi trong DE_NGHI_SUA_HOP_DONG.md.
+ */
+export const RELAX_REQUIRED: Record<string, string[]> = {
+  'POST /folders': ['parentId'],
+};
+
 export function operationOf(req: Request): OperationInfo | undefined {
   const routePath: string | undefined = (req as any).route?.path;
   if (!routePath) return undefined;
@@ -47,7 +55,7 @@ export class ContractInterceptor implements NestInterceptor {
         req.body = req.body ?? {};
       }
       if (typeof req.body !== 'object' || Array.isArray(req.body)) throw Errors.validation('Thân yêu cầu phải là đối tượng JSON');
-      const r = contract.validateBody(info, req.body);
+      const r = contract.validateBody(info, req.body, 'application/json', RELAX_REQUIRED[`${info.method} ${info.path}`]);
       if (!r.ok) throw Errors.validation('Dữ liệu gửi lên không hợp lệ', r.errors);
     }
     return next.handle();

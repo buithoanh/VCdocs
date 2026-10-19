@@ -129,10 +129,14 @@ export class OpenApiContract {
   }
 
   /** Kiểm thân JSON; trả lỗi (nếu có) và đã loại trường lạ ngay trên object */
-  validateBody(info: OperationInfo, body: any, contentType = 'application/json') {
-    const schema = this.bodySchema(info, contentType);
+  validateBody(info: OperationInfo, body: any, contentType = 'application/json', relaxRequired: string[] = []) {
+    let schema = this.bodySchema(info, contentType);
     if (!schema) return { ok: true, errors: [] as any[] };
-    const v = this.compile(this.bodyAjv, `body:${contentType}:${info.method} ${info.path}`, schema);
+    if (relaxRequired.length) {
+      schema = this.deref(schema);
+      schema = { ...schema, required: (schema.required || []).filter((r: string) => !relaxRequired.includes(r)) };
+    }
+    const v = this.compile(this.bodyAjv, `body:${contentType}:${info.method} ${info.path}:${relaxRequired.join(',')}`, schema);
     const ok = v(body) as boolean;
     return { ok, errors: formatAjvErrors(v.errors, 'body') };
   }
