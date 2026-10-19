@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { api, idem, unwrap } from '@/api/client';
+import { api, getLimits, idem, unwrap } from '@/api/client';
 import { useAction } from '@/api/queries';
 import type { ExternalShare, ShareRole } from '@/api/types';
 import { Button, Card, ErrorBox, Field, Notice, PageHeader, TextField } from '@/components/ui';
@@ -13,7 +13,7 @@ import { shareRoleLabel } from '@/lib/labels';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateShare(v: { file: string; email: string; reason: string; expires: string }, today = todayISO()) {
+export function validateShare(v: { file: string; email: string; reason: string; expires: string }, today = todayISO(), maxDays = getLimits().shareMaxDays) {
   const e: Record<string, string> = {};
   if (!parseDriveFileId(v.file)) e.file = 'Dán link file Google Drive (chỉ chia sẻ từng file).';
   if (!EMAIL.test(v.email.trim())) e.email = 'Email chưa đúng.';
@@ -21,6 +21,7 @@ export function validateShare(v: { file: string; email: string; reason: string; 
   if (!v.reason.trim()) e.reason = 'Nhập lý do chia sẻ.';
   if (!v.expires) e.expires = 'Chọn ngày hết hạn.';
   else if (v.expires <= today) e.expires = 'Ngày hết hạn phải sau hôm nay.';
+  else if (v.expires > addDaysISO(maxDays, new Date(`${today}T12:00:00`))) e.expires = `Tối đa ${maxDays} ngày kể từ hôm nay.`;
   return e;
 }
 
@@ -31,7 +32,7 @@ export function NewShareForm() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<ShareRole>('reader');
   const [reason, setReason] = useState('');
-  const [expires, setExpires] = useState(addDaysISO(14));
+  const [expires, setExpires] = useState(() => addDaysISO(Math.min(14, getLimits().shareMaxDays)));
   const [touched, setTouched] = useState(false);
   const [done, setDone] = useState<ExternalShare | null>(null);
   const errors = validateShare({ file, email, reason, expires });
@@ -98,7 +99,7 @@ export function NewShareForm() {
             ))}
           </Field>
           <TextField label="Lý do" value={reason} onChange={setReason} required error={err('reason')} multiline placeholder="Gửi báo giá cho đối tác…" />
-          <TextField label="Hết hạn ngày" type="date" value={expires} onChange={setExpires} required error={err('expires')} min={addDaysISO(1)} hint="Có giới hạn số ngày tối đa; vượt thì máy chủ báo." />
+          <TextField label="Hết hạn ngày" type="date" value={expires} onChange={setExpires} required error={err('expires')} min={addDaysISO(1)} max={addDaysISO(getLimits().shareMaxDays)} hint={`Tối đa ${getLimits().shareMaxDays} ngày. Đến hạn phần mềm tự gỡ.`} />
           <ErrorBox error={save.error} />
           <div className="form-actions">
             <Button type="submit" variant="primary" loading={save.isPending}>

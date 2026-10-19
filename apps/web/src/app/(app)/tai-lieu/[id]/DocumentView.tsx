@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError, api, idem, unwrap } from '@/api/client';
+import { ApiError, api, getLimits, idem, unwrap } from '@/api/client';
 import { useAction, useDepartments } from '@/api/queries';
 import type { Document, RevisionKind } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
@@ -17,6 +17,7 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
+import { hasAction } from '@/lib/permissions';
 
 type Dialog = 'feedback' | 'submit' | 'issue' | 'revise' | 'withdraw' | 'review' | null;
 
@@ -109,7 +110,7 @@ export function DocumentView({ id }: { id: string }) {
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}
           {(d.status === 'drafting' || d.status === 'feedback') && <OpenCommentsCard id={id} />}
-          {(d.status === 'effective' || d.status === 'revising') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
+          {hasAction(d, 'integrity') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
           <Card title="Lịch sử phiên bản">
             <DataTable
               rows={[...(d.versions ?? [])].sort((a, b) => b.number - a.number)}
@@ -167,7 +168,6 @@ function IntegrityCard({ id, lockedAt }: { id: string; lockedAt?: string }) {
     queryFn: () => unwrap(api.GET('/documents/{id}/integrity', { params: { path: { id } } })),
     retry: false,
   });
-  if (!can('viewIntegrity')) return null;
   const i = q.data;
   return (
     <Card title="Khoá và tính toàn vẹn" actions={<Button onClick={() => (enabled ? q.refetch() : setEnabled(true))} loading={q.isFetching}>Kiểm tra ngay</Button>}>
@@ -219,7 +219,7 @@ function ExternalCard({ doc }: { doc: Document }) {
           ['Bản gốc', ext?.originalUrl ? <a key="u" href={ext.originalUrl} target="_blank" rel="noreferrer">Mở</a> : '—'],
         ]}
       />
-      {can('importExternalDocument') && (
+      {hasAction(doc, 'update-external') && (
         <div className="actions" style={{ marginTop: '1rem' }}>
           <Button onClick={() => patch.mutate({ lastCheckedAt: new Date().toISOString() })} loading={patch.isPending}>
             Đã kiểm tra: vẫn hiệu lực
@@ -365,7 +365,7 @@ function IssueDialog({ doc, onClose }: { doc: Document; onClose: () => void }) {
 
 function ReviseDialog({ id, onClose }: { id: string; onClose: () => void }) {
   const [kind, setKind] = useState<RevisionKind>('minor');
-  const [days, setDays] = useState('3');
+  const [days, setDays] = useState(String(getLimits().minorUnlockDays));
   return (
     <ActionDialog
       open

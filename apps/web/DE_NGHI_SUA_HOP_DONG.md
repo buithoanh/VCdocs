@@ -1,21 +1,26 @@
 # Đề nghị sửa hợp đồng – từ phiên FE giai đoạn 1
 
 Phiên FE không sửa `contract/`. Dưới đây là chỗ hợp đồng (`contract/openapi.yaml`)
-thiếu hoặc chưa rõ, và cách FE đang làm tạm (chọn cách an toàn nhất). Khi chủ dự
-án chốt, phiên cập nhật hợp đồng chuyển các mục cần thiết sang `contract/DE_NGHI_SUA.md`.
+thiếu hoặc chưa rõ, và cách FE xử lý.
 
-| # | Ngày | Điểm cuối / đối tượng | Vấn đề | FE đang làm | Đề nghị |
-|---|------|----------------------|--------|-------------|---------|
-| 1 | 2026-10-19 | `allowedActions` (mọi đối tượng) | Không liệt kê tên hành động; không rõ viết `assign-code` hay `assignCode`. | So khớp bỏ dấu `-`, `_`, chữ hoa. Tên FE dùng: tài liệu `assign-code, create-draft, request-feedback, submit, issue, revise, review, withdraw, relock`; phiếu duyệt `check, decide, cancel, remind`; mã `decide`; loại hồ sơ `update, submit-retention`; hồ sơ `update, submit, finalize, adjust, scan, hold, release-hold`; chia sẻ `extend, revoke`. | Liệt kê enum tên hành động cho từng đối tượng, trùng tên đoạn cuối đường dẫn (kebab-case). |
-| 2 | 2026-10-19 | `User`, `Folder`, `Block`, `Department`, `Division`, `Delegation`, `ExternalDocument` (PATCH) | Không có `allowedActions`. | Ẩn/hiện nút theo vai trò hệ thống (BA mục 4): sửa vai trò R9, ngày nghỉ R3; đổi tên / kết thúc dự án R4; đọc lại từ Drive R3, R4; danh mục nền R3, R9; uỷ quyền R2; cập nhật tài liệu bên ngoài R1–R6, R8. | Thêm `allowedActions` cho các đối tượng này để FE không phải đoán quyền. |
-| 3 | 2026-10-19 | Chọn người (người soạn, người kiểm tra, người góp ý, người được uỷ quyền, trưởng phòng) | `GET /users` chỉ cho R3, R4, R9 → nhân viên, giám đốc khối không chọn được người. | Dùng `GET /users?q=`; bị 403 thì báo "nhờ trưởng phòng thực hiện". | Thêm `GET /users/lookup?q=` (mọi người đã đăng nhập, chỉ trả `UserRef` người đang làm việc). |
-| 4 | 2026-10-19 | Tên người trong đối tượng (`drafterId`, `submittedBy`, `approverId`, `sharedBy`, `createdBy`…) | Chỉ có id; muốn hiện tên phải gọi `GET /users/{id}` từng người, nhiều người không có quyền. | Gọi `GET /users/{id}` (có lưu đệm); 403 thì hiện "Nhân sự …abc123". | Trả kèm `UserRef` (vd `submittedByUser`) hoặc mảng `users` trong mỗi trang kết quả. |
-| 5 | 2026-10-19 | Máy chủ giả Prism | Prism phục vụ không có tiền tố `/api/v1`; `contract/README.md` chỉ nói đặt `API_ORIGIN=:4010`. | Thêm biến `API_PATH_PREFIX` (Prism: rỗng); lệnh `pnpm --filter @vcdocs/web dev:mock`. | Ghi chú vào `contract/README.md`, hoặc đổi server Prism thành `http://localhost:4010/api/v1`. |
-| 6 | 2026-10-19 | `Job.result` | Kiểu tự do; không ghi `objectType` dùng tên gì (record, document, folder…). | Hiểu `{ objectType: record\|document\|folder\|approval\|external_share, objectId }` hoặc `{ fileId }` để dựng link "Mở". | Ghi rõ dạng `result` cho từng `Job.type`; liệt kê `Job.type` (FE đang hiểu `record.create`, `document.issue`… để hiện tên tiếng Việt). |
-| 7 | 2026-10-19 | `POST /records` – `createdDate`, `backdateReason` (BR-28) | Không ghi "sớm quá hạn" là bao nhiêu ngày. | Ngày lập trước hôm nay thì bắt ghi lý do; ngày tương lai bị chặn. Máy chủ vẫn quyết định (422). | Ghi ngưỡng (vd > 3 ngày làm việc) để FE chỉ đòi lý do khi cần. |
-| 8 | 2026-10-19 | `POST /external-shares` – `expiresAt` (BR-17) | Không ghi số ngày tối đa. | Mặc định 14 ngày; không chặn phía FE, máy chủ trả 422 nếu vượt. | Đưa số ngày tối đa vào `GET /me` (vd `limits.shareMaxDays`) hoặc ghi vào hợp đồng. |
-| 9 | 2026-10-19 | `GET /folders` | Không rõ khi không có `parentId` thì trả gốc drive hay cả cây; không rõ `depth` tính từ đâu. | Gọi `?driveId=&depth=1`, coi thư mục không có cha trong kết quả là gốc; mở từng cấp bằng `/folders/{id}/children`. | Ghi rõ: không có `parentId` = trả các thư mục cấp 1 của drive. |
-| 10 | 2026-10-19 | Mẫu tên thư mục (BR-11) | BA ghi "số + MÃ-TÊN NGẮN + tên đầy đủ" nhưng không có ví dụ đầy đủ. | Hiện "Tên dự kiến" = `số MÃ-TÊNNGẮN tên đầy đủ`, ghi rõ máy chủ ghép chính thức. | Thêm ví dụ, hoặc `GET /folders/preview-name`. |
-| 11 | 2026-10-19 | `GET /auth/google/callback` – lỗi | Tài khoản ngoài tên miền trả 403 JSON, trình duyệt sẽ thấy trang JSON. | Trang đăng nhập đọc `?loi=domain\|locked\|expired` để báo tiếng Việt. | Callback lỗi thì chuyển hướng 302 về `/dang-nhap?loi=domain` (hoặc `locked`). |
-| 12 | 2026-10-19 | `Me` | Không có `blockId` (giám đốc khối) để mở đúng bảng uỷ quyền. | Tìm khối có `directorId` = tôi trong `GET /blocks`. | Thêm `blockId` vào `Me`. |
-| 13 | 2026-10-19 | `Approval` liên quan `disposal`, `delegation` | Giai đoạn 1 chưa có màn hình huỷ hồ sơ (M11). | Phiếu loại này chỉ hiện chi tiết, không có link sang đối tượng. | Không cần sửa; ghi chú cho giai đoạn 2. |
+**2026-10-20:** chủ dự án đã chốt toàn bộ đề nghị #1–#13 (hợp đồng Claude Docs mục 9,
+rev 19; `contract/openapi.yaml` 1.1.0-gd1, commit `bbebac3` trên `giai-doan-1`). FE đã
+gộp `giai-doan-1` và sửa theo. Mục mới ở cuối bảng.
+
+| # | Ngày | Điểm cuối / đối tượng | Vấn đề | Tình trạng |
+|---|------|----------------------|--------|-----------|
+| 1 | 2026-10-19 | `allowedActions` (mọi đối tượng) | Không liệt kê tên hành động. | **Đã xử lý (D9).** Enum từng đối tượng; FE so đúng từng chữ, kiểu TypeScript bắt sai tên lúc biên dịch. |
+| 2 | 2026-10-19 | User, Folder, Block, Department, Division, Delegation, tài liệu bên ngoài | Không có `allowedActions`, FE phải đoán theo vai trò. | **Đã xử lý (D9).** Nút sửa / đổi tên / kết thúc dự án / đọc lại / sửa vai trò / ghi nghỉ việc / cập nhật tài liệu bên ngoài / kiểm tra toàn vẹn đều theo `allowedActions`. Vai trò chỉ còn dùng cho nút tạo mới và menu. |
+| 3 | 2026-10-19 | Chọn người | `GET /users` chỉ cho R3, R4, R9. | **Đã xử lý (D3).** Dùng `GET /users/lookup?q=`; bỏ câu "nhờ trưởng phòng". |
+| 4 | 2026-10-19 | Tên người trong đối tượng | Chỉ có id. | **Đã xử lý (D10).** Gom `people` từ mọi phản hồi vào một kho chung; bỏ gọi `/users/{id}` từng người. Xem thêm #14. |
+| 5 | 2026-10-19 | Máy chủ giả Prism | Không có tiền tố `/api/v1`. | **Đã xử lý.** Ghi trong `contract/README.md`; FE dùng `API_PATH_PREFIX=` (`pnpm --filter @vcdocs/web dev:mock`). |
+| 6 | 2026-10-19 | `Job.result`, `Job.type` | Kiểu tự do. | **Đã xử lý (D11).** Tên tiếng Việt theo enum `Job.type`; link "Mở" theo `objectType/objectId` hoặc `fileId/url`. |
+| 7 | 2026-10-19 | BR-28 lập lùi ngày | Không rõ ngưỡng. | **Đã xử lý (D12).** Chỉ đòi lý do khi lùi quá `limits.backdateWorkingDays` ngày làm việc. |
+| 8 | 2026-10-19 | BR-17 hạn chia sẻ | Không rõ số ngày tối đa. | **Đã xử lý (D12).** Mặc định và giới hạn ngày hết hạn theo `limits.shareMaxDays`. |
+| 9 | 2026-10-19 | `GET /folders` | Không rõ khi không có `parentId`. | **Đã xử lý (D8).** Không có `parentId` = cấp 1 của drive; tạo thư mục ở gốc drive không gửi `parentId`; số kế tiếp hỏi bằng `driveId`. |
+| 10 | 2026-10-19 | Mẫu tên thư mục (BR-11) | Không có ví dụ đầy đủ. | **Giữ nguyên (nhóm 3, giả định).** FE vẫn hiện "Tên dự kiến", ghi rõ máy chủ ghép chính thức. |
+| 11 | 2026-10-19 | Callback đăng nhập lỗi | Trả JSON. | **Đã xử lý (D13).** Trang `/dang-nhap` đọc `loi=domain\|locked\|expired\|state`. |
+| 12 | 2026-10-19 | `Me` thiếu `blockId` | | **Đã xử lý (D12).** Bảng uỷ quyền mở đúng khối theo `me.blockId`. |
+| 13 | 2026-10-19 | Phiếu `disposal`, `delegation` | Chưa có màn hình M11. | Không cần sửa; giai đoạn 2. |
+| 14 | 2026-10-20 | `GET /blocks`, `GET /departments` | `Block`, `Department` không có `people`, nên tên giám đốc khối (`directorId`) và trưởng phòng (`headId`) không hiện được khi FE bỏ gọi `/users/{id}`. | FE hiện "Nhân sự …abc123". Đề nghị: thêm `people` vào phản hồi hai danh sách này (hoặc trả kèm `director`/`head` dạng `UserRef`). |
+| 15 | 2026-10-20 | `GET /folders/next-number` | Không rõ có trả số cho `kind = operations` ở gốc drive (02–09) hay chỉ trong thư mục cha. | FE gửi `driveId` khi chọn gốc drive, cho mọi loại. Đề nghị ghi rõ loại nào được tạo ở gốc. |

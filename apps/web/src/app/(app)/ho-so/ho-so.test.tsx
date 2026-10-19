@@ -2,7 +2,8 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { errorBody, ids } from '@/test/fixtures';
+import { errorBody, ids, record } from '@/test/fixtures';
+import { RecordView } from './[id]/RecordView';
 import { renderApp } from '@/test/render';
 import { API, server } from '@/test/server';
 import { navigation } from '@/test/setup';
@@ -79,5 +80,28 @@ describe('lập hồ sơ', () => {
     await fillBasics();
     await userEvent.click(screen.getByRole('button', { name: 'Lập hồ sơ' }));
     expect(await screen.findByText('Mã chức năng chưa được duyệt (Quy tắc BR-12)')).toBeInTheDocument();
+  });
+});
+
+describe('chi tiết hồ sơ', () => {
+  it('người lập hiện tên từ people; giữ lại phải chọn lý do và ghi diễn giải', async () => {
+    let body: unknown;
+    server.use(
+      http.get(`${API}/records/:id`, () => HttpResponse.json(record)),
+      http.post(`${API}/records/:id/hold`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ...record, status: 'held', allowedActions: ['release-hold'] });
+      }),
+    );
+    renderApp(<RecordView id={ids.record} />, { roles: ['R4'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Giữ lại' }));
+    expect(screen.getAllByText('Nguyễn Văn A').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Chốt hồ sơ' })).toBeNull();
+    const confirm = screen.getAllByRole('button', { name: 'Giữ lại' }).at(-1)!;
+    await userEvent.type(screen.getByLabelText(/Diễn giải/), 'Khách khiếu nại hoá đơn');
+    expect(confirm).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText(/^Lý do/), 'dispute');
+    await userEvent.click(confirm);
+    await waitFor(() => expect(body).toEqual({ reasonType: 'dispute', reason: 'Khách khiếu nại hoá đơn' }));
   });
 });

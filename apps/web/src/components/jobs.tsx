@@ -30,24 +30,27 @@ export function jobErrorText(job?: Job): string {
   return job?.error?.error?.message || job?.steps?.find((s) => s.status === 'failed')?.error || 'Việc chạy nền bị lỗi.';
 }
 
-/** Đường dẫn tới kết quả của việc: đối tượng VCdocs hoặc file Google. */
+/** Đường dẫn tới kết quả của việc (D11): đối tượng VCdocs, hoặc file Google (fileId / url). */
 export function jobResultLink(job?: Job): { href: string; text: string; external?: boolean } | undefined {
-  const r = (job?.result ?? {}) as Record<string, unknown>;
-  const objectType = typeof r.objectType === 'string' ? r.objectType : undefined;
-  const objectId = typeof r.objectId === 'string' ? r.objectId : undefined;
-  if (objectType && objectId) {
-    const map: Record<string, [string, string]> = {
+  const r = job?.result;
+  if (!r) return undefined;
+  if ('objectType' in r && r.objectId) {
+    const map: Record<typeof r.objectType, [string, string]> = {
       record: ['/ho-so/', 'Mở hồ sơ'],
       document: ['/tai-lieu/', 'Mở tài liệu'],
       folder: ['/thu-muc?folder=', 'Mở thư mục'],
       approval: ['/phe-duyet/', 'Mở phiếu'],
       external_share: ['/chia-se?id=', 'Mở sổ chia sẻ'],
+      code: ['/bang-ma?id=', 'Mở Bảng mã'],
+      record_type: ['/danh-muc-ho-so/', 'Mở loại hồ sơ'],
     };
-    const m = map[objectType];
-    if (m) return { href: `${m[0]}${objectId}`, text: m[1] };
+    const m = map[r.objectType];
+    return m ? { href: `${m[0]}${r.objectId}`, text: m[1] } : undefined;
   }
-  const fileId = typeof r.fileId === 'string' ? r.fileId : undefined;
-  if (fileId) return { href: `https://drive.google.com/open?id=${encodeURIComponent(fileId)}`, text: 'Mở file trên Drive', external: true };
+  if ('fileId' in r && r.fileId) {
+    const url = r.url && /^https:\/\//.test(r.url) ? r.url : `https://drive.google.com/open?id=${encodeURIComponent(r.fileId)}`;
+    return { href: url, text: 'Mở file trên Drive', external: true };
+  }
   return undefined;
 }
 

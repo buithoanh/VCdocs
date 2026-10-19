@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRole, hasAction, navFor, normalizeAction } from './permissions';
+import { canRole, hasAction, navFor } from './permissions';
 import { safeReturnTo } from './returnTo';
 
 describe('allowedActions', () => {
@@ -10,10 +10,9 @@ describe('allowedActions', () => {
     expect(hasAction(undefined, 'submit')).toBe(false);
   });
 
-  it('không phân biệt cách viết assign-code / assign_code / assignCode', () => {
-    expect(normalizeAction('assign-code')).toBe(normalizeAction('assignCode'));
-    expect(hasAction({ allowedActions: ['assignCode'] }, 'assign-code')).toBe(true);
-    expect(hasAction({ allowedActions: ['release_hold'] }, 'release-hold')).toBe(true);
+  it('so đúng tên trong enum, không so lỏng', () => {
+    expect(hasAction({ allowedActions: ['release-hold'] }, 'release-hold')).toBe(true);
+    expect(hasAction({ allowedActions: ['release-hold'] as string[] }, 'releaseHold')).toBe(false);
   });
 });
 

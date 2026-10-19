@@ -10,6 +10,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Badge, Button, ErrorBox, Modal, PageHeader, QueryState, SelectField, Tabs, TextField } from '@/components/ui';
 import { securityLabel } from '@/lib/labels';
+import { hasAction } from '@/lib/permissions';
 
 type Tab = 'khoi' | 'phong' | 'division';
 
@@ -56,7 +57,7 @@ function BlocksTab() {
             { key: 'code', header: 'Mã', render: (b) => <strong>{b.code}</strong> },
             { key: 'name', header: 'Tên khối', render: (b) => b.name },
             { key: 'dir', header: 'Giám đốc khối', render: (b) => <UserName id={b.directorId} /> },
-            { key: 'edit', header: '', render: (b) => can('editMasterData') && <Button variant="ghost" onClick={() => setEdit(b)}>Sửa</Button> },
+            { key: 'edit', header: '', render: (b) => hasAction(b, 'update') && <Button variant="ghost" onClick={() => setEdit(b)}>Sửa</Button> },
           ]}
         />
       </QueryState>
@@ -127,7 +128,7 @@ function DepartmentsTab() {
             { key: 'block', header: 'Khối', render: (d) => blockName(blocks.data, d.blockId), hideOnMobile: true },
             { key: 'sec', header: 'Mức bảo mật', render: (d) => <Badge status={d.securityLevel === 'confidential' ? 'failed' : 'active'}>{securityLabel[d.securityLevel]}</Badge> },
             { key: 'head', header: 'Trưởng phòng', render: (d) => <UserName id={d.headId} />, hideOnMobile: true },
-            { key: 'edit', header: '', render: (d) => can('editMasterData') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
+            { key: 'edit', header: '', render: (d) => hasAction(d, 'update') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
           ]}
         />
       </QueryState>
@@ -221,7 +222,7 @@ function DivisionsTab() {
           columns={[
             { key: 'prefix', header: 'Tiền tố mã', render: (d) => <strong>{d.prefix}</strong> },
             { key: 'name', header: 'Tên', render: (d) => d.name },
-            { key: 'edit', header: '', render: (d) => can('editMasterData') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
+            { key: 'edit', header: '', render: (d) => hasAction(d, 'update') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
           ]}
         />
       </QueryState>
