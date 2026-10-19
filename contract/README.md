@@ -19,6 +19,9 @@
   `API_ORIGIN` (mặc định http://localhost:4000, chạy mock thì :4010).
 - Đường dẫn cố định đặt trước đường dẫn có tham số: `/folders/next-number`
   trước `/folders/{id}`, `/documents/similar` trước `/documents/{id}`…
+- Máy chủ giả Prism phục vụ KHÔNG có tiền tố `/api/v1` (đường dẫn gốc là
+  `/me`, `/documents`…). FE chạy mock thì đặt `API_ORIGIN=http://localhost:4010`
+  và `API_PATH_PREFIX=` (rỗng); chạy BE thật thì để mặc định `/api/v1`.
 - Lỗi luôn theo `components/schemas/Error`; `message` tiếng Việt.
 - `pnpm-lock.yaml` mỗi bên tự sinh; lúc ghép thì chạy lại `pnpm install`
   để gộp, không sửa tay.
