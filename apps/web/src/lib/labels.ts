@@ -234,3 +234,10 @@ export function jobTypeText(type?: string): string {
   const key = type.replace(/-/g, '_');
   return jobTypeMap[type] ?? jobTypeMap[key] ?? 'Việc chạy nền';
 }
+
+export const retentionStatusLabel = { draft: 'Nháp – chưa lập được hồ sơ', submitted: 'Đang trình duyệt', approved: 'Đã duyệt' } as const;
+
+export function retentionText(years?: number) {
+  if (years === undefined) return '—';
+  return years === 0 ? 'Vĩnh viễn' : `${years} năm`;
+}
