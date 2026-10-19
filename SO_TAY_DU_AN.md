@@ -20,7 +20,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 16: đủ mục 1–8 + M16; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất])
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` có `contract/openapi.yaml` (giai đoạn 1) và khung workspace pnpm; 2 phiên FE/BE đang code song song.
+- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE giai đoạn 1 theo hợp đồng v1.1 (rev 19). Build qua, BE 107 test, FE 60 test; đã chạy FE với BE thật (Google giả) trọn luồng hồ sơ. Chưa push `giai-doan-1`.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`.
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
@@ -42,8 +42,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà các chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
-- [ ] Phiên BE giai đoạn 1 (`apps/api`) và phiên FE giai đoạn 1 (`apps/web`) — xem nhật ký
-- [ ] Ghép FE + BE khi hai phiên xong
+- [ ] Chủ dự án chốt 6 đề nghị mới sau v1.1: BE N1–N4 (`apps/api/DE_NGHI_SUA_HOP_DONG.md`), FE #14–#15 (`apps/web/DE_NGHI_SUA_HOP_DONG.md`)
+- [ ] Push `giai-doan-1`, mở PR `giai-doan-1` → `main`; đóng PR #1 (chỉ có FE, đích main) — máy chưa có `gh`
+- [ ] Tài khoản Google thử nghiệm (service account, shared drive) để chạy bản Google thật; IT tạo nhóm Google theo mẫu C1
 - [ ] Sửa đoạn mở đầu của hợp đồng API: hiện ghi "OpenAPI sinh tự động từ mã NestJS", phải đổi thành "`contract/openapi.yaml` viết tay là gốc"
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Sau này: chủ dự án cung cấp service account và shared drive test để thay mock Google bằng bản thật
@@ -60,6 +61,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Chốt đề nghị, hợp đồng v1.1, ghép FE + BE
+- Đã làm: chủ dự án nhận toàn bộ đề nghị (D1–D14, C1–C17); ghi mục 9 vào hợp đồng Claude Docs (rev 19) và sửa 3 chỗ "OpenAPI sinh từ mã"; `contract/openapi.yaml` 1.1.0-gd1. Hai phiên BE/FE sửa theo v1.1. Ghép `claude/be-gd1-7af2e6` và `claude/fe-gd1-72b5d9` vào `giai-doan-1` (gộp sổ tay, sinh lại `pnpm-lock.yaml`). Build qua, BE 107/107, FE 60/60. Chạy thật Mongo + BE (Google giả) + FE: lỗi tên miền → /dang-nhap?loi=domain; nhân viên MKT lập hồ sơ → HS-2026-000001 đúng tên mẫu C3 → trình → trưởng phòng MKT duyệt → chốt (PDF, mã tra cứu, SHA-256, lưu đến 31/10/2031).
+- Còn dở: 6 đề nghị mới chờ chốt; push + PR; Google thật.
 
 ### 2026-10-20 · BE theo hợp đồng 1.1.0-gd1 (nhánh `claude/be-gd1-7af2e6`)
 - Đã làm: gộp `giai-doan-1` (bbebac3); sửa `apps/api` theo mục 7 rev 16 và mục 9 D1–D14: R4 lập hồ sơ, người soạn được trình, GET /users/lookup, hold.reasonType, uỷ quyền theo recordTypeId + isLegalSignature, chia sẻ phát hiện không cần hạn, thư mục gốc drive, allowedActions đúng enum, `people`, Job.type/result, /me blockId + limits, callback lỗi → 302 /dang-nhap?loi=, 413 PAYLOAD_TOO_LARGE, loại trường lạ. 107 test e2e qua, 98/98 điểm cuối, build qua. Không push (phiên chính ghép tại máy).
