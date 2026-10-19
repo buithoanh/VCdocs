@@ -131,7 +131,8 @@ describe('M06 Danh mục hồ sơ + M07 Hồ sơ', () => {
       expect(rec).toMatchObject({ status: 'drafting', kind: 'BC', isApproved: false, workMonth: month });
       expect(rec.number).toMatch(/^HS-\d{4}-\d{6}$/);
       expect(rec.fileName).toBe(`SEO-PTDA BC Báo cáo SEO tháng – ${dateVN()}`);
-      expect(rec.allowedActions).toEqual(expect.arrayContaining(['edit', 'submit', 'scan', 'share']));
+      expect(rec.allowedActions).toEqual(['update', 'submit', 'scan', 'share']);
+      expect(rec.people[t.ids.users['nv.mkt']].email).toBe(t.ids.emails['nv.mkt']);
       fileId = rec.fileId;
       const folder = (await nv.get(`/folders/${rec.folderId}`)).body;
       expect(folder).toMatchObject({ kind: 'month', name: month });
@@ -189,12 +190,13 @@ describe('M06 Danh mục hồ sơ + M07 Hồ sơ', () => {
       const after = (await nv.get(`/records/${recId}`)).body;
       expect(after).toMatchObject({ status: 'drafting', isApproved: true });
       expect(after.allowedActions).toContain('finalize');
-      expect(after.allowedActions).not.toContain('edit');
+      expect(after.allowedActions).not.toContain('update');
     });
 
     it('uỷ quyền khối còn hiệu lực → người được uỷ quyền duyệt hồ sơ', async () => {
       const gdk = await t.login('gdk.kd');
-      await gdk.post('/delegations', { blockId: t.ids.blocks.KD, task: 'Báo cáo SEO tháng', delegateId: t.ids.users['leader.mkt'], from: '2026-01-01' });
+      const d = await gdk.post('/delegations', { blockId: t.ids.blocks.KD, recordTypeId: t.ids.recordTypes.seoReport, task: 'Báo cáo SEO tháng', delegateId: t.ids.users['leader.mkt'], from: '2026-01-01' });
+      expect(d.status).toBe(201);
       const r = await nv.post('/records', { recordTypeId: t.ids.recordTypes.seoReport, kind: 'BC', functionCode: 'SEO-VCE', subject: 'Báo cáo VCE', workMonth: month });
       await t.drain();
       const id = (await nv.get(`/jobs/${r.body.jobId}`)).body.result.objectId;
@@ -227,7 +229,7 @@ describe('M06 Danh mục hồ sơ + M07 Hồ sơ', () => {
       expect((await PDFDocument.load(stored)).getPageCount()).toBeGreaterThan(0);
       expect(rec.allowedActions).toEqual(expect.arrayContaining(['adjust']));
       expect((await tp.get(`/records/${recId}`)).body.allowedActions).toEqual(expect.arrayContaining(['hold', 'integrity']));
-      expect(rec.allowedActions).not.toContain('edit');
+      expect(rec.allowedActions).not.toContain('update');
       expect((await nv.post(`/records/${recId}/finalize`)).status).toBe(409);
       expect((await nv.patch(`/records/${recId}`, { subject: 'sửa sau chốt' })).status).toBe(409);
     });
@@ -256,12 +258,13 @@ describe('M06 Danh mục hồ sơ + M07 Hồ sơ', () => {
     });
 
     it('giữ lại (BR-22) / bỏ giữ', async () => {
-      expect((await nv.post(`/records/${recId}/hold`, { reason: 'Tranh chấp' })).status).toBe(403);
-      expect((await tp.post(`/records/${recId}/hold`, { reason: 'Thích thì giữ' })).body.error.rule).toBe('BR-22');
-      const h = await tp.post(`/records/${recId}/hold`, { reason: 'Đang tranh chấp hợp đồng quảng cáo' });
+      expect((await nv.post(`/records/${recId}/hold`, { reasonType: 'dispute', reason: 'Tranh chấp' })).status).toBe(403);
+      expect((await tp.post(`/records/${recId}/hold`, { reasonType: 'thich-thi-giu', reason: 'x' })).status).toBe(400);
+      expect((await tp.post(`/records/${recId}/hold`, { reason: 'thiếu loại' })).status).toBe(400);
+      const h = await tp.post(`/records/${recId}/hold`, { reasonType: 'dispute', reason: 'Đang tranh chấp hợp đồng quảng cáo' });
       expect(h.status).toBe(200);
-      expect(h.body).toMatchObject({ status: 'held', hold: { isActive: true } });
-      expect((await tgd.post(`/records/${recId}/hold`, { reason: 'Thanh tra' })).status).toBe(409);
+      expect(h.body).toMatchObject({ status: 'held', hold: { isActive: true, reasonType: 'dispute' } });
+      expect((await tgd.post(`/records/${recId}/hold`, { reasonType: 'inspection', reason: 'Thanh tra' })).status).toBe(409);
       const rl = await tgd.post(`/records/${recId}/release-hold`);
       expect(rl.status).toBe(200);
       expect(rl.body.status).toBe('finalized');
@@ -330,8 +333,9 @@ describe('M06 Danh mục hồ sơ + M07 Hồ sơ', () => {
     it('drive Mật: hồ sơ không lộ (404)', async () => {
       const f = await t.db.m.Folder.findOne({ companyId: new Types.ObjectId(t.ids.companyId), _id: new Types.ObjectId(t.ids.folders['TCKT:01']) }).lean<any>();
       const rt = await t.db.m.RecordType.create({ companyId: new Types.ObjectId(t.ids.companyId), departmentId: new Types.ObjectId(t.ids.depts.TCKT.id), name: 'Đề nghị thanh toán', kind: 'DX', folderId: f._id, retentionYears: 10, retentionStatus: 'approved', securityLevel: 'confidential' });
-      // Trưởng phòng (R4) không có trong danh sách được lập hồ sơ của hợp đồng (R5, R6, R8)
-      expect((await tp.post('/records', { recordTypeId: t.ids.recordTypes.seoPlan, kind: 'KH', functionCode: 'SEO-PTDA', subject: 'x', workMonth: month })).status).toBe(403);
+      // Trưởng phòng (R4) được lập hồ sơ (D1)
+      expect((await tp.post('/records', { recordTypeId: t.ids.recordTypes.seoPlan, kind: 'KH', functionCode: 'SEO-PTDA', subject: 'Kế hoạch do trưởng phòng lập', workMonth: month })).status).toBe(202);
+      await t.drain();
       const c = await ktt.post('/records', { recordTypeId: String(rt._id), kind: 'DX', functionCode: 'KD', subject: 'Đề nghị thanh toán quảng cáo', workMonth: month });
       expect(c.status).toBe(202);
       await t.drain();

@@ -89,7 +89,7 @@ export class RecordsController {
   }
 
   @Post('records')
-  @Roles('R5', 'R6', 'R8')
+  @Roles('R4', 'R5', 'R6', 'R8')
   @HttpCode(202)
   async create(@CurrentCtx() ctx: Ctx, @Body() body: any) {
     const { createdDate } = await this.records.validateInput(ctx, body);
@@ -102,12 +102,14 @@ export class RecordsController {
   /** Thân multipart kiểm theo hợp đồng sau khi multer đọc xong */
   private validateMultipart(req: Request, body: any) {
     const info = operationOf(req)!;
-    const r = getContract().validateBody(info, { ...body, file: 'tệp' }, 'multipart/form-data');
+    body.file = 'tệp';
+    const r = getContract().validateBody(info, body, 'multipart/form-data');
+    delete body.file;
     if (!r.ok) throw Errors.validation('Dữ liệu gửi lên không hợp lệ', r.errors);
   }
 
   @Post('records/upload')
-  @Roles('R5', 'R6', 'R8')
+  @Roles('R4', 'R5', 'R6', 'R8')
   @HttpCode(202)
   @UseInterceptors(FileInterceptor('file'))
   async upload(@CurrentCtx() ctx: Ctx, @Req() req: Request, @Body() body: any, @UploadedFile() file?: Express.Multer.File) {
@@ -322,14 +324,13 @@ export class RecordsController {
   /** Giữ lại, không được huỷ (BR-22) */
   @Post('records/:id/hold')
   @HttpCode(200)
-  async hold(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Body() body: { reason: string }) {
+  async hold(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Body() body: { reasonType: string; reason: string }) {
     const r = await this.records.loadVisible(ctx, id);
     await this.assertHolder(ctx, r);
     if (r.status !== 'finalized') throw Errors.state('Chỉ giữ lại được hồ sơ đã chốt');
-    if (!this.records.isHoldReason(body.reason)) {
-      throw Errors.rule('BR-22', 'Lý do giữ lại phải thuộc: tranh chấp, thanh tra, bảo hành, công nợ, hợp đồng chưa thanh lý, BĐH yêu cầu', [{ field: 'reason', issue: 'not_br22' }]);
-    }
-    const hold = { isActive: true, reason: body.reason, by: new Types.ObjectId(ctx.user.id), at: new Date() };
+    // reasonType là enum HoldReasonType (BR-22, D5) – hợp đồng đã kiểm giá trị
+    if (!body.reason.trim()) throw Errors.validation('Ghi diễn giải lý do giữ lại', [{ field: 'reason', issue: 'required' }]);
+    const hold = { isActive: true, reasonType: body.reasonType, reason: body.reason.trim(), by: new Types.ObjectId(ctx.user.id), at: new Date() };
     await this.db.m.Record.updateOne({ _id: r._id, companyId: r.companyId, status: 'finalized' }, { $set: { status: 'held', hold, updatedBy: hold.by } });
     await this.audit.record(ctx, { action: 'record.hold', objectType: 'record', objectId: id, before: { status: r.status }, after: { status: 'held', hold } });
     return this.view(ctx, await this.records.load(ctx.companyId, r._id));

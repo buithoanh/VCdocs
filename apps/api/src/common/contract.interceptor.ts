@@ -9,9 +9,7 @@ import { getCtx } from './context';
  * BE nhận lỏng hơn hợp đồng ở vài trường bắt buộc (không làm hỏng FE gửi đủ),
  * lý do ghi trong DE_NGHI_SUA_HOP_DONG.md.
  */
-export const RELAX_REQUIRED: Record<string, string[]> = {
-  'POST /folders': ['parentId'],
-};
+export const RELAX_REQUIRED: Record<string, string[]> = {};
 
 export function operationOf(req: Request): OperationInfo | undefined {
   const routePath: string | undefined = (req as any).route?.path;

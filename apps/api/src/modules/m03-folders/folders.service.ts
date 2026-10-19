@@ -5,7 +5,7 @@ import { GOOGLE, GooglePorts } from '../../google/ports';
 import { AccessService } from '../../access/access.service';
 import { Errors } from '../../common/errors';
 import type { Ctx } from '../../common/context';
-import type { FolderKind } from '../../common/enums';
+import { driveRoleAtLeast, FolderKind } from '../../common/enums';
 import { toApi } from '../../common/util';
 
 /** Vùng số trong khung (BR-11), áp dụng ở gốc drive */
@@ -39,17 +39,28 @@ export class FoldersService {
     return new Types.ObjectId(companyId);
   }
 
-  toApi(f: any, hasChildren?: boolean) {
-    const o: any = toApi(f, ['hasPeriods', 'originalParentKey']);
-    if (hasChildren !== undefined) o.hasChildren = hasChildren;
-    return o;
+  /** FolderActions (D9) theo đúng điều kiện kiểm ở từng điểm cuối */
+  async actions(ctx: Ctx, f: any, heads: Set<string>): Promise<string[]> {
+    const dept = await this.access.deptByDrive(ctx.companyId, f.driveId);
+    const role = this.access.driveRole(ctx, f.driveId);
+    const head = !!dept && heads.has(dept.id) && driveRoleAtLeast(role, 'fileOrganizer');
+    const leader = this.access.hasRole(ctx, 'R5') && driveRoleAtLeast(role, 'fileOrganizer') && ['area', 'project'].includes(f.kind);
+    const out: string[] = [];
+    if (f.status === 'active' && !['month'].includes(f.kind) && (head || leader)) out.push('create-child');
+    if (head && !['year', 'month'].includes(f.kind)) out.push('rename');
+    if (head && f.kind === 'project' && f.status === 'active') out.push('close-project');
+    if (this.access.hasRole(ctx, 'R3') || head) out.push('resync');
+    return out;
   }
 
-  async withChildrenFlag(companyId: string, rows: any[]) {
+  async withChildrenFlag(ctx: Ctx, rows: any[]) {
     if (!rows.length) return [];
-    const parents = await this.db.m.Folder.distinct('parentId', { companyId: this.cid(companyId), parentId: { $in: rows.map((r) => r._id) } });
+    const parents = await this.db.m.Folder.distinct('parentId', { companyId: this.cid(ctx.companyId), parentId: { $in: rows.map((r) => r._id) } });
     const set = new Set(parents.map(String));
-    return rows.map((r) => this.toApi(r, set.has(String(r._id))));
+    const heads = await this.access.headDeptIds(ctx);
+    return Promise.all(
+      rows.map(async (r) => ({ ...toApi(r, ['hasPeriods', 'originalParentKey']), hasChildren: set.has(String(r._id)), allowedActions: await this.actions(ctx, r, heads) })),
+    );
   }
 
   async get(companyId: string, id: string | Types.ObjectId) {

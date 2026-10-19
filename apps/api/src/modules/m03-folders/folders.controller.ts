@@ -108,7 +108,7 @@ export class FoldersController {
       all.push(...level);
     }
     const rows = q.kind ? all.filter((f) => f.kind === q.kind) : all;
-    return { items: await this.folders.withChildrenFlag(ctx.companyId, rows) };
+    return { items: await this.folders.withChildrenFlag(ctx, rows) };
   }
 
   /** Trưởng phòng của drive; leader (R5) chỉ trong mảng/dự án mình (có vai trò Quản lý nội dung) */
@@ -127,7 +127,7 @@ export class FoldersController {
   @HttpCode(202)
   async create(@CurrentCtx() ctx: Ctx, @Body() body: any) {
     const kind = body.kind as FolderKind;
-    // parentId bắt buộc theo hợp đồng nhưng thư mục gốc drive (mảng 10–49, dự án 50–89) không có cha → nhận thiếu (xem DE_NGHI_SUA_HOP_DONG.md)
+    // Thiếu parentId = thư mục cấp 1 ở gốc drive (D8)
     const parent = body.parentId ? await this.folders.get(ctx.companyId, body.parentId) : undefined;
     if (body.parentId && (!parent || parent.driveId !== body.driveId)) throw Errors.validation('Thư mục cha không thuộc drive này', [{ field: 'parentId', issue: 'not_found' }]);
     await this.assertCanManage(ctx, body.driveId, parent, true);
@@ -149,8 +149,16 @@ export class FoldersController {
   @Get('next-number')
   @Roles('R4', 'R5')
   async nextNumber(@CurrentCtx() ctx: Ctx, @VQuery() q: any) {
-    const parent = await this.folders.getVisible(ctx, q.parentId);
-    return { number: await this.folders.nextNumber(ctx.companyId, parent.driveId, String(parent._id), q.kind) };
+    if (q.parentId) {
+      const parent = await this.folders.getVisible(ctx, q.parentId);
+      if (q.driveId && q.driveId !== parent.driveId) throw Errors.validation('Thư mục cha không thuộc drive này', [{ field: 'parentId', issue: 'other_drive' }]);
+      return { number: await this.folders.nextNumber(ctx.companyId, parent.driveId, String(parent._id), q.kind) };
+    }
+    // Gốc drive (D8): cần driveId
+    if (!q.driveId) throw Errors.validation('Cần driveId khi không có parentId', [{ field: 'query.driveId', issue: 'required' }]);
+    if (!(await this.access.deptByDrive(ctx.companyId, q.driveId))) throw Errors.notFound('Không tìm thấy drive');
+    await this.access.assertVisible(ctx, q.driveId);
+    return { number: await this.folders.nextNumber(ctx.companyId, q.driveId, undefined, q.kind) };
   }
 
   @Post('ensure-periods')
@@ -166,14 +174,14 @@ export class FoldersController {
   @Get(':id')
   async get(@CurrentCtx() ctx: Ctx, @Param('id') id: string) {
     const f = await this.folders.getVisible(ctx, id);
-    return (await this.folders.withChildrenFlag(ctx.companyId, [f]))[0];
+    return (await this.folders.withChildrenFlag(ctx, [f]))[0];
   }
 
   @Get(':id/children')
   async children(@CurrentCtx() ctx: Ctx, @Param('id') id: string) {
     const f = await this.folders.getVisible(ctx, id);
     const rows = await this.db.m.Folder.find({ companyId: f.companyId, parentId: f._id }).sort({ number: 1, name: 1 }).lean<any[]>();
-    return { items: await this.folders.withChildrenFlag(ctx.companyId, rows) };
+    return { items: await this.folders.withChildrenFlag(ctx, rows) };
   }
 
   @Post(':id/rename')
@@ -195,7 +203,7 @@ export class FoldersController {
     const after = await this.folders.get(ctx.companyId, f._id);
     await this.folders.repath(ctx.companyId, after);
     await this.audit.record(ctx, { action: 'folder.rename', objectType: 'folder', objectId: id, before: { name: f.name }, after: { name } });
-    return (await this.folders.withChildrenFlag(ctx.companyId, [after]))[0];
+    return (await this.folders.withChildrenFlag(ctx, [after]))[0];
   }
 
   @Post(':id/close-project')
@@ -235,6 +243,6 @@ export class FoldersController {
     const after = await this.folders.get(ctx.companyId, f._id);
     await this.folders.repath(ctx.companyId, after);
     await this.audit.record(ctx, { action: 'folder.resync', objectType: 'folder', objectId: id, before: { name: f.name, path: f.path, status: f.status }, after: { name: after.name, path: after.path, status: after.status } });
-    return (await this.folders.withChildrenFlag(ctx.companyId, [after]))[0];
+    return (await this.folders.withChildrenFlag(ctx, [after]))[0];
   }
 }

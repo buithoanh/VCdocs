@@ -11,6 +11,7 @@ import { AuthGuard } from './common/auth.guard';
 import { ContractInterceptor } from './common/contract.interceptor';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { AuditInterceptor } from './common/audit.interceptor';
+import { PeopleInterceptor } from './common/people.interceptor';
 import { ErrorFilter } from './common/error.filter';
 import { requestContextMiddleware } from './common/request-id.middleware';
 import { Db } from './db/db.service';
@@ -30,10 +31,11 @@ function rootModule(cfg: AppConfig): DynamicModule {
     providers: [
       { provide: APP_CONFIG, useValue: cfg },
       { provide: APP_GUARD, useClass: AuthGuard },
-      // Thứ tự: kiểm hợp đồng → chống lặp → ghi nhật ký
+      // Thứ tự: kiểm hợp đồng → chống lặp → ghi nhật ký → gắn people
       { provide: APP_INTERCEPTOR, useClass: ContractInterceptor },
       { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
       { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+      { provide: APP_INTERCEPTOR, useClass: PeopleInterceptor },
       { provide: APP_FILTER, useClass: ErrorFilter },
     ],
     exports: [APP_CONFIG],
@@ -61,10 +63,10 @@ export async function createApp(cfg: AppConfig, opts: { logger?: boolean } = {})
   app.use((err: any, req: any, res: any, next: any) => {
     if (!err) return next();
     const tooLarge = err.type === 'entity.too.large';
-    res.status(400).json({
+    res.status(tooLarge ? 413 : 400).json({
       error: {
-        code: 'VALIDATION',
-        message: tooLarge ? 'Dữ liệu gửi lên quá lớn (tối đa 1 MB)' : 'Thân yêu cầu không phải JSON hợp lệ',
+        code: tooLarge ? 'PAYLOAD_TOO_LARGE' : 'VALIDATION',
+        message: tooLarge ? 'Dữ liệu gửi lên quá lớn (thân JSON tối đa 1 MB)' : 'Thân yêu cầu không phải JSON hợp lệ',
         requestId: req.ctx?.requestId ?? randomToken(8),
       },
     });

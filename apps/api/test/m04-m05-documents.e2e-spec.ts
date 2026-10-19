@@ -68,7 +68,7 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
     expect(f.name).toBe('QT-MKT-01 v1 Quy trình viết bài SEO');
     expect(f.text).toContain('Mã: QT-MKT-01 | Phiên bản: v1 (nháp) | Trạng thái: Nháp – chưa hiệu lực');
     expect(f.text).toContain('Người soạn: Nhân viên MKT (mẫu)');
-    expect(d.allowedActions).toEqual(expect.arrayContaining(['request-feedback', 'feedback']));
+    expect(d.allowedActions).toEqual(['request-feedback', 'submit']);
     expect((await nv.post(`/documents/${docId}/create-draft`)).status).toBe(409);
   });
 
@@ -92,7 +92,10 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
     const fb = await nv.get(`/documents/${docId}/feedback`);
     expect(fb.body.openComments).toBe(2);
     expect((await nvKd.get(`/documents/${docId}/feedback`)).status).toBe(403);
-    expect((await nv.post(`/documents/${docId}/submit`, {})).status).toBe(403);
+    // người soạn được trình (D2) nhưng chỉ trưởng phòng được bỏ qua nhận xét mở
+    expect((await nvKd.post(`/documents/${docId}/submit`, {})).status).toBe(403);
+    expect((await nv.post(`/documents/${docId}/submit`, {})).status).toBe(422);
+    expect((await nv.post(`/documents/${docId}/submit`, { overrideOpenComments: true, reason: 'Gấp' })).status).toBe(403);
     expect((await tp.post(`/documents/${docId}/submit`, {})).status).toBe(422);
     expect((await tp.post(`/documents/${docId}/submit`, { overrideOpenComments: true })).status).toBe(400);
     t.fake.setOpenComments(fileId, 0);
@@ -388,10 +391,13 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
       const kd = t.ids.blocks.KD;
       expect((await nv.get('/delegations')).status).toBe(403);
       expect((await gdkVhnb.get(`/delegations?blockId=${kd}`)).status).toBe(403);
-      const base = { blockId: kd, task: 'Duyệt hồ sơ chi phí quảng cáo', limitAmount: 50_000_000, delegateId: t.ids.users['tp.mkt'], from: '2026-11-01', to: '2027-10-31' };
+      const base = { blockId: kd, recordTypeId: t.ids.recordTypes.seoReport, task: 'Duyệt báo cáo SEO tháng', limitAmount: 50_000_000, delegateId: t.ids.users['tp.mkt'], from: '2026-11-01', to: '2027-10-31' };
+      const hcnsType = await t.db.m.RecordType.create({ companyId: new Types.ObjectId(t.ids.companyId), departmentId: new Types.ObjectId(t.ids.depts.HCNS.id), name: 'Hồ sơ tuyển dụng', kind: 'BB', retentionStatus: 'approved' });
+      expect((await gdkKd.post('/delegations', { ...base, recordTypeId: String(hcnsType._id) })).body.error.rule).toBe('BR-24');
+      expect((await gdkKd.post('/delegations', { ...base, recordTypeId: undefined })).status).toBe(400);
       expect((await gdkKd.post('/delegations', { ...base, limitAmount: 9_000_000_000 })).body.error.rule).toBe('BR-24');
       expect((await gdkKd.post('/delegations', { ...base, delegateId: t.ids.users.hcns })).status).toBe(422);
-      expect((await gdkKd.post('/delegations', { ...base, task: 'Ký hợp đồng liên khối' })).status).toBe(422);
+      expect((await gdkKd.post('/delegations', { ...base, isLegalSignature: true })).body.error.rule).toBe('BR-24');
       expect((await gdkKd.post('/delegations', { ...base, to: '2026-01-01' })).status).toBe(400);
       expect((await gdkVhnb.post('/delegations', base)).status).toBe(403);
       const c = await gdkKd.post('/delegations', base);
@@ -402,9 +408,12 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
       expect(u.status).toBe(200);
       expect(u.body.limitAmount).toBe(80_000_000);
       expect(u.body.to).toBeUndefined();
+      expect(u.body).toMatchObject({ recordTypeId: t.ids.recordTypes.seoReport, isLegalSignature: false, allowedActions: ['update'] });
+      expect(u.body.people[t.ids.users['tp.mkt']].name).toBe('Trưởng phòng MKT (mẫu)');
       expect((await gdkKd.patch(`/delegations/${id}`, { ...base, limitAmount: 9e12 })).status).toBe(422);
       expect((await gdkKd.patch('/delegations/6712f0c2a1b2c3d4e5f60718', base)).status).toBe(404);
       expect((await gdkKd.patch(`/delegations/${id}`, { task: 'thiếu trường' })).status).toBe(400);
+      expect((await gdkKd.patch(`/delegations/${id}`, { ...base, isLegalSignature: true })).status).toBe(422);
     });
   });
 

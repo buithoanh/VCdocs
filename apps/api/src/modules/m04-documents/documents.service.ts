@@ -75,10 +75,8 @@ export class DocumentsService {
     if (s === 'registered' && r3) out.push('assign-code');
     if (s === 'coded' && isDrafter) out.push('create-draft');
     if ((s === 'drafting' || s === 'revising') && isDrafter) out.push('request-feedback');
-    if (['drafting', 'feedback', 'revising'].includes(s)) {
-      if (isDrafter || isHead) out.push('feedback');
-      if (isHead) out.push('submit');
-    }
+    // Người soạn được giao hoặc trưởng phòng soạn được trình (D2)
+    if (['drafting', 'feedback', 'revising'].includes(s) && (isDrafter || isHead)) out.push('submit');
     if (s === 'approved' && ((d.level === 'VCPV' && r3) || (d.level === 'DEPT' && isHead))) out.push('issue');
     if (s === 'effective' && isHead) out.push('revise', 'withdraw', 'review');
     if (['effective', 'revising'].includes(s) && (r3 || isHead)) out.push('integrity', 'relock');
@@ -245,7 +243,7 @@ export class DocumentsService {
   }
 
   /** Job huỷ bỏ đã duyệt: thêm [HẾT HIỆU LỰC], chuyển 99, không xoá file (BR-08) */
-  async runWithdraw(job: JobContext) {
+  async runWithdraw(job: Pick<JobContext, 'companyId' | 'userId' | 'requestId' | 'payload' | 'step'>) {
     const { documentId, replacedById } = job.payload;
     const d = await this.load(job.companyId, documentId);
     if (!d || !['effective', 'revising'].includes(d.status)) throw Errors.state('Tài liệu không còn hiệu lực');

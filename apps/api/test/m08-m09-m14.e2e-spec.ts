@@ -146,7 +146,11 @@ describe('M08 Tra cứu, M09 Chia sẻ ngoài, M14 Thông báo', () => {
       const a = await tp.get('/external-shares/anomalies');
       expect(a.status).toBe(200);
       expect(a.body.items).toHaveLength(1);
-      expect(a.body.items[0]).toMatchObject({ source: 'detected', email: 'canhan@gmail.com', status: 'active' });
+      expect(a.body.items[0]).toMatchObject({ source: 'detected', email: 'canhan@gmail.com', status: 'active', allowedActions: ['revoke'] });
+      // D7: chia sẻ phát hiện không có hạn, lý do; có detectedAt
+      expect(a.body.items[0].expiresAt).toBeUndefined();
+      expect(a.body.items[0].reason).toBeUndefined();
+      expect(a.body.items[0].detectedAt).toBeTruthy();
       expect((await r3.get('/external-shares/anomalies')).body.items).toHaveLength(1);
       await t.app.get(SchedulerService).runAll();
       expect(t.fake.fileState(recFile).permissions.some((p) => p.emailAddress === 'canhan@gmail.com')).toBe(false);
@@ -162,7 +166,7 @@ describe('M08 Tra cứu, M09 Chia sẻ ngoài, M14 Thông báo', () => {
       const r = await tp.post(`/external-shares/revoke-all?departmentId=${t.ids.depts.MKT.id}`);
       expect(r.status).toBe(202);
       await t.drain();
-      expect((await tp.get(`/jobs/${r.body.jobId}`)).body.result.revoked).toBe(2);
+      expect((await tp.get(`/jobs/${r.body.jobId}`)).body.summary.revoked).toBe(2);
       expect((await tp.get(`/external-shares?departmentId=${t.ids.depts.MKT.id}&status=active`)).body.total).toBe(0);
     });
   });

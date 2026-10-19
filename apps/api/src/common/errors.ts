@@ -9,6 +9,7 @@ export type ErrorCode =
   | 'STATE_INVALID'
   | 'RULE_VIOLATION'
   | 'LOCKED'
+  | 'PAYLOAD_TOO_LARGE'
   | 'RATE_LIMITED'
   | 'DRIVE_ERROR'
   | 'MAINTENANCE'
@@ -46,6 +47,8 @@ export const Errors = {
   state: (message: string) => new AppError(HttpStatus.CONFLICT, 'STATE_INVALID', message),
   rule: (rule: string | undefined, message: string, details?: ErrorDetail[]) =>
     new AppError(HttpStatus.UNPROCESSABLE_ENTITY, 'RULE_VIOLATION', message, rule, details),
+  tooLarge: (message = 'Dữ liệu gửi lên quá lớn (thân JSON tối đa 1 MB, file tối đa 100 MB)') =>
+    new AppError(HttpStatus.PAYLOAD_TOO_LARGE, 'PAYLOAD_TOO_LARGE', message),
   locked: (message = 'File đang khoá') => new AppError(HttpStatus.LOCKED, 'LOCKED', message),
   rateLimited: (retryAfterSec: number, message = 'Bạn thao tác quá nhanh, vui lòng thử lại sau') =>
     new AppError(HttpStatus.TOO_MANY_REQUESTS, 'RATE_LIMITED', message, undefined, undefined, {

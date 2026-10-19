@@ -10,7 +10,7 @@ const STATUS_CODE: Record<number, ErrorCode> = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'STATE_INVALID',
-  413: 'VALIDATION',
+  413: 'PAYLOAD_TOO_LARGE',
   422: 'RULE_VIOLATION',
   423: 'LOCKED',
   429: 'RATE_LIMITED',
@@ -22,7 +22,7 @@ const STATUS_MSG: Record<number, string> = {
   401: 'Bạn chưa đăng nhập hoặc phiên đã hết hạn',
   403: 'Bạn không có quyền thực hiện thao tác này',
   404: 'Không tìm thấy',
-  413: 'Dữ liệu gửi lên quá lớn',
+  413: 'Dữ liệu gửi lên quá lớn (thân JSON tối đa 1 MB, file tối đa 100 MB)',
   429: 'Bạn thao tác quá nhanh, vui lòng thử lại sau',
 };
 
@@ -52,11 +52,10 @@ export class ErrorFilter implements ExceptionFilter {
       this.log.warn(`[${ctx?.requestId}] ${exception.message}`);
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
-      if (status === 413) status = 400;
       code = STATUS_CODE[status] ?? (status >= 500 ? 'INTERNAL' : 'VALIDATION');
       message = STATUS_MSG[exception.getStatus()] ?? STATUS_MSG[status] ?? message;
       if (status === 404) message = 'Không tìm thấy đường dẫn';
-      if (status === 400 && exception.getStatus() !== 413) {
+      if (status === 400) {
         const r: any = exception.getResponse();
         if (/JSON/i.test(String(r?.message ?? ''))) message = 'Thân yêu cầu không phải JSON hợp lệ';
       }
@@ -69,9 +68,9 @@ export class ErrorFilter implements ExceptionFilter {
       code = 'NOT_FOUND';
       message = 'Không tìm thấy';
     } else if (exception?.type === 'entity.too.large') {
-      status = 400;
-      code = 'VALIDATION';
-      message = 'Dữ liệu gửi lên quá lớn (tối đa 1 MB)';
+      status = 413;
+      code = 'PAYLOAD_TOO_LARGE';
+      message = STATUS_MSG[413];
     } else {
       this.log.error(`[${ctx?.requestId}] ${exception?.stack ?? exception}`);
     }

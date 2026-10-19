@@ -25,7 +25,12 @@ export class CatalogController {
 
   private async list(ctx: Ctx, kind: Kind, sort: Record<string, 1>) {
     const rows = await this.db.m[kind].find({ companyId: new Types.ObjectId(ctx.companyId) }).sort(sort).lean();
-    return { items: rows.map((r) => toApi(r)) };
+    return { items: rows.map((r) => this.view(ctx, r)) };
+  }
+
+  /** CatalogActions (D9): R9, R3 sửa danh mục nền */
+  private view(ctx: Ctx, r: any) {
+    return { ...toApi(r), allowedActions: this.access.hasRole(ctx, 'R9', 'R3') ? ['update'] : [] };
   }
 
   private async check(ctx: Ctx, kind: Kind, body: any, selfId?: Types.ObjectId) {
@@ -52,7 +57,7 @@ export class CatalogController {
     const row = (await this.db.m[kind].create(data)).toObject();
     this.access.invalidate(ctx.companyId);
     await this.audit.record(ctx, { action: `${kind.toLowerCase()}.create`, objectType: kind.toLowerCase(), objectId: String(row._id), after: data });
-    return toApi(row);
+    return this.view(ctx, row);
   }
 
   private async update(ctx: Ctx, kind: Kind, id: string, body: any) {
@@ -70,7 +75,7 @@ export class CatalogController {
     const after = await this.db.m[kind].findOne(filter).lean<any>();
     this.access.invalidate(ctx.companyId);
     await this.audit.record(ctx, { action: `${kind.toLowerCase()}.update`, objectType: kind.toLowerCase(), objectId: id, before, after });
-    return toApi(after);
+    return this.view(ctx, after);
   }
 
   @Get('blocks')

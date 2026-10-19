@@ -30,38 +30,45 @@ describe('M01 Đăng nhập, người dùng', () => {
     expect(cookie).toMatch(/Max-Age=28800/);
   });
 
-  it('callback tài khoản ngoài tên miền → 403', async () => {
+  it('callback tài khoản ngoài tên miền → 302 /dang-nhap?loi=domain (D13)', async () => {
     const agent = require('supertest').agent(t.app.getHttpServer());
     const start = await agent.get('/api/v1/auth/google');
     const loc = new URL(start.headers.location);
     const url = `/api/v1/auth/google/callback?state=${loc.searchParams.get('state')}&code=${encodeURIComponent(`fake|nguoila@gmail.com|${loc.searchParams.get('nonce')}`)}`;
     const cb = await agent.get(url);
     expectContract('GET', url, cb);
-    expect(cb.status).toBe(403);
-    expect(cb.body.error.code).toBe('FORBIDDEN');
+    expect(cb.status).toBe(302);
+    expect(cb.headers.location).toBe('http://localhost:3000/dang-nhap?loi=domain');
+    expect(cb.headers['set-cookie']?.some((c: string) => c.startsWith('vcdocs_sid=') && !c.startsWith('vcdocs_sid=;'))).toBeFalsy();
   });
 
-  it('callback tên miền giả mạo hd (email khác đuôi) → 403', async () => {
+  it('callback tên miền giả mạo hd (email khác đuôi) → loi=domain', async () => {
     const agent = require('supertest').agent(t.app.getHttpServer());
     const start = await agent.get('/api/v1/auth/google');
     const loc = new URL(start.headers.location);
     const url = `/api/v1/auth/google/callback?state=${loc.searchParams.get('state')}&code=${encodeURIComponent(`fake|ai@vcpart.vn|${loc.searchParams.get('nonce')}`)}`;
     const cb = await agent.get(url);
-    expect(cb.status).toBe(403);
+    expect(cb.headers.location).toBe('http://localhost:3000/dang-nhap?loi=domain');
   });
 
-  it('callback thiếu cookie state (login CSRF) → 403', async () => {
+  it('callback thiếu cookie state (login CSRF) → loi=state; state hết hạn → loi=expired', async () => {
     const start = await t.http().get('/api/v1/auth/google');
     const loc = new URL(start.headers.location);
     const url = `/api/v1/auth/google/callback?state=${loc.searchParams.get('state')}&code=${encodeURIComponent(`fake|${t.ids.emails.tgd}|${loc.searchParams.get('nonce')}`)}`;
     const cb = await t.http().get(url);
     expectContract('GET', url, cb);
-    expect(cb.status).toBe(403);
+    expect(cb.headers.location).toBe('http://localhost:3000/dang-nhap?loi=state');
+    const agent = require('supertest').agent(t.app.getHttpServer());
+    const s2 = await agent.get('/api/v1/auth/google');
+    const l2 = new URL(s2.headers.location);
+    await t.db.m.OAuthState.updateOne({ state: l2.searchParams.get('state') }, { $set: { expiresAt: new Date(Date.now() - 1000) } });
+    const cb2 = await agent.get(`/api/v1/auth/google/callback?state=${l2.searchParams.get('state')}&code=${encodeURIComponent(`fake|${t.ids.emails.tgd}|${l2.searchParams.get('nonce')}`)}`);
+    expect(cb2.headers.location).toBe('http://localhost:3000/dang-nhap?loi=expired');
   });
 
   it('tài khoản bị khoá trên Google không vào được', async () => {
     t.fake.addUser({ email: 'bikhoa@vcprosperous.com', name: 'Bị khoá', suspended: true });
-    await expect(t.loginEmail('bikhoa@vcprosperous.com')).rejects.toThrow(/403/);
+    await expect(t.loginEmail('bikhoa@vcprosperous.com')).rejects.toThrow(/loi=locked/);
   });
 
   it('GET /me trả vai trò theo nhóm Google, drive và csrfToken', async () => {

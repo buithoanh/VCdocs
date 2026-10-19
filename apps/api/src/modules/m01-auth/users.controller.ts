@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post } from '@nestjs/common';
+import { APP_CONFIG, AppConfig } from '../../config/config';
 import { Types } from 'mongoose';
 import { Db } from '../../db/db.service';
 import { Ctx, CurrentCtx, VQuery } from '../../common/context';
@@ -13,13 +14,20 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { GoogleSyncService } from './google-sync.service';
 
 export const USER_PRIVATE = ['groupRoles', 'manualRoles', 'groupEmails', 'driveRoles', 'isSuspended', 'lastLoginAt', 'notificationSettings'];
-export function userToApi(u: any) {
-  return toApi(u, USER_PRIVATE);
+/** allowedActions của User (D9): R9 đổi vai trò người khác; R3 ghi ngày nghỉ */
+export function userActions(ctx: Ctx, u: any): string[] {
+  const out: string[] = [];
+  if (ctx.user.systemRoles.includes('R9') && String(u._id) !== ctx.user.id) out.push('update-roles');
+  if (ctx.user.systemRoles.includes('R3') && u.status !== 'left') out.push('update-leave');
+  return out;
+}
+export function userToApi(ctx: Ctx, u: any) {
+  return { ...toApi(u, USER_PRIVATE), allowedActions: userActions(ctx, u) };
 }
 
 @Controller()
 export class MeController {
-  constructor(private readonly db: Db, private readonly access: AccessService) {}
+  constructor(private readonly db: Db, private readonly access: AccessService, @Inject(APP_CONFIG) private readonly cfg: AppConfig) {}
 
   /** Tôi là ai: vai trò hệ thống, phòng, vai trò trên từng drive, csrfToken */
   @Get('me')
@@ -29,11 +37,16 @@ export class MeController {
     const drives = depts
       .filter((d) => ctx.driveRoles.has(d.driveId))
       .map((d) => ({ driveId: d.driveId, departmentId: d.id, name: `${d.number} ${d.code}`, role: ctx.driveRoles.get(d.driveId)!, securityLevel: d.securityLevel }));
+    const block = await this.db.m.Block.findOne({ companyId: new Types.ObjectId(ctx.companyId), directorId: new Types.ObjectId(ctx.user.id) }).lean<any>();
+    const r = this.cfg.rules;
     return {
-      user: userToApi(u),
+      user: userToApi(ctx, u),
       systemRoles: ctx.user.systemRoles,
       departmentId: ctx.user.departmentId,
+      ...(block ? { blockId: String(block._id) } : {}),
       drives,
+      // Con số cấu hình để FE báo trước; BE vẫn là nơi quyết định (D12)
+      limits: { shareMaxDays: r.shareMaxDays, backdateWorkingDays: r.backdateMaxWorkingDays, approvalDueDays: r.approvalDueDays, minorUnlockDays: r.minorUnlockDays, uploadMaxMb: 100 },
       csrfToken: ctx.csrfToken,
       sessionExpiresAt: ctx.sessionExpiresAt?.toISOString(),
     };
@@ -83,7 +96,19 @@ export class UsersController {
       this.db.m.User.find(filter).sort(p.sort).skip(p.skip).limit(p.limit).lean(),
       this.db.m.User.countDocuments(filter),
     ]);
-    return pageResult(items.map(userToApi), p, total);
+    return pageResult(items.map((u) => userToApi(ctx, u)), p, total);
+  }
+
+  /** Tra người để chọn (người soạn, người góp ý…): mọi người đã đăng nhập, chỉ người đang làm, tối đa 20 (D3) */
+  @Get('users/lookup')
+  async lookup(@CurrentCtx() ctx: Ctx, @VQuery() q: any) {
+    const re = new RegExp(escapeRegex(q.q.trim()), 'i');
+    const filter: any = { companyId: new Types.ObjectId(ctx.companyId), status: { $in: ['active', 'leaving'] }, isSuspended: { $ne: true }, $or: [{ name: re }, { email: re }, { title: re }] };
+    if (q.departmentId) filter.departmentId = new Types.ObjectId(q.departmentId);
+    const rows = await this.db.m.User.find(filter, { name: 1, email: 1, title: 1, departmentId: 1 }).sort({ name: 1 }).limit(20).lean<any[]>();
+    return {
+      items: rows.map((u) => ({ id: String(u._id), name: u.name, email: u.email, ...(u.title ? { title: u.title } : {}), ...(u.departmentId ? { departmentId: String(u.departmentId) } : {}) })),
+    };
   }
 
   private async load(ctx: Ctx, id: string) {
@@ -98,7 +123,7 @@ export class UsersController {
     const u = await this.load(ctx, id);
     const forced = this.scopeDept(ctx);
     if (forced && String(u.departmentId) !== forced) throw Errors.forbidden('Trưởng phòng chỉ xem nhân sự phòng mình');
-    return userToApi(u);
+    return userToApi(ctx, u);
   }
 
   /** R9 đổi vai trò hệ thống; R3 ghi ngày nghỉ việc */
@@ -145,7 +170,7 @@ export class UsersController {
         objectId: id,
       });
     }
-    return userToApi(after);
+    return userToApi(ctx, after);
   }
 
   @Post('sync/google')

@@ -105,7 +105,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
     const cbUrl = `${PREFIX}/auth/google/callback?state=${encodeURIComponent(state)}&code=${encodeURIComponent(`fake|${email}|${nonce}`)}`;
     const cb = await agent.get(cbUrl);
     expectContract('GET', cbUrl, cb);
-    if (cb.status !== 302) throw new Error(`Đăng nhập ${email} lỗi: ${cb.status} ${JSON.stringify(cb.body)}`);
+    if (cb.status !== 302 || String(cb.headers.location).includes('/dang-nhap?loi=')) throw new Error(`Đăng nhập ${email} lỗi: ${cb.status} ${cb.headers.location}`);
     const me = await agent.get(`${PREFIX}/me`);
     expectContract('GET', `${PREFIX}/me`, me);
     const csrf = me.body.csrfToken;

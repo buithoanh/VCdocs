@@ -79,7 +79,8 @@ describe('M03 Cây thư mục', () => {
     expect(ok.status).toBe(202);
     await t.drain();
     const job = await leader.get(`/jobs/${ok.body.jobId}`);
-    expect(job.body.result.name).toBe('02 SEO-ASP');
+    expect(job.body.summary.name).toBe('02 SEO-ASP');
+    expect(job.body.result).toEqual({ objectType: 'folder', objectId: expect.any(String) });
     expect((await leader.post('/folders', { driveId: mkt, kind: 'area', code: 'SEO-FREY', shortName: 'FREY' })).status).toBe(403);
     const nv = await t.login('nv.mkt');
     expect((await nv.post('/folders', { driveId: mkt, parentId: t.ids.folders['MKT:10'], kind: 'area', code: 'SEO-FREY', shortName: 'F' })).status).toBe(403);
@@ -120,7 +121,7 @@ describe('M03 Cây thư mục', () => {
     const nxt = await tp.post('/folders', { driveId: mkt, kind: 'project', code: 'DA-MAI', shortName: 'MAI2' });
     await t.drain();
     const job = await tp.get(`/jobs/${nxt.body.jobId}`);
-    expect(job.body.result.name.startsWith('51')).toBe(false);
+    expect(job.body.summary.name.startsWith('51')).toBe(false);
     const nv = await t.login('nv.mkt');
     expect((await nv.post(`/folders/${t.ids.folders['MKT:50']}/close-project`)).status).toBe(403);
     expect((await tp.post('/folders/6712f0c2a1b2c3d4e5f60718/close-project')).status).toBe(404);
@@ -136,7 +137,8 @@ describe('M03 Cây thư mục', () => {
     await t.drain();
     const job = await r3.get(`/jobs/${r.body.jobId}`);
     expect(job.body.status).toBe('done');
-    expect(job.body.result.created).toBeGreaterThan(0);
+    expect(job.body.result).toBeUndefined();
+    expect(job.body.summary.created).toBeGreaterThan(0);
     const tp = await t.login('tp.mkt');
     const tree = await tp.get(`/folders?parentId=${t.ids.folders['MKT:10']}&depth=2`);
     const names = tree.body.items.map((f: any) => f.name);
@@ -146,7 +148,7 @@ describe('M03 Cây thư mục', () => {
     // chạy lại không tạo trùng
     const again = await r3.post('/folders/ensure-periods', { driveId: mkt, month: '2026-11' });
     await t.drain();
-    expect((await r3.get(`/jobs/${again.body.jobId}`)).body.result.created).toBe(0);
+    expect((await r3.get(`/jobs/${again.body.jobId}`)).body.summary.created).toBe(0);
   });
 
   it('resync: đọc lại tên từ Drive khi có người đổi thẳng', async () => {

@@ -21,7 +21,7 @@ export interface OperationInfo {
 let cached: OpenApiContract | undefined;
 
 /** Mã lỗi chung (hợp đồng mục 1) – điểm cuối nào cũng có thể trả, thân là Error */
-export const GLOBAL_ERROR_STATUSES = [400, 401, 403, 404, 409, 422, 423, 429, 502, 503];
+export const GLOBAL_ERROR_STATUSES = [400, 401, 403, 404, 409, 413, 422, 423, 429, 502, 503];
 
 export function findContractFile(): string {
   if (process.env.OPENAPI_PATH) return path.resolve(process.env.OPENAPI_PATH);
@@ -138,6 +138,8 @@ export class OpenApiContract {
     }
     const v = this.compile(this.bodyAjv, `body:${contentType}:${info.method} ${info.path}:${relaxRequired.join(',')}`, schema);
     const ok = v(body) as boolean;
+    // Trường lạ bị loại, không báo lỗi (hợp đồng mục 7)
+    if (ok) this.strip(schema, body);
     return { ok, errors: formatAjvErrors(v.errors, 'body') };
   }
 
@@ -154,6 +156,34 @@ export class OpenApiContract {
     for (const p of params) if (input[p.name] !== undefined) data[p.name] = input[p.name];
     const ok = v(data) as boolean;
     return { ok, data, errors: formatAjvErrors(v.errors, where) };
+  }
+
+  /** Gộp properties của schema (kể cả allOf, $ref) */
+  private props(schema: any, depth = 0): Record<string, any> | undefined {
+    const sc = this.deref(schema);
+    if (!sc || depth > 10) return undefined;
+    let out: Record<string, any> | undefined = sc.properties ? { ...sc.properties } : undefined;
+    for (const part of sc.allOf ?? []) {
+      const p = this.props(part, depth + 1);
+      if (p) out = { ...(out ?? {}), ...p };
+    }
+    return out;
+  }
+
+  /** Bỏ khoá không có trong schema, đệ quy vào object con và mảng object */
+  strip(schema: any, value: any, depth = 0) {
+    if (!value || typeof value !== 'object' || depth > 10) return;
+    const sc = this.deref(schema);
+    if (Array.isArray(value)) {
+      if (sc?.items) value.forEach((v) => this.strip(sc.items, v, depth + 1));
+      return;
+    }
+    const props = this.props(sc);
+    if (!props || sc?.additionalProperties) return;
+    for (const k of Object.keys(value)) {
+      if (!(k in props)) delete value[k];
+      else this.strip(props[k], value[k], depth + 1);
+    }
   }
 
   headerParam(info: OperationInfo, name: string): any | undefined {

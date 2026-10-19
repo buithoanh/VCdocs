@@ -32,7 +32,6 @@ const CONVERT: Record<string, string> = {
   'application/vnd.ms-powerpoint': GSLIDE_MIME,
 };
 const PRIVATE = ['searchText', 'driveId', 'scanFileId', 'adjustReason'];
-const HOLD_REASONS = ['tranh chap', 'thanh tra', 'bao hanh', 'cong no', 'hop dong chua thanh ly', 'bdh yeu cau', 'ban dieu hanh yeu cau', 'kiem toan', 'dieu tra'];
 
 export function convertTarget(mime: string): string | undefined {
   return CONVERT[mime];
@@ -84,7 +83,7 @@ export class RecordsService {
     const creator = this.isCreator(ctx, r);
     const head = heads.has(String(r.departmentId));
     const canDraft = r.status === 'drafting' && !r.isApproved;
-    if (creator && canDraft) out.push('edit');
+    if (creator && canDraft) out.push('update');
     if (creator && canDraft && rt?.requiresApproval) out.push('submit');
     if ((creator || head) && r.status === 'drafting' && (r.isApproved || !rt?.requiresApproval)) out.push('finalize');
     if (r.status === 'finalized' && this.access.hasRole(ctx, 'R5', 'R6')) out.push('adjust');
@@ -235,9 +234,9 @@ export class RecordsService {
   async resolveApprover(ctx: Ctx, r: any): Promise<ApproverInfo> {
     const rt = await this.recordType(ctx.companyId, r.recordTypeId);
     const dept = await this.access.deptById(ctx.companyId, String(r.departmentId));
-    const del = await this.approvals.activeDelegation(ctx.companyId, dept?.blockId, [String(r.recordTypeId), rt?.name, `record:${r.kind}`].filter(Boolean), dateVN());
+    const del = await this.approvals.activeDelegation(ctx.companyId, dept?.blockId, String(r.recordTypeId), dateVN());
     const candidates: ApproverInfo[] = [];
-    if (del) candidates.push({ approverId: String(del.delegateId), approverRule: `Hồ sơ ${rt?.name} → người được uỷ quyền theo bảng uỷ quyền khối (${del.task})` });
+    if (del) candidates.push({ approverId: String(del.delegateId), approverRule: `Hồ sơ ${rt?.name} → người được uỷ quyền theo bảng uỷ quyền khối${del.task ? ` (${del.task})` : ''}` });
     if (dept?.headId) candidates.push({ approverId: dept.headId, approverRule: `Hồ sơ ${rt?.name} → Trưởng phòng ${dept.code}` });
     const director = await this.approvals.blockDirector(ctx.companyId, String(r.departmentId));
     if (director) candidates.push({ approverId: director, approverRule: `Hồ sơ ${rt?.name} → Giám đốc khối (người lập là trưởng phòng)` });
@@ -315,10 +314,5 @@ export class RecordsService {
     } finally {
       await fs.promises.rm(p.tmpPath, { force: true });
     }
-  }
-
-  isHoldReason(reason: string) {
-    const n = normalizeText(reason);
-    return HOLD_REASONS.some((k) => n.includes(k));
   }
 }

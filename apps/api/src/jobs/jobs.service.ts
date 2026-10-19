@@ -139,15 +139,28 @@ export class JobsService implements OnModuleDestroy {
     };
     try {
       if (!def) throw new Error(`Loại việc ${job.type} không có bộ xử lý`);
-      const result = (await def.handler(jc)) ?? {};
+      const out: any = (await def.handler(jc)) ?? {};
       for (const s of steps) if (s.status !== 'done') s.status = 'done';
-      await save({ status: 'done', progress: 100, result, finishedAt: new Date(), lockedUntil: null });
+      // Job.result theo hợp đồng D11: { objectType, objectId } hoặc { fileId, url }; phần còn lại vào summary
+      let result: any;
+      const summary: any = { ...out };
+      if (out.objectType && out.objectId) {
+        result = { objectType: out.objectType, objectId: out.objectId };
+        delete summary.objectType;
+        delete summary.objectId;
+      } else if (out.fileId) {
+        result = { fileId: out.fileId, ...(out.url ? { url: out.url } : {}) };
+        delete summary.fileId;
+        delete summary.url;
+      }
+      await save({ status: 'done', progress: 100, ...(result ? { result } : {}), ...(Object.keys(summary).length ? { summary } : {}), finishedAt: new Date(), lockedUntil: null });
+      const result0 = out;
       await this.notifications.notify(companyId, [jc.userId], {
         type: 'job_done',
         title: `Đã xong: ${def.title}`,
         link: `/viec-nen/${job._id}`,
-        objectType: result?.objectType,
-        objectId: result?.objectId,
+        objectType: result0?.objectType,
+        objectId: result0?.objectId,
       });
     } catch (e: any) {
       const err =

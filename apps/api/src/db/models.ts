@@ -118,6 +118,8 @@ const Job = mk({
   steps: { type: [{ _id: false, name: String, status: String, error: String }], default: [] },
   payload: Mixed,
   result: Mixed,
+  /** Số liệu thêm của việc (không thuộc result theo hợp đồng) */
+  summary: Mixed,
   error: Mixed,
   startedAt: Date,
   finishedAt: Date,
@@ -263,7 +265,9 @@ Approval.index({ companyId: 1, objectType: 1, objectId: 1 });
 
 const Delegation = mk({
   blockId: { type: OID, required: true },
-  task: { type: String, required: true },
+  recordTypeId: { type: OID, required: true },
+  task: String,
+  isLegalSignature: { type: Boolean, default: false },
   limitAmount: Number,
   delegateId: { type: OID, required: true },
   from: { type: String, required: true },
@@ -337,8 +341,9 @@ const ExternalShare = mk({
   driveId: String,
   email: { type: String, required: true },
   role: { type: String, required: true },
-  reason: { type: String, required: true },
-  expiresAt: { type: Date, required: true },
+  /** reason, expiresAt bắt buộc khi source = vcdocs; trống khi source = detected (D7) */
+  reason: String,
+  expiresAt: Date,
   sharedBy: OID,
   approvalId: OID,
   permissionId: String,
@@ -348,7 +353,7 @@ const ExternalShare = mk({
   source: { type: String, required: true, default: 'vcdocs' },
   remindedAt: Date,
   /** Thời điểm trong nhật ký Google của lượt phát hiện (source = detected) */
-  activityAt: Date,
+  detectedAt: Date,
   /** Google không nhận hạn → VCdocs tự gỡ */
   isExpiryManaged: Boolean,
 });

@@ -118,8 +118,8 @@ export class SharesController {
     const head = heads.has(String(s.departmentId));
     const actions: string[] = [];
     if ((mine || head) && ['active', 'pending_approval'].includes(s.status)) actions.push('revoke');
-    if ((mine || head) && s.status === 'active') actions.push('extend');
-    return { ...toApi(s, ['driveId', 'remindedAt', 'isExpiryManaged', 'activityAt']), allowedActions: actions };
+    if ((mine || head) && s.status === 'active' && s.source === 'vcdocs') actions.push('extend');
+    return { ...toApi(s, ['driveId', 'remindedAt', 'isExpiryManaged']), allowedActions: actions };
   }
 
   @Get()
@@ -226,7 +226,7 @@ export class SharesController {
         companyId: cid,
         fileId: a.fileId,
         email,
-        $or: [{ status: { $in: ['active', 'pending_approval'] } }, { source: 'detected', activityAt: new Date(a.at) }],
+        $or: [{ status: { $in: ['active', 'pending_approval'] } }, { source: 'detected', detectedAt: new Date(a.at) }],
       }).lean();
       if (known) continue;
       const own = await this.owner(companyId, a.fileId);
@@ -245,13 +245,11 @@ export class SharesController {
         driveId: dept.driveId,
         email,
         role: a.role === 'commenter' ? 'commenter' : 'reader',
-        reason: `Phát hiện trong nhật ký Google${a.role === 'writer' ? ' (quyền Chỉnh sửa)' : ''}, không có trong sổ`,
-        expiresAt: new Date(a.at),
         sharedBy: actor?._id,
         permissionId: a.permissionId,
         status: 'active',
         source: 'detected',
-        activityAt: new Date(a.at),
+        detectedAt: new Date(a.at),
       });
       await this.notifications.notify(companyId, [dept.headId], {
         type: 'share_detected',

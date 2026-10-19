@@ -85,12 +85,13 @@ export class ApprovalsService {
   }
 
   /** Uỷ quyền còn hiệu lực của khối cho một việc (bảng uỷ quyền khối) */
-  async activeDelegation(companyId: string, blockId: string | undefined, tasks: string[], today: string) {
+  async activeDelegation(companyId: string, blockId: string | undefined, recordTypeId: string, today: string) {
     if (!blockId) return undefined;
     return this.db.m.Delegation.findOne({
       companyId: new Types.ObjectId(companyId),
       blockId: new Types.ObjectId(blockId),
-      task: { $in: tasks },
+      recordTypeId: new Types.ObjectId(recordTypeId),
+      isLegalSignature: { $ne: true },
       from: { $lte: today },
       $or: [{ to: { $exists: false } }, { to: null }, { to: { $gte: today } }],
     })

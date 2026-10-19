@@ -46,11 +46,6 @@ export class DocumentsController {
       steps: ['Điền bảng đầu file', 'Đổi tên, chuyển vào thư mục chính thức', 'Khoá file và lưu bản PDF', 'Cập nhật danh mục', 'Gửi thông báo ban hành'],
       handler: (job) => this.docs.runIssue(job),
     });
-    jobs.register('document.withdraw', {
-      title: 'Huỷ bỏ tài liệu',
-      steps: ['Đổi tên [HẾT HIỆU LỰC] và chuyển vào 99', 'Cập nhật danh mục'],
-      handler: (job) => this.docs.runWithdraw(job),
-    });
     jobs.register('external_document.import', {
       title: 'Nhập tài liệu bên ngoài',
       steps: ['Sao chép vào 00 Tài liệu', 'Ghi sổ VCdocs'],
@@ -99,8 +94,9 @@ export class DocumentsController {
       link: (d) => `/tai-lieu/${d._id}`,
       isParticipant: (ctx, d) => this.docs.isParticipant(ctx, d),
       resolveApprover: (ctx, d) => this.docs.resolveApprover(ctx, d),
+      // Hợp đồng không có loại việc nền document.withdraw → làm ngay khi duyệt (lỗi Drive thì phiếu về chờ)
       onApproved: async (ctx, a, d) => {
-        await this.jobs.enqueue(ctx, 'document.withdraw', { documentId: String(d._id), replacedById: a.meta?.replacedById });
+        await this.docs.runWithdraw({ companyId: ctx.companyId, userId: ctx.user.id, requestId: ctx.requestId, payload: { documentId: String(d._id), replacedById: a.meta?.replacedById }, step: (_n, fn) => fn() });
       },
       onChangesRequested: async () => undefined,
       onCancelled: async () => undefined,
@@ -360,13 +356,15 @@ export class DocumentsController {
   @HttpCode(200)
   async submit(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Body() body: { overrideOpenComments?: boolean; reason?: string }) {
     const d = await this.docs.loadVisible(ctx, id);
-    await this.access.requireHeadOf(ctx, String(d.departmentId));
+    // Người soạn được giao hoặc trưởng phòng phòng soạn (D2)
+    if (String(d.drafterId) !== ctx.user.id) await this.access.requireHeadOf(ctx, String(d.departmentId));
     this.assertStatus(d, 'drafting', 'feedback', 'revising');
     if (await this.approvals.pendingFor(ctx.companyId, 'document', d._id)) throw Errors.state('Tài liệu đang có phiếu chờ duyệt');
     if (!d.fileId) throw Errors.state('Tài liệu chưa có file nháp');
     const open = await this.google.drive.countOpenComments(d.fileId);
     if (open > 0) {
       if (!body?.overrideOpenComments) throw Errors.rule(undefined, `File còn ${open} nhận xét chưa đóng; đóng hết hoặc trưởng phòng bỏ qua kèm lý do`, [{ field: 'overrideOpenComments', issue: 'open_comments' }]);
+      if (!(await this.access.isHeadOf(ctx, String(d.departmentId)))) throw Errors.forbidden('Chỉ trưởng phòng được bỏ qua nhận xét chưa đóng');
       if (!body.reason?.trim()) throw Errors.validation('Bỏ qua nhận xét mở thì phải ghi lý do', [{ field: 'reason', issue: 'required' }]);
     }
     const approver = await this.docs.resolveApprover(ctx, d);

@@ -1,7 +1,7 @@
 # @vcdocs/api – máy chủ nghiệp vụ VCdocs
 
 NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`, đúng theo
-`contract/openapi.yaml` (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
+`contract/openapi.yaml` (1.1.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
 file, MongoDB giữ sổ sách.
 
 ## Chạy local
@@ -49,7 +49,7 @@ pnpm --filter @vcdocs/api test
 - Mọi phản hồi trong test tự kiểm khớp schema trong `contract/openapi.yaml`
   (ajv) theo đúng mã trạng thái; thiếu `X-Request-Id`, `X-Audit-Id` cũng báo lỗi.
 - Cuối lượt test kiểm **mọi điểm cuối trong hợp đồng đều đã có test** (hiện
-  97/97). Đặt `ALLOW_PARTIAL_COVERAGE=1` để tạm bỏ qua khi đang làm dở.
+  98/98). Đặt `ALLOW_PARTIAL_COVERAGE=1` để tạm bỏ qua khi đang làm dở.
 - `TEST_UNDECLARED_REPORT=/tmp/x.txt` ghi các mã lỗi BE trả mà điểm cuối chưa khai
   trong hợp đồng (xem `DE_NGHI_SUA_HOP_DONG.md` mục B).
 
@@ -110,7 +110,10 @@ Nguyên tắc đã làm theo hợp đồng mục 1, 7:
   cũ; lỗi thì không giữ key.
 - Việc gọi Google nhiều bước trả 202 + `jobId`; sổ VCdocs chỉ ghi sau khi Drive
   làm xong; bước lỗi thì việc dừng, `GET /jobs/{id}` báo bước nào.
-- Giới hạn 600 yêu cầu/phút/người, tìm kiếm 60/phút; thân JSON ≤ 1 MB, file ≤ 100 MB.
+- Giới hạn 600 yêu cầu/phút/người, tìm kiếm 60/phút (429 kèm Retry-After); thân
+  JSON ≤ 1 MB, file ≤ 100 MB (vượt → 413 PAYLOAD_TOO_LARGE).
+- Mọi phản hồi chi tiết, trang danh sách và từng phần tử có `people` (id → UserRef).
+- Đăng nhập lỗi không trả JSON mà chuyển về `WEB_ORIGIN/dang-nhap?loi=domain|locked|expired|state`.
 
 ## Những gì còn dùng bản giả hoặc chưa làm
 

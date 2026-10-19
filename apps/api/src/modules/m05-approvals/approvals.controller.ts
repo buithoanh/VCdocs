@@ -6,7 +6,7 @@ import { Ctx, CurrentCtx, VQuery } from '../../common/context';
 import { Roles } from '../../common/decorators';
 import { Errors } from '../../common/errors';
 import { pageResult, parsePage } from '../../common/pagination';
-import { isObjectId, oid, toApi } from '../../common/util';
+import { oid, toApi } from '../../common/util';
 import { AccessService } from '../../access/access.service';
 import { AuditService } from '../../audit/audit.service';
 import { SchedulerService } from '../scheduler/scheduler.service';
@@ -115,28 +115,39 @@ export class DelegationsController {
     if (q.blockId && !blocks.includes(q.blockId)) throw Errors.forbidden('Chỉ xem được bảng uỷ quyền khối mình');
     const ids = (q.blockId ? [q.blockId] : blocks).map((x) => new Types.ObjectId(x));
     const rows = await this.db.m.Delegation.find({ companyId: new Types.ObjectId(ctx.companyId), blockId: { $in: ids } }).sort({ from: -1 }).lean();
-    return { items: rows.map((r) => toApi(r)) };
+    return { items: rows.map((r) => this.view(r)) };
   }
 
-  /** BR-24: không vượt hạn mức tối đa của GĐ khối; việc liên khối, việc luật bắt người có thẩm quyền ký không giao xuống */
+  /** BR-24: không vượt hạn mức tối đa của GĐ khối; việc liên khối, việc luật yêu cầu người có thẩm quyền ký không giao xuống */
   private async validate(ctx: Ctx, body: any) {
+    const cid = new Types.ObjectId(ctx.companyId);
     const blocks = (await this.myBlocks(ctx)).map((b) => String(b._id));
     if (!blocks.includes(body.blockId)) throw Errors.forbidden('Chỉ giám đốc khối được lập uỷ quyền cho khối mình');
     if (body.to && body.to < body.from) throw Errors.validation('Ngày kết thúc phải sau ngày bắt đầu', [{ field: 'to', issue: 'before_from' }]);
     if (body.limitAmount !== undefined && body.limitAmount > this.cfg.rules.delegationMaxAmount) {
       throw Errors.rule('BR-24', `Hạn mức vượt mức tối đa của giám đốc khối (${this.cfg.rules.delegationMaxAmount.toLocaleString('vi-VN')} đ)`, [{ field: 'limitAmount', issue: 'over_limit' }]);
     }
-    if (/li[eê]n kh[oố]i|lu[aậ]t|ph[aá]p lu[aậ]t/i.test(body.task)) {
-      throw Errors.rule('BR-24', 'Việc liên khối hoặc việc luật yêu cầu người có thẩm quyền ký không được uỷ quyền xuống', [{ field: 'task', issue: 'not_delegable' }]);
+    if (body.isLegalSignature === true) {
+      throw Errors.rule('BR-24', 'Việc luật yêu cầu chữ ký người đại diện không được uỷ quyền xuống', [{ field: 'isLegalSignature', issue: 'not_delegable' }]);
     }
-    if (!isObjectId(body.delegateId)) throw Errors.validation('Người được uỷ quyền không hợp lệ');
-    const u = await this.db.m.User.findOne({ companyId: new Types.ObjectId(ctx.companyId), _id: new Types.ObjectId(body.delegateId), status: { $ne: 'left' } }).lean<any>();
+    const rt = await this.db.m.RecordType.findOne({ companyId: cid, _id: new Types.ObjectId(body.recordTypeId) }).lean<any>();
+    if (!rt) throw Errors.validation('Loại hồ sơ không tồn tại', [{ field: 'recordTypeId', issue: 'not_found' }]);
+    const rtDept = await this.db.m.Department.findOne({ companyId: cid, _id: rt.departmentId }).lean<any>();
+    if (String(rtDept?.blockId) !== body.blockId) {
+      throw Errors.rule('BR-24', 'Loại hồ sơ thuộc phòng của khối khác (việc liên khối không giao xuống)', [{ field: 'recordTypeId', issue: 'outside_block' }]);
+    }
+    const u = await this.db.m.User.findOne({ companyId: cid, _id: new Types.ObjectId(body.delegateId), status: { $ne: 'left' } }).lean<any>();
     if (!u) throw Errors.validation('Người được uỷ quyền không tồn tại', [{ field: 'delegateId', issue: 'not_found' }]);
     if (body.delegateId === ctx.user.id) throw Errors.validation('Không uỷ quyền cho chính mình', [{ field: 'delegateId', issue: 'self' }]);
-    const dept = u.departmentId ? await this.db.m.Department.findOne({ companyId: new Types.ObjectId(ctx.companyId), _id: u.departmentId }).lean<any>() : undefined;
+    const dept = u.departmentId ? await this.db.m.Department.findOne({ companyId: cid, _id: u.departmentId }).lean<any>() : undefined;
     if (!dept || String(dept.blockId) !== body.blockId) {
       throw Errors.rule('BR-24', 'Người được uỷ quyền phải thuộc khối (việc liên khối không giao xuống)', [{ field: 'delegateId', issue: 'outside_block' }]);
     }
+  }
+
+  private view(r: any) {
+    // CatalogActions: chỉ giám đốc khối thấy danh sách này nên luôn được sửa
+    return { ...toApi(r), allowedActions: ['update'] };
   }
 
   @Post()
@@ -148,7 +159,9 @@ export class DelegationsController {
       await this.db.m.Delegation.create({
         companyId: new Types.ObjectId(ctx.companyId),
         blockId: new Types.ObjectId(body.blockId),
+        recordTypeId: new Types.ObjectId(body.recordTypeId),
         task: body.task,
+        isLegalSignature: !!body.isLegalSignature,
         limitAmount: body.limitAmount,
         delegateId: new Types.ObjectId(body.delegateId),
         from: body.from,
@@ -158,7 +171,7 @@ export class DelegationsController {
       })
     ).toObject();
     await this.audit.record(ctx, { action: 'delegation.create', objectType: 'delegation', objectId: String(row._id), after: body });
-    return toApi(row);
+    return this.view(row);
   }
 
   @Patch(':id')
@@ -168,15 +181,17 @@ export class DelegationsController {
     const before = await this.db.m.Delegation.findOne(filter).lean<any>();
     if (!before) throw Errors.notFound('Không tìm thấy dòng uỷ quyền');
     await this.validate(ctx, body);
-    const set: any = { blockId: new Types.ObjectId(body.blockId), task: body.task, delegateId: new Types.ObjectId(body.delegateId), from: body.from, updatedBy: new Types.ObjectId(ctx.user.id) };
+    const set: any = { blockId: new Types.ObjectId(body.blockId), recordTypeId: new Types.ObjectId(body.recordTypeId), isLegalSignature: !!body.isLegalSignature, delegateId: new Types.ObjectId(body.delegateId), from: body.from, updatedBy: new Types.ObjectId(ctx.user.id) };
     const unset: any = {};
     if (body.limitAmount !== undefined) set.limitAmount = body.limitAmount;
     else unset.limitAmount = 1;
     if (body.to !== undefined) set.to = body.to;
     else unset.to = 1;
+    if (body.task !== undefined) set.task = body.task;
+    else unset.task = 1;
     await this.db.m.Delegation.updateOne(filter, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
     const after = await this.db.m.Delegation.findOne(filter).lean<any>();
     await this.audit.record(ctx, { action: 'delegation.update', objectType: 'delegation', objectId: id, before, after });
-    return toApi(after);
+    return this.view(after);
   }
 }

@@ -4,8 +4,42 @@ Phiên BE không sửa `contract/`. Chỗ hợp đồng thiếu, sai hoặc khó
 đây; BE đã chọn cách an toàn nhất (ghi ở cột "BE đang làm") và làm tiếp. Chủ dự
 án rà, đồng ý thì phiên cập nhật hợp đồng sửa `contract/openapi.yaml`.
 
-Nguồn đối chiếu: `contract/openapi.yaml` (1.0.0-gd1), hợp đồng Claude Docs rev 12
-(đã có mục 7 Bảo mật, mục 8 Sửa đổi BA), BA rev hiện tại.
+Nguồn đối chiếu: `contract/openapi.yaml` 1.1.0-gd1 (commit bbebac3), hợp đồng
+Claude Docs rev 19 (mục 9 D1–D14), BA rev hiện tại.
+
+## Tình trạng (2026-10-20)
+
+Chủ dự án đã chốt toàn bộ mục A, B, C bên dưới ("Đồng ý theo đề xuất cho nhóm 1,
+nhận cả nhóm 2 và các giả định nhóm 3"); hợp đồng 1.1.0-gd1 đã ghi lại. BE đã sửa
+theo bản mới:
+
+| Mục cũ | Đã xử lý theo |
+|---|---|
+| A1, A2 thư mục gốc drive | D8: `parentId` không bắt buộc ở POST /folders; `GET /folders/next-number?driveId=` |
+| A3 R4 lập hồ sơ | D1: POST /records, /records/upload nhận R4 |
+| A4 ai trình tài liệu | D2: người soạn được giao hoặc R4 phòng soạn (bỏ qua nhận xét mở vẫn chỉ R4) |
+| A5 chia sẻ phát hiện | D7: không `expiresAt`, `reason`; có `detectedAt` |
+| A6 lý do giữ lại | D5: `reasonType` enum HoldReasonType, bỏ đoán từ khoá |
+| A7 uỷ quyền | D6: `recordTypeId` + `isLegalSignature` (true hoặc loại hồ sơ thuộc khối khác → 422 BR-24) |
+| A8 nghỉ việc | D4: giữ như đang làm (leaving + handover_needed cho R3) |
+| B mã lỗi | Đã khai báo 409, 422, 403, 413; còn 400 VALIDATION và 403 CSRF là mã chung |
+| C1–C20 giả định | Nhận cả; C20 đổi: 413 PAYLOAD_TOO_LARGE thay cho 400 |
+
+Phần mới của 1.1 cũng đã làm: GET /users/lookup (D3), allowedActions đúng enum từng
+đối tượng (D9, hồ sơ `edit` → `update`), `people` ở mọi phản hồi chi tiết, trang
+danh sách và từng phần tử (D10), Job.type + Job.result (D11), /me `blockId` +
+`limits` (D12), callback lỗi → 302 `/dang-nhap?loi=` (D13), 429 Retry-After,
+trường lạ bị loại.
+
+## Đề nghị mới (sau hợp đồng 1.1)
+
+| # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
+|---|---|---|---|---|
+| N1 | `Job.type` | Enum không có `document.withdraw`, nhưng duyệt phiếu huỷ bỏ phải đổi tên, chuyển 99 trên Drive | Thêm `document.withdraw` nếu muốn chạy nền | Làm ngay trong `POST /approvals/{id}/decide` (Drive lỗi → phiếu về chờ, trả 502) |
+| N2 | `Job.result` (oneOf) | `google.sync`, `folder.ensure_periods`, `share.revoke_all` không có một đối tượng hay file kết quả; số liệu thêm (số người tạo, số thư mục, số lượt gỡ, tên thư mục) không có chỗ | Khai báo `Job.summary` (object tự do) | Bỏ `result` với các việc này; số liệu thêm để ở trường `summary` (ngoài hợp đồng, FE bỏ qua được) |
+| N3 | `people` trong từng phần tử danh sách | Schema Code, Approval, RecordType, ExternalShare, Job có `WithPeople` nên mỗi phần tử trong trang cũng phải có `people`, lặp với `people` của trang | Chỉ để `people` ở cấp trang | Gắn cả hai (đúng schema hiện tại) |
+| N4 | `DocumentActions` | Không có hành động xem số nhận xét (`GET /documents/{id}/feedback`) | FE dựa vào trạng thái `feedback` để hiện; hoặc thêm `feedback` vào enum | Bỏ `feedback` khỏi allowedActions |
+
 
 ## Đề nghị sửa
 
