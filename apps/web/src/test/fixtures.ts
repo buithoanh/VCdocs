@@ -116,3 +116,10 @@ export const notifications: S['NotificationPage'] = {
 export function errorBody(code: S['ErrorCode'], message: string, rule?: string): S['Error'] {
   return { error: { code, message, rule, requestId: 'req-test' } };
 }
+
+export const codes: S['CodePage'] = {
+  page: 1,
+  limit: 200,
+  total: 1,
+  items: [{ ...base, id: '6712f0c2a1b2c3d4e5f607a1', allowedActions: [], code: 'SEO-PTDA', type: 'function', meaning: 'SEO – phát triển dự án', status: 'approved', departmentId: ids.dept }],
+};
