@@ -17,7 +17,8 @@ info:
     Quy ước chung (hợp đồng mục 1):
     - JSON UTF-8; thời điểm ISO 8601 kèm múi giờ; ngày YYYY-MM-DD; tháng YYYY-MM.
     - id VCdocs là MongoDB ObjectId 24 ký tự; id Google giữ nguyên chuỗi Google.
-    - Phiên đăng nhập bằng cookie HttpOnly, Secure, SameSite=Lax, 8 giờ.
+    - Phiên đăng nhập bằng cookie HttpOnly, Secure, SameSite=Lax, 8 giờ, tự gia hạn
+      khi đang dùng.
     - Mọi POST/PATCH/DELETE kèm header X-CSRF-Token (lấy từ GET /me).
     - POST tạo, ban hành, chốt, chia sẻ kèm Idempotency-Key; lặp key trong 24 giờ
       trả lại đúng kết quả cũ.
@@ -27,6 +28,16 @@ info:
     - Thiếu quyền → 403; đối tượng ở drive Mật mà người gọi không được xem → 404.
     - Việc chạy lâu trả 202 + { jobId }; theo dõi GET /jobs/{id}.
     - Mỗi đối tượng có allowedActions: FE chỉ hiện nút có trong danh sách này.
+
+    Bảo mật và giới hạn (hợp đồng mục 7):
+    - Chỉ nhận yêu cầu từ tên miền giao diện (CORS); webhook Google là ngoại lệ.
+    - Giới hạn tần suất 600 yêu cầu/phút/người, tìm kiếm 60/phút; vượt → 429
+      kèm header Retry-After. Mọi điểm cuối có thể trả 429.
+    - Thân JSON ≤ 1 MB; tải file ≤ 100 MB; danh sách ≤ 200 dòng mỗi trang.
+    - Trường lạ trong thân yêu cầu bị máy chủ loại bỏ, KHÔNG báo lỗi (vì vậy các
+      schema đầu vào không đặt additionalProperties: false).
+    - Quyền ba tầng: vai trò hệ thống R1–R9, phạm vi phòng/khối, vai trò drive.
+    - R9 không có điểm cuối đọc nội dung drive Mật; không tự sửa vai trò của mình.
 servers:
   - url: https://vcdocs.vcprosperous.com/api/v1
   - url: http://localhost:4000/api/v1
@@ -140,7 +151,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               properties:
                 systemRoles: { type: array, items: { $ref: '#/components/schemas/SystemRole' } }
                 lastWorkingDay: { $ref: '#/components/schemas/Date' }
@@ -301,7 +311,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [code, type, meaning, scope, reason]
               properties:
                 code: { type: string, example: SEO-PTDA }
@@ -359,7 +368,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [driveId, parentId, kind, shortName]
               properties:
                 driveId: { type: string }
@@ -395,7 +403,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [month]
               properties:
                 driveId: { type: string }
@@ -429,7 +436,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [shortName], properties: { shortName: { type: string }, fullName: { type: string } } }
+            schema: { type: object, required: [shortName], properties: { shortName: { type: string }, fullName: { type: string } } }
       responses:
         '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Folder' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -487,7 +494,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [type, level, title, departmentId, drafterId]
               properties:
                 type: { $ref: '#/components/schemas/DocumentType' }
@@ -571,7 +577,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [dueDate]
               properties:
                 reviewerIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
@@ -608,7 +613,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               properties:
                 overrideOpenComments: { type: boolean }
                 reason: { type: string, description: 'Bắt buộc khi overrideOpenComments = true' }
@@ -630,7 +634,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [effectiveFrom]
               properties:
                 effectiveFrom: { $ref: '#/components/schemas/Date' }
@@ -653,7 +656,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [kind, reason]
               properties:
                 kind: { $ref: '#/components/schemas/RevisionKind' }
@@ -674,7 +676,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string }, replacedById: { $ref: '#/components/schemas/Id' } } }
+            schema: { type: object, required: [reason], properties: { reason: { type: string }, replacedById: { $ref: '#/components/schemas/Id' } } }
       responses:
         '201': { description: 'Đã tạo phiếu', content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -690,7 +692,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [result], properties: { result: { type: string, enum: [keep, revise, withdraw] }, note: { type: string } } }
+            schema: { type: object, required: [result], properties: { result: { type: string, enum: [keep, revise, withdraw] }, note: { type: string } } }
       responses:
         '200': { $ref: '#/components/responses/DocumentOk' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -728,7 +730,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [source, number, issuedAt, title, departmentId]
               properties:
                 source: { type: string, description: 'Cơ quan ban hành' }
@@ -752,7 +753,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, properties: { isSuperseded: { type: boolean }, lastCheckedAt: { $ref: '#/components/schemas/DateTime' } } }
+            schema: { type: object, properties: { isSuperseded: { type: boolean }, lastCheckedAt: { $ref: '#/components/schemas/DateTime' } } }
       responses:
         '200': { $ref: '#/components/responses/DocumentOk' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -812,7 +813,7 @@ paths:
       requestBody:
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, properties: { comment: { type: string } } }
+            schema: { type: object, properties: { comment: { type: string } } }
       responses:
         '200': { $ref: '#/components/responses/ApprovalOk' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -830,7 +831,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [result]
               properties:
                 result: { type: string, enum: [approve, changes_requested] }
@@ -1000,10 +1000,11 @@ paths:
                 - type: object
                   required: [file]
                   properties:
-                    file: { type: string, format: binary }
+                    file: { type: string, format: binary, description: '≤ 100 MB' }
       responses:
         '202': { $ref: '#/components/responses/JobAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/RuleViolation' }
   /records/unregistered:
@@ -1030,7 +1031,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [fileId, recordTypeId, kind, functionCode, workMonth]
               properties:
                 fileId: { type: string }
@@ -1065,7 +1065,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               properties:
                 subject: { type: string }
                 identifier: { type: string }
@@ -1111,7 +1110,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string } } }
+            schema: { type: object, required: [reason], properties: { reason: { type: string } } }
       responses:
         '201': { $ref: '#/components/responses/RecordOk201' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1131,10 +1130,11 @@ paths:
               type: object
               required: [file, paperLocation]
               properties:
-                file: { type: string, format: binary }
+                file: { type: string, format: binary, description: '≤ 100 MB' }
                 paperLocation: { type: string }
       responses:
         '202': { $ref: '#/components/responses/JobAccepted' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
       x-gia-dinh: Hợp đồng không ghi kiểu trả; chọn 202 job vì phải tải file lên Drive
@@ -1148,7 +1148,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string } } }
+            schema: { type: object, required: [reason], properties: { reason: { type: string } } }
       responses:
         '200': { $ref: '#/components/responses/RecordOk' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1215,6 +1215,7 @@ paths:
       responses:
         '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/SearchPage' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooMany' }
   /search/suggest:
     get:
       tags: [M08 Tra cứu]
@@ -1224,6 +1225,8 @@ paths:
       responses:
         '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/SearchHit' } } } } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooMany' }
+      x-gia-dinh: 'Giới hạn tìm kiếm 60/phút áp cả cho gợi ý'
 
   # ───────────────────────── M09 ─────────────────────────
   /external-shares:
@@ -1250,7 +1253,6 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: false
               required: [fileId, email, role, reason, expiresAt]
               properties:
                 fileId: { type: string }
@@ -1304,7 +1306,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [expiresAt], properties: { expiresAt: { $ref: '#/components/schemas/DateTime' } } }
+            schema: { type: object, required: [expiresAt], properties: { expiresAt: { $ref: '#/components/schemas/DateTime' } } }
       responses:
         '200': { $ref: '#/components/responses/ExternalShareOk' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1384,7 +1386,7 @@ components:
       type: apiKey
       in: cookie
       name: vcdocs_sid
-      description: Cookie phiên HttpOnly, Secure, SameSite=Lax, 8 giờ
+      description: Cookie phiên HttpOnly, Secure, SameSite=Lax, 8 giờ, tự gia hạn khi đang dùng (hợp đồng mục 8, Q4)
       x-gia-dinh: Tên cookie do file này chọn
 
   parameters:
@@ -1423,7 +1425,8 @@ components:
     Conflict: { description: 'Trùng hoặc sai trạng thái (STATE_INVALID, DUPLICATE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RuleViolation: { description: 'Vi phạm quy tắc nghiệp vụ (RULE_VIOLATION, kèm rule = mã BR)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Locked: { description: 'File đang khoá (LOCKED)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    TooMany: { description: 'Quá nhiều yêu cầu', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooMany: { description: 'Quá nhiều yêu cầu (600/phút/người; tìm kiếm 60/phút)', headers: { Retry-After: { description: 'Số giây chờ trước khi gọi lại', schema: { type: integer, minimum: 1 } } }, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    PayloadTooLarge: { description: 'Thân JSON > 1 MB hoặc file > 100 MB', x-gia-dinh: 'Hợp đồng mục 7 nêu giới hạn nhưng mục 1 không liệt kê 413; chọn 413', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     DriveError: { description: 'Google trả lỗi (DRIVE_ERROR)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   schemas:
@@ -1633,7 +1636,6 @@ components:
         - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Code' } } } }
     DecideInput:
       type: object
-      additionalProperties: false
       required: [result]
       properties:
         result: { type: string, enum: [approve, reject] }
@@ -1821,7 +1823,6 @@ components:
         requiresApproval: { type: boolean, x-gia-dinh: 'Hợp đồng mục 5.2 nói "loại hồ sơ cần duyệt" nhưng không có trường' }
     RecordTypePatch:
       type: object
-      additionalProperties: false
       properties:
         name: { type: string }
         namingRule: { type: string }
