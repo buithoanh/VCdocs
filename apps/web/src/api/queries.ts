@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, newId, unwrap } from './client';
 import type { Block, Department, Division, Drive, RecordType, User } from './types';
 
@@ -113,4 +113,30 @@ export function useAction<TVars, TResult>(
     keyRef.current = newId();
   }, []);
   return Object.assign(m, { resetKey });
+}
+
+/** Kiểm tra mã trùng khi gõ: tìm mã cùng tên trong Bảng mã. */
+export function useCodeExists(code: string) {
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(code.trim().toUpperCase()), 300);
+    return () => clearTimeout(t);
+  }, [code]);
+  return useQuery({
+    queryKey: ['codes', 'exists', debounced],
+    enabled: debounced.length >= 2,
+    queryFn: () =>
+      unwrap(api.GET('/codes', { params: { query: { q: debounced, limit: 20 } } })).then((r) => r.items.find((c) => c.code.toUpperCase() === debounced)),
+    staleTime: 30_000,
+  });
+}
+
+/** Mã đã duyệt (dùng được để đặt tên). */
+export function useApprovedCodes(departmentId?: string) {
+  return useQuery({
+    queryKey: ['codes', 'approved', departmentId ?? null],
+    queryFn: () =>
+      unwrap(api.GET('/codes', { params: { query: { status: 'approved', departmentId: departmentId || undefined, limit: 200, sort: 'code' } } })).then((r) => r.items),
+    staleTime: 5 * 60_000,
+  });
 }
