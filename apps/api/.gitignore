@@ -1,0 +1,5 @@
+.env
+.vault/
+.uploads/
+.fake-google.json
+dist/
