@@ -1,0 +1,18 @@
+{
+  "name": "vcdocs",
+  "private": true,
+  "packageManager": "pnpm@9.2.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "contract:lint": "redocly lint contract/openapi.yaml --format=summary",
+    "contract:mock": "prism mock -p 4010 -d contract/openapi.yaml",
+    "dev:api": "pnpm --filter @vcdocs/api dev",
+    "dev:web": "pnpm --filter @vcdocs/web dev",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@redocly/cli": "1.25.11",
+    "@stoplight/prism-cli": "5.12.0"
+  }
+}

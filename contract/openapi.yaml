@@ -1,0 +1,2041 @@
+openapi: 3.1.0
+info:
+  title: VCdocs API
+  version: 1.0.0-gd1
+  description: |
+    Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
+    https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
+    M01–M09, M14 và /jobs.
+
+    File này VIẾT TAY và là gốc cho cả FE (apps/web) lẫn BE (apps/api).
+    Không sinh từ mã. Phiên FE/BE không được sửa file này; thấy cần sửa thì
+    ghi vào contract/DE_NGHI_SUA.md và báo chủ dự án.
+
+    Chỗ hợp đồng chưa ghi rõ, file này tự chọn và đánh dấu `x-gia-dinh`
+    (giả định) để chủ dự án rà lại.
+
+    Quy ước chung (hợp đồng mục 1):
+    - JSON UTF-8; thời điểm ISO 8601 kèm múi giờ; ngày YYYY-MM-DD; tháng YYYY-MM.
+    - id VCdocs là MongoDB ObjectId 24 ký tự; id Google giữ nguyên chuỗi Google.
+    - Phiên đăng nhập bằng cookie HttpOnly, Secure, SameSite=Lax, 8 giờ.
+    - Mọi POST/PATCH/DELETE kèm header X-CSRF-Token (lấy từ GET /me).
+    - POST tạo, ban hành, chốt, chia sẻ kèm Idempotency-Key; lặp key trong 24 giờ
+      trả lại đúng kết quả cũ.
+    - Mọi yêu cầu kèm X-Request-Id (FE sinh, BE trả lại). POST/PATCH/DELETE trả
+      X-Audit-Id.
+    - companyId suy từ tài khoản đăng nhập, không bao giờ nhận từ FE.
+    - Thiếu quyền → 403; đối tượng ở drive Mật mà người gọi không được xem → 404.
+    - Việc chạy lâu trả 202 + { jobId }; theo dõi GET /jobs/{id}.
+    - Mỗi đối tượng có allowedActions: FE chỉ hiện nút có trong danh sách này.
+servers:
+  - url: https://vcdocs.vcprosperous.com/api/v1
+  - url: http://localhost:4000/api/v1
+    description: Máy chủ BE chạy local
+  - url: http://localhost:4010
+    description: Máy chủ giả (Prism) sinh từ file này
+
+security:
+  - session: []
+
+tags:
+  - name: M01 Đăng nhập, người dùng
+  - name: M02 Danh mục nền, Bảng mã
+  - name: M03 Cây thư mục
+  - name: M04 Tài liệu hệ thống
+  - name: M05 Phê duyệt
+  - name: M06 Danh mục hồ sơ
+  - name: M07 Hồ sơ
+  - name: M08 Tra cứu
+  - name: M09 Chia sẻ ngoài
+  - name: M14 Thông báo
+  - name: Việc nền
+
+paths:
+  # ───────────────────────── M01 ─────────────────────────
+  /auth/google:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Bắt đầu đăng nhập Google
+      security: []
+      parameters:
+        - name: returnTo
+          in: query
+          description: Đường dẫn tương đối trong giao diện để quay về sau khi đăng nhập
+          schema: { type: string }
+          x-gia-dinh: Hợp đồng không ghi; thêm để quay lại đúng trang
+      responses:
+        '302':
+          description: Chuyển hướng sang Google (hd=vcprosperous.com)
+          headers:
+            Location: { schema: { type: string } }
+  /auth/google/callback:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Google trả về, tạo phiên
+      security: []
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        '302':
+          description: Đặt cookie phiên, chuyển về trang đầu (hoặc returnTo)
+          headers:
+            Set-Cookie: { schema: { type: string } }
+            Location: { schema: { type: string } }
+        '403':
+          description: Tài khoản không thuộc tên miền vcprosperous.com
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /auth/logout:
+    post:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Đăng xuất
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 'Đã xoá phiên' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /me:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Tôi là ai – vai trò hệ thống, phòng, vai trò trên từng drive, csrfToken
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /users:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Danh sách nhân sự (R3, R9; R4 phòng mình)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: role, in: query, schema: { $ref: '#/components/schemas/SystemRole' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/UserStatus' } }
+        - $ref: '#/components/parameters/Q'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/UserPage' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /users/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Chi tiết nhân sự
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Đổi vai trò hệ thống (R9); ghi ngày nghỉ việc (R3) → tự tạo handover
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                systemRoles: { type: array, items: { $ref: '#/components/schemas/SystemRole' } }
+                lastWorkingDay: { $ref: '#/components/schemas/Date' }
+      responses:
+        '200': { $ref: '#/components/responses/UserOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /sync/google:
+    post:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Đồng bộ nhân sự, nhóm, thành viên drive (R9; việc nền hằng đêm)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /drives:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: 11 drive và vai trò của tôi trên từng drive
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Drive' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /drives/{id}/members:
+    parameters:
+      - { name: id, in: path, required: true, description: 'driveId của Google', schema: { type: string } }
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Thành viên drive (R3, R9; R4 drive mình)
+      parameters:
+        - { name: anomalies, in: query, description: 'true = chỉ thành viên lẻ, ngoài tên miền', schema: { type: boolean } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/DriveMember' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────── M02 ─────────────────────────
+  /blocks:
+    get:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Danh sách khối
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Block' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Thêm khối (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BlockInput' } } } }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Block' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /blocks/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    patch:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Sửa khối (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BlockInput' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Block' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /departments:
+    get:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Danh sách phòng – drive
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Department' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Thêm phòng (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentInput' } } } }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Department' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /departments/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    patch:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Sửa phòng (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DepartmentInput' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Department' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /divisions:
+    get:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Danh sách division
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Division' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Thêm division (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DivisionInput' } } } }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Division' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /divisions/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    patch:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Sửa division (R9, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DivisionInput' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Division' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /codes:
+    get:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Bảng mã
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/CodeType' } }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/CodeStatus' } }
+        - $ref: '#/components/parameters/Q'
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/CodePage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Đề nghị mã mới (R4) – trạng thái pending, chưa dùng được (BR-12)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code, type, meaning, scope, reason]
+              properties:
+                code: { type: string, example: SEO-PTDA }
+                type: { $ref: '#/components/schemas/CodeType' }
+                meaning: { type: string }
+                scope: { type: string, description: 'Phạm vi dùng mã (phòng, mảng)' }
+                reason: { type: string }
+      responses:
+        '201': { description: 'Đã tạo phiếu đề nghị', content: { application/json: { schema: { $ref: '#/components/schemas/Code' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /codes/{id}/decide:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Ban Điều hành duyệt mã (R1)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DecideInput' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Code' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /codes/export:
+    post:
+      tags: [M02 Danh mục nền, Bảng mã]
+      summary: Xuất Bảng mã ra Google Sheets (R3) – job.result.fileId
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────── M03 ─────────────────────────
+  /folders:
+    get:
+      tags: [M03 Cây thư mục]
+      summary: Cây thư mục từ sổ VCdocs (theo quyền drive)
+      parameters:
+        - { name: driveId, in: query, schema: { type: string } }
+        - { name: parentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/FolderKind' } }
+        - { name: depth, in: query, schema: { type: integer, minimum: 1, maximum: 10, default: 1 } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Folder' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M03 Cây thư mục]
+      summary: Tạo thư mục đúng khung (R4; R5 mảng mình) – area/project cần code đã duyệt; tên máy chủ ghép (BR-11)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [driveId, parentId, kind, shortName]
+              properties:
+                driveId: { type: string }
+                parentId: { $ref: '#/components/schemas/Id' }
+                kind: { $ref: '#/components/schemas/FolderKind' }
+                code: { type: string }
+                shortName: { type: string }
+                fullName: { type: string }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /folders/next-number:
+    get:
+      tags: [M03 Cây thư mục]
+      summary: Số kế tiếp còn trống (R4, R5)
+      parameters:
+        - { name: parentId, in: query, required: true, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: kind, in: query, required: true, schema: { $ref: '#/components/schemas/FolderKind' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [number], properties: { number: { type: string, example: '11' } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /folders/ensure-periods:
+    post:
+      tags: [M03 Cây thư mục]
+      summary: Tạo thư mục năm, tháng còn thiếu (R3; việc nền hằng tháng)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [month]
+              properties:
+                driveId: { type: string }
+                month: { $ref: '#/components/schemas/Month' }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /folders/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M03 Cây thư mục]
+      summary: Một thư mục
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Folder' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /folders/{id}/children:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M03 Cây thư mục]
+      summary: Thư mục con
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Folder' } } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /folders/{id}/rename:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M03 Cây thư mục]
+      summary: Đổi tên đúng mẫu, giữ số và mã (R4)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [shortName], properties: { shortName: { type: string }, fullName: { type: string } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Folder' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /folders/{id}/close-project:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M03 Cây thư mục]
+      summary: Kết thúc dự án → chuyển vào 98; số không cấp lại (R4)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+      x-gia-dinh: Hợp đồng không ghi 202; chọn 202 job vì phải di chuyển trên Drive
+  /folders/{id}/resync:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M03 Cây thư mục]
+      summary: Đọc lại từ Drive khi lệch (R3, R4)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Folder' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+
+  # ───────────────────────── M04 ─────────────────────────
+  /documents:
+    get:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Danh mục tài liệu – tài liệu Mật chỉ hiện mã và tên với người không có quyền
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/DocumentType' } }
+        - { name: level, in: query, schema: { $ref: '#/components/schemas/DocumentLevel' } }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/DocumentStatus' } }
+        - $ref: '#/components/parameters/Q'
+        - { name: reviewDueBefore, in: query, schema: { $ref: '#/components/schemas/Date' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/DocumentPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Đăng ký tài liệu (R4) → registered; QD chỉ cấp VCPV (BR-02)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [type, level, title, departmentId, drafterId]
+              properties:
+                type: { $ref: '#/components/schemas/DocumentType' }
+                level: { $ref: '#/components/schemas/DocumentLevel' }
+                title: { type: string, minLength: 1 }
+                departmentId: { $ref: '#/components/schemas/Id' }
+                drafterId: { $ref: '#/components/schemas/Id' }
+                checkerId: { $ref: '#/components/schemas/Id' }
+                dueDate: { $ref: '#/components/schemas/Date' }
+      responses:
+        '201': { $ref: '#/components/responses/DocumentOk201' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /documents/similar:
+    get:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Tài liệu tên gần giống – tránh soạn trùng (R4)
+      parameters:
+        - { name: title, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/DocumentSummary' } } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /documents/by-code/{code}:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string, example: QT-MKT-01 } }
+    get:
+      tags: [M08 Tra cứu]
+      summary: Mở bản hiệu lực theo mã; bản cũ chỉ qua versions
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /documents/catalog/export:
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Xuất Danh mục tài liệu VCPV (R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /documents/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Chi tiết kèm versions
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /documents/{id}/assign-code:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Cấp mã kế tiếp (R3) registered → coded; mã đã huỷ không cấp lại (BR-01)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /documents/{id}/create-draft:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Tạo file nháp từ BM khung, điền bảng nhận diện (drafterId) coded → drafting
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /documents/{id}/request-feedback:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Lấy góp ý (drafterId) drafting → feedback; cấp quyền Nhận xét cho người ngoài drive
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [dueDate]
+              properties:
+                reviewerIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
+                departmentIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
+                dueDate: { $ref: '#/components/schemas/Date' }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /documents/{id}/feedback:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Số nhận xét chưa đóng (đọc từ Drive) (drafterId, R4)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [openComments], properties: { openComments: { type: integer, minimum: 0 }, checkedAt: { $ref: '#/components/schemas/DateTime' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /documents/{id}/submit:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Trình duyệt (R4) → submitted; tạo Approval, khoá tạm, chụp phiên bản; còn nhận xét mở → 422 trừ khi override
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                overrideOpenComments: { type: boolean }
+                reason: { type: string, description: 'Bắt buộc khi overrideOpenComments = true' }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /documents/{id}/issue:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Ban hành (R3 cấp VCPV; R4 cấp phòng) approved → effective
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [effectiveFrom]
+              properties:
+                effectiveFrom: { $ref: '#/components/schemas/Date' }
+                notifyGroupIds: { type: array, items: { type: string }, description: 'Email nhóm Google' }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /documents/{id}/revise:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Mở sửa (R4) – minor mở khoá có hạn; major → revising, bản cũ vẫn hiệu lực (BR-06, BR-07)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind, reason]
+              properties:
+                kind: { $ref: '#/components/schemas/RevisionKind' }
+                reason: { type: string }
+                unlockDays: { type: integer, minimum: 1, description: 'Chỉ dùng với minor' }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /documents/{id}/withdraw:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Trình huỷ bỏ (R4) – tạo Approval document_withdrawal (BR-08)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string }, replacedById: { $ref: '#/components/schemas/Id' } } }
+      responses:
+        '201': { description: 'Đã tạo phiếu', content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /documents/{id}/review:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Kết quả rà soát định kỳ (R4) – ghi kết quả và reviewDue mới
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [result], properties: { result: { type: string, enum: [keep, revise, withdraw] }, note: { type: string } } }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /documents/{id}/integrity:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Khoá còn không, phiên bản hiện tại có khớp bản hiệu lực (R3, R4)
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Integrity' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /documents/{id}/relock:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Khoá lại ngay (R3, R4, việc nền)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /external-documents:
+    post:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Nhập tài liệu bên ngoài (R6 trở lên) – sao chép vào 00 Tài liệu (BR-31)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [source, number, issuedAt, title, departmentId]
+              properties:
+                source: { type: string, description: 'Cơ quan ban hành' }
+                number: { type: string, description: 'Số hiệu văn bản' }
+                issuedAt: { $ref: '#/components/schemas/Date' }
+                title: { type: string }
+                departmentId: { $ref: '#/components/schemas/Id' }
+                fileId: { type: string, description: 'File Google đã có (một trong fileId hoặc url)' }
+                url: { type: string, format: uri }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /external-documents/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    patch:
+      tags: [M04 Tài liệu hệ thống]
+      summary: Cập nhật tình trạng tài liệu bên ngoài (R6 trở lên); isSuperseded → trả relatedIds đang dẫn chiếu
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { isSuperseded: { type: boolean }, lastCheckedAt: { $ref: '#/components/schemas/DateTime' } } }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────── M05 ─────────────────────────
+  /approvals:
+    get:
+      tags: [M05 Phê duyệt]
+      summary: Danh sách phiếu; box=inbox là phiếu chờ tôi
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: box, in: query, schema: { type: string, enum: [inbox, sent, all], default: inbox } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+        - { name: objectType, in: query, schema: { $ref: '#/components/schemas/ApprovalObjectType' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /approvals/preview:
+    get:
+      tags: [M05 Phê duyệt]
+      summary: Ai sẽ duyệt theo thẩm quyền (BR-03, BR-24, uỷ quyền khối)
+      parameters:
+        - { name: objectType, in: query, required: true, schema: { $ref: '#/components/schemas/ApprovalObjectType' } }
+        - { name: objectId, in: query, required: true, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approver, approverRule]
+                properties:
+                  approver: { $ref: '#/components/schemas/UserRef' }
+                  checker: { $ref: '#/components/schemas/UserRef' }
+                  approverRule: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /approvals/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M05 Phê duyệt]
+      summary: Chi tiết phiếu + link bản chụp (người liên quan)
+      responses:
+        '200': { $ref: '#/components/responses/ApprovalOk' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /approvals/{id}/check:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M05 Phê duyệt]
+      summary: Người kiểm tra xác nhận (checkerId; QĐ, QT cấp VCPV)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { comment: { type: string } } }
+      responses:
+        '200': { $ref: '#/components/responses/ApprovalOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /approvals/{id}/decide:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M05 Phê duyệt]
+      summary: Quyết định (approverId) – comment bắt buộc khi yêu cầu sửa; phiên bản lệch snapshot → 409 + invalidated (BR-27); ghi device, ip
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [result]
+              properties:
+                result: { type: string, enum: [approve, changes_requested] }
+                comment: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/ApprovalOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /approvals/{id}/cancel:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M05 Phê duyệt]
+      summary: Rút phiếu (submittedBy)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/ApprovalOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /approvals/{id}/remind:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M05 Phê duyệt]
+      summary: Nhắc lại (submittedBy, R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/ApprovalOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooMany' }
+  /delegations:
+    get:
+      tags: [M05 Phê duyệt]
+      summary: Bảng uỷ quyền của khối (R2)
+      parameters:
+        - { name: blockId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Delegation' } } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [M05 Phê duyệt]
+      summary: Thêm dòng uỷ quyền (R2) – vượt hạn mức hoặc việc liên khối → 422 BR-24
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DelegationInput' } } } }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Delegation' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /delegations/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    patch:
+      tags: [M05 Phê duyệt]
+      summary: Sửa dòng uỷ quyền (R2)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DelegationInput' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Delegation' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+
+  # ───────────────────────── M06 ─────────────────────────
+  /record-types:
+    get:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Loại hồ sơ
+      parameters:
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/RecordType' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Khai báo loại hồ sơ (R4) – thời hạn chưa duyệt → chưa lập được hồ sơ (BR-20)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RecordTypeInput' } } } }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/RecordType' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /record-types/catalog/export:
+    post:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Xuất Danh mục hồ sơ VCPV (R3)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /record-types/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Chi tiết loại hồ sơ
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/RecordType' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Sửa loại hồ sơ (R4) – đổi thời hạn → retentionStatus về draft, phải trình lại
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RecordTypePatch' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/RecordType' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /record-types/{id}/submit-retention:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M06 Danh mục hồ sơ]
+      summary: Trình thời hạn lưu (R4) – Approval retention cho R1; kế toán thêm R8, nhân sự thêm R3
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '201': { description: 'Đã tạo phiếu', content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  # ───────────────────────── M07 ─────────────────────────
+  /records:
+    get:
+      tags: [M07 Hồ sơ]
+      summary: Danh sách hồ sơ (theo quyền drive)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: recordTypeId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: workMonth, in: query, schema: { $ref: '#/components/schemas/Month' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/RecordStatus' } }
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/RecordKind' } }
+        - $ref: '#/components/parameters/Q'
+        - { name: identifier, in: query, schema: { type: string } }
+        - { name: createdBy, in: query, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/RecordPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Lập hồ sơ từ biểu mẫu (R5, R6, R8) – tạo file, đặt tên, đặt chỗ (BR-09, BR-10, BR-28)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RecordInput' } } } }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /records/upload:
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Tải file lên cùng trường lập hồ sơ (R5, R6, R8) – chuyển định dạng Google trừ PDF, XML, scan (BR-14)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/RecordInput'
+                - type: object
+                  required: [file]
+                  properties:
+                    file: { type: string, format: binary }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /records/unregistered:
+    get:
+      tags: [M07 Hồ sơ]
+      summary: File trên Drive chưa đăng ký (R4, R5)
+      parameters:
+        - { name: driveId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/DriveFile' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /records/claim:
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Đăng ký ngược file tạo thẳng trên Drive (người tạo file, R4) – tên sai thì máy chủ đổi đúng
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fileId, recordTypeId, kind, functionCode, workMonth]
+              properties:
+                fileId: { type: string }
+                recordTypeId: { $ref: '#/components/schemas/Id' }
+                kind: { $ref: '#/components/schemas/RecordKind' }
+                functionCode: { type: string }
+                subject: { type: string, x-gia-dinh: 'Hợp đồng không ghi; cần để ghép tên đúng' }
+                identifier: { type: string }
+                workMonth: { $ref: '#/components/schemas/Month' }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+      x-gia-dinh: Hợp đồng không ghi kiểu trả; chọn 202 job vì phải đổi tên, di chuyển trên Drive
+  /records/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M07 Hồ sơ]
+      summary: Chi tiết hồ sơ
+      responses:
+        '200': { $ref: '#/components/responses/RecordOk' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [M07 Hồ sơ]
+      summary: Sửa hồ sơ (người lập) – chỉ khi drafting, khác → 409
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                subject: { type: string }
+                identifier: { type: string }
+                workMonth: { $ref: '#/components/schemas/Month' }
+                paperLocation: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/RecordOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /records/{id}/submit:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Trình duyệt hồ sơ (người lập) – khoá tạm, chụp phiên bản
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '200': { $ref: '#/components/responses/RecordOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /records/{id}/finalize:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Chốt (người lập, R4) – PDF + dấu chốt + QR, khoá, mã băm, kho riêng (BR-13, BR-26, BR-29)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /records/{id}/adjust:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Tạo hồ sơ Điều chỉnh (R5, R6) – trả record mới có adjustsId
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string } } }
+      responses:
+        '201': { $ref: '#/components/responses/RecordOk201' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /records/{id}/scan:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Gắn bản scan (người lập) – ghi vị trí giấy vào Mô tả file
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, paperLocation]
+              properties:
+                file: { type: string, format: binary }
+                paperLocation: { type: string }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+      x-gia-dinh: Hợp đồng không ghi kiểu trả; chọn 202 job vì phải tải file lên Drive
+  /records/{id}/hold:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Giữ lại, không được huỷ (R4, R1, R8) finalized → held (BR-22)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [reason], properties: { reason: { type: string } } }
+      responses:
+        '200': { $ref: '#/components/responses/RecordOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /records/{id}/release-hold:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M07 Hồ sơ]
+      summary: Bỏ giữ lại (R4, R1, R8) held → finalized
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/RecordOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /records/{id}/integrity:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M07 Hồ sơ]
+      summary: Khoá, mã băm, phiên bản có khớp (R3, R4)
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Integrity' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /verify/{verifyCode}:
+    parameters:
+      - { name: verifyCode, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [M07 Hồ sơ]
+      summary: Tra mã trên dấu chốt (QR) – đã đăng nhập, không cần quyền drive; không trả nội dung
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [number, status, finalizedAt, pdfSha256]
+                properties:
+                  number: { type: string, example: HS-2026-000123 }
+                  status: { $ref: '#/components/schemas/RecordStatus' }
+                  finalizedAt: { $ref: '#/components/schemas/DateTime' }
+                  pdfSha256: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────── M08 ─────────────────────────
+  /search:
+    get:
+      tags: [M08 Tra cứu]
+      summary: Tìm theo mã, tên, số định danh – chỉ trả thứ được xem; ≤ 2 giây
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: scope, in: query, schema: { type: string, enum: [all, documents, records], default: all }, x-gia-dinh: 'Hợp đồng không liệt kê giá trị scope' }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: workMonth, in: query, schema: { $ref: '#/components/schemas/Month' } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: createdBy, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/SearchPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /search/suggest:
+    get:
+      tags: [M08 Tra cứu]
+      summary: Gợi ý khi gõ
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/SearchHit' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ───────────────────────── M09 ─────────────────────────
+  /external-shares:
+    get:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Sổ chia sẻ ngoài (R4 phòng mình, R3; người chia sẻ)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ShareStatus' } }
+        - { name: fileId, in: query, schema: { type: string } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/ExternalSharePage' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Chia sẻ ra ngoài (R5, R6, R8) – tài khoản máy thực hiện; file Mật → pending_approval (R4); hạn có giới hạn (BR-17)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fileId, email, role, reason, expiresAt]
+              properties:
+                fileId: { type: string }
+                email: { type: string, format: email }
+                role: { $ref: '#/components/schemas/ShareRole' }
+                reason: { type: string }
+                expiresAt: { $ref: '#/components/schemas/DateTime' }
+      responses:
+        '201': { $ref: '#/components/responses/ExternalShareOk201' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /external-shares/revoke-all:
+    post:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Gỡ hết chia sẻ ngoài của phòng (R4)
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+        - { name: departmentId, in: query, required: true, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+      x-gia-dinh: Hợp đồng không ghi kiểu trả; chọn 202 job vì có thể gỡ nhiều quyền
+  /external-shares/anomalies:
+    get:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Chia sẻ trong nhật ký Google không có trong sổ (R4, R3)
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/ExternalShare' } } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /external-shares/{id}/revoke:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Gỡ chia sẻ (người chia sẻ, R4)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200': { $ref: '#/components/responses/ExternalShareOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /external-shares/{id}/extend:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M09 Chia sẻ ngoài]
+      summary: Gia hạn chia sẻ (người chia sẻ, R4)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [expiresAt], properties: { expiresAt: { $ref: '#/components/schemas/DateTime' } } }
+      responses:
+        '200': { $ref: '#/components/responses/ExternalShareOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+
+  # ───────────────────────── M14 ─────────────────────────
+  /notifications:
+    get:
+      tags: [M14 Thông báo]
+      summary: Thông báo trong ứng dụng
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: unread, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications/{id}/read:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M14 Thông báo]
+      summary: Đánh dấu đã đọc
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 'OK' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notifications/read-all:
+    post:
+      tags: [M14 Thông báo]
+      summary: Đánh dấu tất cả đã đọc
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 'OK' }
+  /notification-settings:
+    get:
+      tags: [M14 Thông báo]
+      summary: Kênh nhận thông báo của tôi
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/NotificationSettings' } } } }
+    patch:
+      tags: [M14 Thông báo]
+      summary: Đổi kênh nhận (zalo từ giai đoạn 3 → 422 nếu bật sớm)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NotificationSettings' } } } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/NotificationSettings' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+
+  # ───────────────────────── Việc nền ─────────────────────────
+  /jobs:
+    get:
+      tags: [Việc nền]
+      summary: Danh sách việc chạy lâu (mine=true chỉ của tôi; R9 xem tất cả)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: mine, in: query, schema: { type: boolean, default: true } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/JobPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /jobs/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [Việc nền]
+      summary: Theo dõi một việc chạy lâu (người yêu cầu, R9)
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: vcdocs_sid
+      description: Cookie phiên HttpOnly, Secure, SameSite=Lax, 8 giờ
+      x-gia-dinh: Tên cookie do file này chọn
+
+  parameters:
+    IdPath: { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    Sort: { name: sort, in: query, description: 'Ví dụ -createdAt,title (dấu trừ = giảm dần)', schema: { type: string } }
+    Q: { name: q, in: query, description: 'Tìm theo chữ', schema: { type: string } }
+    Csrf: { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+    Idempotency: { name: Idempotency-Key, in: header, required: true, description: 'Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ', schema: { type: string, minLength: 8, maxLength: 128 } }
+
+  headers:
+    RequestId: { description: 'Trả lại X-Request-Id của yêu cầu', schema: { type: string } }
+    AuditId: { description: 'Id dòng audit_logs vừa ghi', schema: { type: string } }
+
+  responses:
+    JobAccepted:
+      description: Đã nhận, chạy nền
+      headers:
+        X-Audit-Id: { $ref: '#/components/headers/AuditId' }
+      content:
+        application/json:
+          schema: { type: object, required: [jobId], properties: { jobId: { $ref: '#/components/schemas/Id' } } }
+    UserOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+    DocumentOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Document' } } } }
+    DocumentOk201: { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Document' } } } }
+    RecordOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Record' } } } }
+    RecordOk201: { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/Record' } } } }
+    ApprovalOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+    ExternalShareOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/ExternalShare' } } } }
+    ExternalShareOk201: { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/ExternalShare' } } } }
+    BadRequest: { description: 'Dữ liệu sai (VALIDATION)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: 'Chưa đăng nhập', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: 'Không có quyền (FORBIDDEN)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: 'Không có, hoặc thuộc drive Mật không được xem (NOT_FOUND)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: 'Trùng hoặc sai trạng thái (STATE_INVALID, DUPLICATE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    RuleViolation: { description: 'Vi phạm quy tắc nghiệp vụ (RULE_VIOLATION, kèm rule = mã BR)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Locked: { description: 'File đang khoá (LOCKED)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooMany: { description: 'Quá nhiều yêu cầu', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    DriveError: { description: 'Google trả lỗi (DRIVE_ERROR)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  schemas:
+    # ── Kiểu cơ bản ──
+    Id: { type: string, pattern: '^[a-f0-9]{24}$', example: 6712f0c2a1b2c3d4e5f60718 }
+    Date: { type: string, format: date, example: '2026-10-19' }
+    DateTime: { type: string, format: date-time, example: '2026-10-19T21:46:00+07:00' }
+    Month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$', example: 2026-10 }
+
+    # ── Giá trị cố định (hợp đồng mục 2) ──
+    DocumentType: { type: string, enum: [QD, QT, HD, BM, EXT] }
+    DocumentLevel: { type: string, enum: [VCPV, DEPT] }
+    DocumentStatus: { type: string, enum: [registered, coded, drafting, feedback, submitted, approved, effective, revising, withdrawn] }
+    RevisionKind: { type: string, enum: [minor, major] }
+    RecordKind: { type: string, enum: [KH, BC, DX, TD, GV, BB, TB, OPS] }
+    RecordStatus: { type: string, enum: [drafting, submitted, finalized, held, disposal_proposed, disposed] }
+    ApprovalObjectType: { type: string, enum: [document, document_withdrawal, record, code, retention, external_share, disposal, delegation] }
+    ApprovalStatus: { type: string, enum: [pending, approved, changes_requested, cancelled, expired, invalidated] }
+    SystemRole: { type: string, enum: [R1, R2, R3, R4, R5, R6, R7, R8, R9] }
+    DriveRole: { type: string, enum: [organizer, fileOrganizer, writer, commenter, reader] }
+    SecurityLevel: { type: string, enum: [internal, department, confidential] }
+    FolderKind: { type: string, enum: [docs, plan_report, operations, area, project, closed, archive, year, month, entity] }
+    FolderStatus: { type: string, enum: [active, closed, archived] }
+    ShareRole: { type: string, enum: [reader, commenter] }
+    ShareStatus: { type: string, enum: [pending_approval, active, expired, revoked] }
+    JobStatus: { type: string, enum: [queued, running, done, failed] }
+    NotificationChannel: { type: string, enum: [email, zalo, inapp] }
+    UserStatus: { type: string, enum: [active, leaving, left], x-gia-dinh: 'Hợp đồng không liệt kê giá trị' }
+    CodeType: { type: string, enum: [department, function, channel, project, division], x-gia-dinh: 'Hợp đồng không liệt kê loại mã' }
+    CodeStatus: { type: string, enum: [pending, approved, rejected, retired], x-gia-dinh: 'Hợp đồng chỉ nói pending' }
+    ErrorCode: { type: string, enum: [VALIDATION, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, DUPLICATE, STATE_INVALID, RULE_VIOLATION, LOCKED, RATE_LIMITED, DRIVE_ERROR, MAINTENANCE, INTERNAL] }
+
+    # ── Khung chung ──
+    Base:
+      type: object
+      required: [id, companyId, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        companyId: { $ref: '#/components/schemas/Id' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        createdBy: { $ref: '#/components/schemas/Id' }
+        updatedAt: { $ref: '#/components/schemas/DateTime' }
+        updatedBy: { $ref: '#/components/schemas/Id' }
+    Actions:
+      type: object
+      required: [allowedActions]
+      properties:
+        allowedActions:
+          type: array
+          description: Tên hành động người gọi được làm lúc này (vd submit, issue, revise). FE chỉ hiện nút có ở đây.
+          items: { type: string }
+    PageMeta:
+      type: object
+      required: [page, limit, total]
+      properties:
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1, maximum: 200 }
+        total: { type: integer, minimum: 0 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code: { $ref: '#/components/schemas/ErrorCode' }
+            message: { type: string, description: 'Tiếng Việt cho người dùng' }
+            rule: { type: string, description: 'Mã BR khi code = RULE_VIOLATION', example: BR-02 }
+            details:
+              type: array
+              items: { type: object, required: [field, issue], properties: { field: { type: string }, issue: { type: string } } }
+            requestId: { type: string }
+      example:
+        error: { code: RULE_VIOLATION, message: Quy định chỉ được đăng ký ở cấp VCPV, rule: BR-02, details: [{ field: level, issue: must_be_VCPV }], requestId: 3f1c9a }
+    Lock:
+      type: object
+      required: [isLocked]
+      properties:
+        isLocked: { type: boolean }
+        lockedAt: { $ref: '#/components/schemas/DateTime' }
+        unlockedUntil: { $ref: '#/components/schemas/DateTime' }
+        unlockReason: { type: string }
+    UserRef:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        name: { type: string }
+        email: { type: string, format: email }
+
+    # ── M01 ──
+    Me:
+      type: object
+      required: [user, systemRoles, drives, csrfToken]
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        systemRoles: { type: array, items: { $ref: '#/components/schemas/SystemRole' } }
+        departmentId: { $ref: '#/components/schemas/Id' }
+        drives:
+          type: array
+          items:
+            type: object
+            required: [driveId, name, role, securityLevel]
+            properties:
+              driveId: { type: string }
+              departmentId: { $ref: '#/components/schemas/Id' }
+              name: { type: string, example: 11 MKT }
+              role: { $ref: '#/components/schemas/DriveRole' }
+              securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+        csrfToken: { type: string }
+        sessionExpiresAt: { $ref: '#/components/schemas/DateTime' }
+    User:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [email, name, status, systemRoles]
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+            title: { type: string, description: 'Chức danh' }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            status: { $ref: '#/components/schemas/UserStatus' }
+            systemRoles: { type: array, items: { $ref: '#/components/schemas/SystemRole' } }
+            lastWorkingDay: { $ref: '#/components/schemas/Date' }
+    UserPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/User' } } } }
+    Drive:
+      type: object
+      required: [driveId, name, securityLevel]
+      properties:
+        driveId: { type: string }
+        departmentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string, example: 11 MKT }
+        securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+        myRole: { $ref: '#/components/schemas/DriveRole', description: 'Trống khi tôi không là thành viên' }
+    DriveMember:
+      type: object
+      required: [email, role, type]
+      properties:
+        permissionId: { type: string }
+        email: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [user, group, domain, anyone] }
+        role: { $ref: '#/components/schemas/DriveRole' }
+        viaGroup: { type: string, description: 'Email nhóm Google cấp quyền; trống = thành viên lẻ' }
+        anomaly: { type: string, enum: [direct_member, foreign_member] }
+
+    # ── M02 ──
+    Block:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/BlockInput'
+    BlockInput:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, example: KD }
+        name: { type: string, example: Khối Kinh doanh }
+        directorId: { $ref: '#/components/schemas/Id' }
+    Department:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/DepartmentInput'
+    DepartmentInput:
+      type: object
+      required: [code, number, name, driveId, securityLevel]
+      properties:
+        code: { type: string, example: MKT }
+        number: { type: string, example: '11' }
+        name: { type: string, example: Marketing }
+        blockId: { $ref: '#/components/schemas/Id' }
+        driveId: { type: string }
+        securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+        headId: { $ref: '#/components/schemas/Id' }
+        groupEmails: { type: array, items: { type: string }, description: 'Nhóm Google gắn với drive' }
+    Division:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/DivisionInput'
+    DivisionInput:
+      type: object
+      required: [prefix, name]
+      properties:
+        prefix: { type: string, example: VCS }
+        name: { type: string }
+    Code:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - type: object
+          required: [code, type, meaning, status]
+          properties:
+            code: { type: string }
+            type: { $ref: '#/components/schemas/CodeType' }
+            meaning: { type: string }
+            scope: { type: string }
+            reason: { type: string }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            status: { $ref: '#/components/schemas/CodeStatus' }
+            decision: { $ref: '#/components/schemas/Decision' }
+    CodePage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Code' } } } }
+    DecideInput:
+      type: object
+      additionalProperties: false
+      required: [result]
+      properties:
+        result: { type: string, enum: [approve, reject] }
+        comment: { type: string }
+
+    # ── M03 ──
+    Folder:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [driveId, googleId, number, shortName, fullName, kind, path, securityLevel, status, isManagedByVcdocs]
+          properties:
+            driveId: { type: string }
+            googleId: { type: string }
+            parentId: { $ref: '#/components/schemas/Id' }
+            number: { type: string, example: '01' }
+            code: { type: string, example: SEO-PTDA }
+            shortName: { type: string }
+            fullName: { type: string }
+            kind: { $ref: '#/components/schemas/FolderKind' }
+            path: { type: string, example: 11 MKT / 10 SEO / 01 SEO-PTDA }
+            year: { type: integer }
+            month: { type: integer, minimum: 1, maximum: 12 }
+            securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+            status: { $ref: '#/components/schemas/FolderStatus' }
+            isManagedByVcdocs: { type: boolean }
+            hasChildren: { type: boolean }
+
+    # ── M04 ──
+    DocumentCurrent:
+      type: object
+      properties:
+        number: { type: integer, minimum: 1 }
+        fileId: { type: string }
+        revisionId: { type: string }
+        pdfFileId: { type: string }
+        pdfSha256: { type: string }
+        effectiveFrom: { $ref: '#/components/schemas/Date' }
+        issuedBy: { $ref: '#/components/schemas/Id' }
+        approvalId: { $ref: '#/components/schemas/Id' }
+    DocumentVersion:
+      type: object
+      required: [number, kind]
+      properties:
+        number: { type: integer, minimum: 1 }
+        kind: { $ref: '#/components/schemas/RevisionKind' }
+        changeNote: { type: string }
+        approvedBy: { $ref: '#/components/schemas/Id' }
+        effectiveFrom: { $ref: '#/components/schemas/Date' }
+        revisionId: { type: string }
+        pdfSha256: { type: string }
+    DocumentSummary:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - type: object
+          required: [type, level, title, departmentId, status]
+          properties:
+            code: { type: string, example: QT-MKT-01 }
+            type: { $ref: '#/components/schemas/DocumentType' }
+            level: { $ref: '#/components/schemas/DocumentLevel' }
+            title: { type: string }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            status: { $ref: '#/components/schemas/DocumentStatus' }
+            securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+            drafterId: { $ref: '#/components/schemas/Id' }
+            checkerId: { $ref: '#/components/schemas/Id' }
+            approverId: { $ref: '#/components/schemas/Id' }
+            dueDate: { $ref: '#/components/schemas/Date' }
+            reviewDue: { $ref: '#/components/schemas/Date' }
+            current: { $ref: '#/components/schemas/DocumentCurrent' }
+            isRestricted: { type: boolean, description: 'true = tài liệu Mật, người gọi chỉ thấy mã và tên' }
+    Document:
+      allOf:
+        - $ref: '#/components/schemas/DocumentSummary'
+        - type: object
+          properties:
+            versions: { type: array, items: { $ref: '#/components/schemas/DocumentVersion' } }
+            lock: { $ref: '#/components/schemas/Lock' }
+            replacesId: { $ref: '#/components/schemas/Id' }
+            replacedById: { $ref: '#/components/schemas/Id' }
+            folderId: { $ref: '#/components/schemas/Id' }
+            fileId: { type: string }
+            external:
+              type: object
+              properties:
+                source: { type: string }
+                number: { type: string }
+                issuedAt: { $ref: '#/components/schemas/Date' }
+                lastCheckedAt: { $ref: '#/components/schemas/DateTime' }
+                isSuperseded: { type: boolean }
+                originalUrl: { type: string }
+            relatedIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
+    DocumentPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/DocumentSummary' } } } }
+    Integrity:
+      type: object
+      required: [isLocked, isRevisionMatching, checkedAt]
+      properties:
+        isLocked: { type: boolean }
+        isRevisionMatching: { type: boolean, description: 'revisionId hiện tại trên Drive khớp bản hiệu lực/chốt' }
+        isHashMatching: { type: boolean, description: 'Mã băm PDF khớp' }
+        currentRevisionId: { type: string }
+        expectedRevisionId: { type: string }
+        checkedAt: { $ref: '#/components/schemas/DateTime' }
+
+    # ── M05 ──
+    Decision:
+      type: object
+      required: [by, at, result]
+      properties:
+        by: { $ref: '#/components/schemas/Id' }
+        at: { $ref: '#/components/schemas/DateTime' }
+        result: { type: string, enum: [approve, changes_requested, reject] }
+        comment: { type: string }
+        device: { type: string }
+        ip: { type: string }
+    Approval:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - type: object
+          required: [objectType, objectId, submittedBy, submittedAt, approverId, status]
+          properties:
+            objectType: { $ref: '#/components/schemas/ApprovalObjectType' }
+            objectId: { $ref: '#/components/schemas/Id' }
+            objectTitle: { type: string, description: 'Tên hiển thị của đối tượng trình' }
+            snapshot:
+              type: object
+              properties:
+                revisionId: { type: string }
+                pdfFileId: { type: string }
+                pdfSha256: { type: string }
+                takenAt: { $ref: '#/components/schemas/DateTime' }
+                viewUrl: { type: string, description: 'Link xem đúng bản chụp' }
+            submittedBy: { $ref: '#/components/schemas/Id' }
+            submittedAt: { $ref: '#/components/schemas/DateTime' }
+            approverId: { $ref: '#/components/schemas/Id' }
+            approverRule: { type: string }
+            checkerId: { $ref: '#/components/schemas/Id' }
+            checkedAt: { $ref: '#/components/schemas/DateTime' }
+            status: { $ref: '#/components/schemas/ApprovalStatus' }
+            decision: { $ref: '#/components/schemas/Decision' }
+            dueAt: { $ref: '#/components/schemas/DateTime' }
+            reminders: { type: array, items: { $ref: '#/components/schemas/DateTime' } }
+            invalidatedReason: { type: string }
+    ApprovalPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Approval' } } } }
+    Delegation:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/DelegationInput'
+    DelegationInput:
+      type: object
+      required: [blockId, task, delegateId, from]
+      properties:
+        blockId: { $ref: '#/components/schemas/Id' }
+        task: { type: string, description: 'Việc được uỷ quyền duyệt' }
+        limitAmount: { type: number, minimum: 0, description: 'Hạn mức (VND)' }
+        delegateId: { $ref: '#/components/schemas/Id' }
+        from: { $ref: '#/components/schemas/Date' }
+        to: { $ref: '#/components/schemas/Date' }
+
+    # ── M06 ──
+    RecordTypeInput:
+      type: object
+      required: [departmentId, name, kind, namingRule, folderId, keeperTitle, retentionYears, retentionBasis, disposalMethod, securityLevel]
+      properties:
+        departmentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/RecordKind' }
+        namingRule: { type: string }
+        example: { type: string }
+        folderId: { $ref: '#/components/schemas/Id' }
+        keeperTitle: { type: string, description: 'Chức danh người giữ' }
+        retentionYears: { type: integer, minimum: 0, description: '0 = vĩnh viễn', x-gia-dinh: Hợp đồng không nói cách ghi vĩnh viễn }
+        retentionBasis: { type: string, description: 'Căn cứ pháp lý/nội bộ' }
+        disposalMethod: { type: string }
+        securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+        templateId: { type: string, description: 'fileId biểu mẫu' }
+        requiresApproval: { type: boolean, x-gia-dinh: 'Hợp đồng mục 5.2 nói "loại hồ sơ cần duyệt" nhưng không có trường' }
+    RecordTypePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        namingRule: { type: string }
+        example: { type: string }
+        folderId: { $ref: '#/components/schemas/Id' }
+        keeperTitle: { type: string }
+        retentionYears: { type: integer, minimum: 0 }
+        retentionBasis: { type: string }
+        disposalMethod: { type: string }
+        securityLevel: { $ref: '#/components/schemas/SecurityLevel' }
+        templateId: { type: string }
+        requiresApproval: { type: boolean }
+    RecordType:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - $ref: '#/components/schemas/RecordTypeInput'
+        - type: object
+          required: [retentionStatus]
+          properties:
+            retentionStatus: { type: string, enum: [draft, submitted, approved], description: 'approved mới lập được hồ sơ (BR-20)' }
+            retentionApprovalId: { $ref: '#/components/schemas/Id' }
+
+    # ── M07 ──
+    RecordInput:
+      type: object
+      required: [recordTypeId, kind, functionCode, subject, workMonth]
+      properties:
+        recordTypeId: { $ref: '#/components/schemas/Id' }
+        kind: { $ref: '#/components/schemas/RecordKind' }
+        functionCode: { type: string, example: SEO-PTDA }
+        subject: { type: string }
+        identifier: { type: string, description: 'Bắt buộc khi kind = OPS' }
+        workMonth: { $ref: '#/components/schemas/Month' }
+        createdDate: { $ref: '#/components/schemas/Date' }
+        backdateReason: { type: string, description: 'Bắt buộc khi createdDate sớm quá hạn (BR-28)' }
+    RecordSummary:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - type: object
+          required: [number, functionCode, kind, subject, recordTypeId, workMonth, status]
+          properties:
+            number: { type: string, example: HS-2026-000123 }
+            functionCode: { type: string }
+            kind: { $ref: '#/components/schemas/RecordKind' }
+            subject: { type: string }
+            identifier: { type: string }
+            recordTypeId: { $ref: '#/components/schemas/Id' }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            workMonth: { $ref: '#/components/schemas/Month' }
+            createdDate: { $ref: '#/components/schemas/Date' }
+            fileName: { type: string }
+            folderId: { $ref: '#/components/schemas/Id' }
+            fileId: { type: string }
+            mimeType: { type: string }
+            status: { $ref: '#/components/schemas/RecordStatus' }
+            isApproved: { type: boolean, description: 'Đã được duyệt, chờ người lập chốt (mục 5.2)' }
+            isClaimed: { type: boolean }
+    Record:
+      allOf:
+        - $ref: '#/components/schemas/RecordSummary'
+        - type: object
+          properties:
+            approvalId: { $ref: '#/components/schemas/Id' }
+            finalized:
+              type: object
+              properties:
+                at: { $ref: '#/components/schemas/DateTime' }
+                by: { $ref: '#/components/schemas/Id' }
+                revisionId: { type: string }
+                pdfFileId: { type: string }
+                pdfSha256: { type: string }
+                vaultKey: { type: string }
+                verifyCode: { type: string }
+            lock: { $ref: '#/components/schemas/Lock' }
+            paperLocation: { type: string }
+            hold:
+              type: object
+              properties:
+                isActive: { type: boolean }
+                reason: { type: string }
+                by: { $ref: '#/components/schemas/Id' }
+                at: { $ref: '#/components/schemas/DateTime' }
+            retention:
+              type: object
+              properties:
+                years: { type: integer }
+                basis: { type: string }
+                until: { $ref: '#/components/schemas/Date' }
+            adjustsId: { $ref: '#/components/schemas/Id' }
+            adjustedByIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
+            backdateReason: { type: string }
+    RecordPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/RecordSummary' } } } }
+    DriveFile:
+      type: object
+      required: [fileId, name, mimeType]
+      properties:
+        fileId: { type: string }
+        name: { type: string }
+        mimeType: { type: string }
+        driveId: { type: string }
+        parentGoogleId: { type: string }
+        createdTime: { $ref: '#/components/schemas/DateTime' }
+        ownerEmail: { type: string }
+        webViewLink: { type: string }
+
+    # ── M08 ──
+    SearchHit:
+      type: object
+      required: [objectType, id, title]
+      properties:
+        objectType: { type: string, enum: [document, record] }
+        id: { $ref: '#/components/schemas/Id' }
+        code: { type: string, description: 'Mã tài liệu hoặc số hồ sơ' }
+        title: { type: string }
+        status: { type: string }
+        departmentId: { $ref: '#/components/schemas/Id' }
+        workMonth: { $ref: '#/components/schemas/Month' }
+        identifier: { type: string }
+    SearchPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/SearchHit' } } } }
+
+    # ── M09 ──
+    ExternalShare:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Actions'
+        - type: object
+          required: [fileId, email, role, reason, expiresAt, status, source]
+          properties:
+            fileId: { type: string }
+            fileName: { type: string }
+            recordId: { $ref: '#/components/schemas/Id' }
+            documentId: { $ref: '#/components/schemas/Id' }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            email: { type: string, format: email }
+            role: { $ref: '#/components/schemas/ShareRole' }
+            reason: { type: string }
+            expiresAt: { $ref: '#/components/schemas/DateTime' }
+            sharedBy: { $ref: '#/components/schemas/Id' }
+            approvalId: { $ref: '#/components/schemas/Id' }
+            permissionId: { type: string }
+            status: { $ref: '#/components/schemas/ShareStatus' }
+            revokedAt: { $ref: '#/components/schemas/DateTime' }
+            revokedBy: { $ref: '#/components/schemas/Id' }
+            source: { type: string, enum: [vcdocs, detected] }
+    ExternalSharePage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/ExternalShare' } } } }
+
+    # ── M14 ──
+    Notification:
+      type: object
+      required: [id, type, title, createdAt, isRead]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        type: { type: string, description: 'Ví dụ approval_pending, approval_decided, document_issued, share_expiring, job_done, job_failed' }
+        title: { type: string }
+        body: { type: string }
+        link: { type: string, description: 'Đường dẫn trong giao diện' }
+        objectType: { type: string }
+        objectId: { $ref: '#/components/schemas/Id' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        isRead: { type: boolean }
+    NotificationPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - type: object
+          required: [items, unreadCount]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+            unreadCount: { type: integer, minimum: 0 }
+    NotificationSettings:
+      type: object
+      required: [channels, digest]
+      properties:
+        channels: { type: array, items: { $ref: '#/components/schemas/NotificationChannel' } }
+        digest: { type: string, enum: [instant, daily], x-gia-dinh: 'Hợp đồng không liệt kê giá trị digest' }
+
+    # ── Việc nền ──
+    Job:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [type, status, progress, steps, requestedBy]
+          properties:
+            type: { type: string, example: record.create }
+            status: { $ref: '#/components/schemas/JobStatus' }
+            progress: { type: integer, minimum: 0, maximum: 100 }
+            steps:
+              type: array
+              items:
+                type: object
+                required: [name, status]
+                properties:
+                  name: { type: string }
+                  status: { $ref: '#/components/schemas/JobStatus' }
+                  error: { type: string }
+            result:
+              type: object
+              description: 'Kết quả cuối, vd { objectType, objectId } hoặc { fileId }'
+              additionalProperties: true
+            error: { $ref: '#/components/schemas/Error' }
+            startedAt: { $ref: '#/components/schemas/DateTime' }
+            finishedAt: { $ref: '#/components/schemas/DateTime' }
+            requestedBy: { $ref: '#/components/schemas/Id' }
+    JobPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Job' } } } }
