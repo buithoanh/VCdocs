@@ -347,6 +347,8 @@ const ExternalShare = mk({
   revokedBy: OID,
   source: { type: String, required: true, default: 'vcdocs' },
   remindedAt: Date,
+  /** Thời điểm trong nhật ký Google của lượt phát hiện (source = detected) */
+  activityAt: Date,
   /** Google không nhận hạn → VCdocs tự gỡ */
   isExpiryManaged: Boolean,
 });

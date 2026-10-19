@@ -24,7 +24,7 @@ export default async function globalTeardown() {
   const missing = all.filter((k) => !hit.has(k));
   // eslint-disable-next-line no-console
   console.log(`\nĐộ phủ hợp đồng: ${all.length - missing.length}/${all.length} điểm cuối có test e2e`);
-  if (missing.length && process.env.REQUIRE_CONTRACT_COVERAGE) {
+  if (missing.length && !process.env.ALLOW_PARTIAL_COVERAGE) {
     throw new Error(`Điểm cuối chưa có test e2e:\n  ${missing.join('\n  ')}`);
   }
 }
