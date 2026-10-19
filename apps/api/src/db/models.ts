@@ -319,6 +319,7 @@ const RecordM = mk({
   adjustsId: OID,
   adjustedByIds: { type: [OID], default: undefined },
   backdateReason: String,
+  adjustReason: String,
   searchText: String,
 });
 RecordM.index({ companyId: 1, number: 1 }, { unique: true });

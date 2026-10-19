@@ -124,6 +124,15 @@ export class AccessService {
     throw Errors.forbidden('Bạn không được xem nội dung drive này');
   }
 
+  /**
+   * R3 (kiểm soát tài liệu) kiểm khoá/phiên bản trên mọi drive trừ drive Mật
+   * không là thành viên; chỉ đọc siêu dữ liệu, không đọc nội dung.
+   */
+  async assertVisibleOrR3(ctx: Ctx, driveId: string | undefined, extraAllowed = false) {
+    if (this.hasRole(ctx, 'R3') && (await this.securityOfDrive(ctx.companyId, driveId)) !== 'confidential') return;
+    await this.assertVisible(ctx, driveId, extraAllowed);
+  }
+
   /** Bộ lọc Mongo: chỉ đối tượng ở drive được xem (lọc ở tầng CSDL, không lọc sau) */
   visibleFilter(ctx: Ctx, driveField = 'driveId', participantFields: string[] = []) {
     const me = new Types.ObjectId(ctx.user.id);

@@ -42,6 +42,11 @@ export class JobsService implements OnModuleDestroy {
     this.defs.set(type, def);
   }
 
+  /** Việc nền do hệ thống tự tạo (định kỳ), ghi người yêu cầu là tài khoản quản trị */
+  async enqueueSystem(companyId: string, userId: string, type: string, payload: any): Promise<string> {
+    return this.enqueue({ companyId, user: { id: userId } as any, requestId: `system:${type}` } as any, type, payload);
+  }
+
   async enqueue(ctx: RequestCtx, type: string, payload: any): Promise<string> {
     const def = this.defs.get(type);
     if (!def) throw new Error(`Chưa đăng ký loại việc ${type}`);

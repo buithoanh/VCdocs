@@ -169,6 +169,8 @@ export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
       [
         ...DRIVE_GROUP_ROLES.map(([suffix, role]) => ({ type: 'group' as const, emailAddress: e(`${prefix}-${suffix}`), role: role as any })),
         ...(d.number === '00' ? [{ type: 'group' as const, emailAddress: e('00-vcpv-xem'), role: 'reader' as const }] : []),
+        // Ban Điều hành là Người xem ở drive phòng khác (cây thư mục VCPV mục 3.6)
+        ...(d.number !== '01' ? [{ type: 'group' as const, emailAddress: e('vcdocs-r1'), role: 'reader' as const }] : []),
       ],
     );
     const dept = await m.Department.create({

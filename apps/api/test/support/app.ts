@@ -87,7 +87,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
   const uri = base.replace(/\/?(\?|$)/, `/${dbName}$1`);
   const cfg = loadConfig(
     { NODE_ENV: 'test', GOOGLE_MODE: 'fake' } as any,
-    { mongoUri: uri, jobsPollMs: 0, schedulerEnabled: false, seedDemo: false, vaultDir: ':memory:', cookieSecure: false, ...overrides },
+    { mongoUri: uri, jobsPollMs: 0, schedulerEnabled: false, seedDemo: false, vaultDir: ':memory:', cookieSecure: false, uploadTmpDir: path.join(require('os').tmpdir(), `vcdocs-up-${process.pid}`), ...overrides },
   );
   const app = await createApp(cfg, { logger: false });
   const db = app.get(Db);

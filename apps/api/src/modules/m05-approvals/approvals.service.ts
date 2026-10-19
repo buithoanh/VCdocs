@@ -203,8 +203,14 @@ export class ApprovalsService {
     const status = result === 'approve' ? 'approved' : 'changes_requested';
     await this.setStatus(a, 'pending', { status, decision, updatedBy: decision.by });
     const after = await this.get(ctx.companyId, a._id);
-    if (result === 'approve') await h.onApproved(ctx, after, obj);
-    else await h.onChangesRequested(ctx, after, obj);
+    try {
+      if (result === 'approve') await h.onApproved(ctx, after, obj);
+      else await h.onChangesRequested(ctx, after, obj);
+    } catch (e) {
+      // Bước kèm theo (vd tạo quyền trên Drive) lỗi → trả phiếu về chờ, không để nửa vời
+      await this.db.m.Approval.updateOne({ _id: a._id, companyId: a.companyId }, { $set: { status: 'pending' }, $unset: { decision: 1 } });
+      throw e;
+    }
     await this.audit.record(ctx, { action: `approval.${status}`, objectType: 'approval', objectId: String(a._id), before: { status: 'pending' }, after: { status, decision } });
     await this.notifications.notify(ctx.companyId, [String(a.submittedBy)], {
       type: 'approval_decided',
