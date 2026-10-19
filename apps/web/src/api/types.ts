@@ -34,6 +34,7 @@ export type DocumentType = S['DocumentType'];
 export type DocumentLevel = S['DocumentLevel'];
 export type DocumentStatus = S['DocumentStatus'];
 export type RecordKind = S['RecordKind'];
+export type RevisionKind = S['RevisionKind'];
 export type RecordStatus = S['RecordStatus'];
 export type ApprovalObjectType = S['ApprovalObjectType'];
 export type ApprovalStatus = S['ApprovalStatus'];

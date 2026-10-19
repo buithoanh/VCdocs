@@ -44,6 +44,8 @@ export const ROLE_RULES = {
   renameFolder: ['R4'],
   closeProject: ['R4'],
   resyncFolder: ['R3', 'R4'],
+  /** Xem khoá, mã băm (documents/records integrity). */
+  viewIntegrity: ['R3', 'R4'],
   /** Danh mục nền: khối, phòng, division. */
   editMasterData: ['R3', 'R9'],
   proposeCode: ['R4'],
