@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { api, unwrap } from '@/api/client';
 import type { Approval, ApprovalObjectType, ApprovalStatus } from '@/api/types';
-import { DecideDialog, approvalObjectHref, type DecideKind } from '@/components/approvals/approvalUi';
+import { DecideDialog, type DecideKind } from '@/components/approvals/approvalUi';
 import { Pagination } from '@/components/DataTable';
 import { UserName } from '@/components/pickers';
 import { useToast } from '@/components/providers/ToastProvider';
@@ -100,7 +100,7 @@ export default function ApprovalsPage() {
                     </Button>
                   </>
                 )}
-                {!hasAction(a, 'decide') && approvalObjectHref(a) && (
+                {!hasAction(a, 'decide') && (
                   <Link className="btn btn-ghost" href={`/phe-duyet/${a.id}`}>
                     Chi tiết
                   </Link>
