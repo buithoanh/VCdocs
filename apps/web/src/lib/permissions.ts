@@ -40,6 +40,10 @@ export const ROLE_RULES = {
   /** Tạo thư mục mảng/dự án. */
   createFolder: ['R4', 'R5'],
   ensurePeriods: ['R3'],
+  /** Folder không có allowedActions trong hợp đồng: dựa vào vai trò. */
+  renameFolder: ['R4'],
+  closeProject: ['R4'],
+  resyncFolder: ['R3', 'R4'],
   /** Danh mục nền: khối, phòng, division. */
   editMasterData: ['R3', 'R9'],
   proposeCode: ['R4'],
