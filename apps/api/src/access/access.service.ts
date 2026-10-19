@@ -90,6 +90,16 @@ export class AccessService {
     if (!(await this.isHeadOf(ctx, departmentId))) throw Errors.forbidden('Chỉ trưởng phòng (R4) của phòng này được làm');
   }
 
+  /** Các phòng người gọi là trưởng phòng (R4) */
+  async headDeptIds(ctx: Ctx): Promise<Set<string>> {
+    const out = new Set<string>();
+    if (!this.hasRole(ctx, 'R4')) return out;
+    for (const d of await this.departments(ctx.companyId)) {
+      if (d.id === ctx.user.departmentId || d.headId === ctx.user.id) out.add(d.id);
+    }
+    return out;
+  }
+
   // ───── tầng 3: drive ─────
   driveRole(ctx: Ctx, driveId?: string): DriveRole | undefined {
     return driveId ? ctx.driveRoles.get(driveId) : undefined;

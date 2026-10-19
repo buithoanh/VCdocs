@@ -122,9 +122,9 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
       email,
       csrf,
       agent,
-      get: (url) => wrap('GET', url, agent.get(`${PREFIX}${url}`).set('X-Request-Id', randomToken(6))),
+      get: (url) => wrap('GET', url, agent.get(`${PREFIX}${url}`).set('X-Request-Id', randomToken(6)).set('User-Agent', 'vcdocs-e2e')),
       post: (url, body, opts = {}) => {
-        let r = agent.post(`${PREFIX}${url}`).set('X-Request-Id', randomToken(6));
+        let r = agent.post(`${PREFIX}${url}`).set('X-Request-Id', randomToken(6)).set('User-Agent', 'vcdocs-e2e');
         if (!opts.noCsrf) r = r.set('X-CSRF-Token', csrf);
         if (opts.idem || needsIdem('POST', url)) r = r.set('Idempotency-Key', opts.idem ?? randomToken(12));
         for (const [k, v] of Object.entries(opts.headers ?? {})) r = r.set(k, v);

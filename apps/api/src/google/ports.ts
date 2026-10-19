@@ -127,6 +127,8 @@ export interface DrivePort {
 export interface DocsPort {
   /** Thay chỗ giữ {{MA}}… trong Docs (replaceAllText); file Sheets thì values.update */
   replacePlaceholders(fileId: string, values: Record<string, string>): Promise<void>;
+  /** Thay chữ (replaceAllText) theo từng cặp [cũ, mới] */
+  replaceText(fileId: string, pairs: [string, string][]): Promise<void>;
   /** Thêm một dòng vào bảng Lịch sử phiên bản cuối file */
   appendVersionRow(fileId: string, cells: string[]): Promise<void>;
 }
@@ -154,6 +156,11 @@ export interface ReportsPort {
   listExternalShares(since: Date): Promise<ShareActivity[]>;
 }
 
+/** Tải tài liệu bên ngoài từ URL (chỉ https, giới hạn dung lượng) */
+export interface UrlFetchPort {
+  fetch(url: string): Promise<{ content: Buffer; mimeType: string; fileName?: string }>;
+}
+
 export interface GooglePorts {
   mode: 'fake' | 'real';
   auth: GoogleAuthPort;
@@ -163,6 +170,7 @@ export interface GooglePorts {
   sheets: SheetsPort;
   gmail: GmailPort;
   reports: ReportsPort;
+  urls: UrlFetchPort;
 }
 
 /** Kho riêng giữ PDF đã chốt (MinIO/S3 sau này; giai đoạn 1 là thư mục máy chủ) */

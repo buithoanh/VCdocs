@@ -353,6 +353,18 @@ export class FakeGoogle implements GooglePorts {
       }
       this.touch();
     },
+    replaceText: async (fileId: string, pairs: [string, string][]) => {
+      this.check('docs.replaceText');
+      const f = this.file(fileId);
+      if (f.contentRestriction?.readOnly) throw new GoogleError('File đang khoá', 403);
+      let t = f.text;
+      for (const [a, b] of pairs) if (a) t = t.split(a).join(b);
+      if (t !== f.text) {
+        f.text = t;
+        f.revision++;
+      }
+      this.touch();
+    },
     appendVersionRow: async (fileId: string, cells: string[]) => {
       const f = this.file(fileId);
       if (f.contentRestriction?.readOnly) throw new GoogleError('File đang khoá', 403);
@@ -376,6 +388,16 @@ export class FakeGoogle implements GooglePorts {
       this.world.outbox.push({ ...p, at: new Date().toISOString() });
       if (this.world.outbox.length > 500) this.world.outbox.splice(0, this.world.outbox.length - 500);
       this.touch();
+    },
+  };
+
+  /** Không gọi mạng: trả một PDF nhỏ thay cho nội dung tải về */
+  urls = {
+    fetch: async (url: string) => {
+      this.check('urls.fetch');
+      const pdf = await PDFDocument.create({ updateMetadata: false });
+      pdf.addPage([200, 200]);
+      return { content: Buffer.from(await pdf.save()), mimeType: 'application/pdf', fileName: url.split('/').pop() || 'tai-lieu.pdf' };
     },
   };
 

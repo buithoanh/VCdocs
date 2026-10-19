@@ -342,6 +342,17 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
             });
           }
         }),
+      replaceText: (fileId, pairs) =>
+        g('docs.batchUpdate(replaceAllText)', async () => {
+          const reqs = pairs.filter(([a]) => a).map(([a, b]) => ({ a, b }));
+          if (!reqs.length) return;
+          const meta = await d.files.get({ fileId, ...all, fields: 'mimeType' });
+          if (meta.data.mimeType === GDOC_MIME) {
+            await dc.documents.batchUpdate({ documentId: fileId, requestBody: { requests: reqs.map((x) => ({ replaceAllText: { containsText: { text: x.a, matchCase: true }, replaceText: x.b } })) } });
+          } else if (meta.data.mimeType === 'application/vnd.google-apps.spreadsheet') {
+            await sh.spreadsheets.batchUpdate({ spreadsheetId: fileId, requestBody: { requests: reqs.map((x) => ({ findReplace: { find: x.a, replacement: x.b, allSheets: true, matchCase: true } })) } });
+          }
+        }),
       appendVersionRow: (fileId, cells) =>
         g('docs.batchUpdate(insertTableRow)', async () => {
           const doc = await dc.documents.get({ documentId: fileId });
@@ -393,6 +404,25 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
           const raw = [`From: ${cfg.google.mailFrom}`, `To: ${p.to.join(', ')}`, `Subject: ${subject}`, 'MIME-Version: 1.0', 'Content-Type: text/html; charset=UTF-8', '', p.html].join('\r\n');
           await gm.users.messages.send({ userId: 'me', requestBody: { raw: Buffer.from(raw).toString('base64url') } });
         }),
+    },
+    urls: {
+      fetch: async (url) => {
+        const u = new URL(url);
+        if (u.protocol !== 'https:') throw new GoogleError('Chỉ nhận đường dẫn https');
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30_000);
+        try {
+          const r = await fetch(u, { signal: ctrl.signal, redirect: 'follow' });
+          if (!r.ok) throw new GoogleError(`Tải ${u.hostname} lỗi ${r.status}`);
+          const len = Number(r.headers.get('content-length') || 0);
+          if (len > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
+          const buf = Buffer.from(await r.arrayBuffer());
+          if (buf.length > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
+          return { content: buf, mimeType: (r.headers.get('content-type') || 'application/octet-stream').split(';')[0], fileName: decodeURIComponent(u.pathname.split('/').pop() || 'tai-lieu') };
+        } finally {
+          clearTimeout(timer);
+        }
+      },
     },
     reports: {
       listExternalShares: (since) =>

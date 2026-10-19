@@ -229,6 +229,7 @@ const Document = mk({
   relatedIds: { type: [OID], default: undefined },
   feedback: Mixed,
   draftVersion: Number,
+  headerValues: Mixed,
   revision: Mixed,
   reviews: { type: [Mixed], default: undefined },
   searchText: String,
