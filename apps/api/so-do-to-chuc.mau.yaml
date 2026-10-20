@@ -1,0 +1,59 @@
+# Sơ đồ tổ chức VCdocs — FILE MẪU
+#
+# Cách dùng:
+#   1. Chép file này thành apps/api/so-do-to-chuc.yaml (git bỏ qua file đó vì có email người thật).
+#   2. Điền các chỗ "?" và email; sửa những dòng ghi "cần xác nhận" nếu sai.
+#   3. Chạy thử (không ghi gì):  pnpm --filter api run nap-so-do -- --file so-do-to-chuc.yaml --thu
+#      Chạy thật:                pnpm --filter api run nap-so-do -- --file so-do-to-chuc.yaml
+#      Chạy lại bao nhiêu lần cũng được: đã có thì cập nhật theo file, không tạo trùng.
+#   4. Xem nhóm Google còn thiếu: pnpm --filter api run nhom-c1 -- --file so-do-to-chuc.yaml
+#
+# Email phải thuộc tên miền công ty và có trong Google Workspace. Để trống ("") nếu chưa có.
+# Phần khối/phòng/drive dưới đây lấy theo cây thư mục VCPV và tên 11 shared drive đang có;
+# phần người (email) để trống — anh điền.
+
+khoi:
+  - ma: VHNB                       # trùng INTERNAL_OPS_BLOCK_CODE trong .env
+    ten: Khối Vận hành nội bộ
+    giam_doc: ""                   # email GĐ khối → vai trò R2
+  - ma: KD
+    ten: Khối Kinh doanh
+    giam_doc: ""
+
+# so      : số drive, 2 chữ số, có thể thêm "b" (21b). Là phần đầu tên nhóm Google C1.
+# ma      : mã phòng, chữ in hoa không dấu. Dùng trong mã tài liệu (HD-MKT-01) và tên nhóm (11-mkt-…).
+#           TC-KT và Lương-Thưởng phải là TCKT, LT (ACCOUNTING_DEPT_CODES); HCNS là HR_DEPT_CODES.
+# drive   : tên shared drive trên Google (đúng từng chữ) hoặc id drive.
+# bao_mat : internal (Nội bộ, cả công ty xem) | department (Phòng) | confidential (Mật)
+# khoi    : mã khối ở trên.
+# truong_phong : email trưởng phòng → R4 của phòng đó.
+phong:
+  - { so: "00",  ma: VCPV, ten: VCPV Chung,        drive: "00 VCPV Chung",            bao_mat: internal,     khoi: VHNB, truong_phong: "" }
+  - { so: "01",  ma: BDH,  ten: Ban Điều hành,     drive: "01 Ban Điều hành [MẬT]",   bao_mat: confidential, khoi: VHNB, truong_phong: "" }  # khối: cần xác nhận
+  - { so: "10",  ma: KD,   ten: Kinh doanh VCpart, drive: "10 Kinh doanh VCpart",     bao_mat: department,   khoi: KD,   truong_phong: "" }
+  - { so: "11",  ma: MKT,  ten: Marketing,         drive: "11 MKT Marketing",         bao_mat: department,   khoi: KD,   truong_phong: "" }
+  - { so: "12",  ma: IT,   ten: IT – Phần mềm,     drive: "12 IT – Phần mềm",         bao_mat: department,   khoi: VHNB, truong_phong: "" }  # khối: cần xác nhận
+  - { so: "13",  ma: VCE,  ten: VCE – Đào tạo,     drive: "13 VCE – Đào tạo",         bao_mat: department,   khoi: KD,   truong_phong: "" }  # khối: cần xác nhận
+  - { so: "14",  ma: XDV,  ten: Xưởng dịch vụ,     drive: "14 Xưởng dịch vụ",         bao_mat: department,   khoi: KD,   truong_phong: "" }  # mã: cần xác nhận
+  - { so: "20",  ma: MH,   ten: Mua hàng – NCC,    drive: "20 Mua hàng – NCC [MẬT]",  bao_mat: confidential, khoi: KD,   truong_phong: "" }  # khối: cần xác nhận
+  - { so: "21",  ma: TCKT, ten: TC – KT,           drive: "21 TC – KT [MẬT]",         bao_mat: confidential, khoi: VHNB, truong_phong: "" }
+  - { so: "21b", ma: LT,   ten: Lương – Thưởng,    drive: "21b Lương – Thưởng [MẬT]", bao_mat: confidential, khoi: VHNB, truong_phong: "" }
+  - { so: "22",  ma: HCNS, ten: HCNS,              drive: "22 HCNS [MẬT]",            bao_mat: confidential, khoi: VHNB, truong_phong: "" }
+
+# Division (tiền tố mảng kinh doanh) — cần xác nhận danh sách
+division:
+  - { tien_to: VCP,  ten: VCpart }
+  - { tien_to: VCSO, ten: VCsoft }
+  - { tien_to: VCE,  ten: VCedu }
+  - { tien_to: VCSE, ten: VCservice }
+  - { tien_to: VCPV, ten: Việc chung VC Phồn Vinh }
+
+# Vai trò hệ thống gán theo người (danh sách email).
+# R2 và R4 tự có từ giam_doc / truong_phong ở trên, không cần ghi lại.
+# R5, R6, R7 lấy từ nhóm Google C1 (…-quan-ly-noi-dung, …-dong-gop, …-nhan-xet, …-xem), không ghi ở đây.
+# Sau khi IT tạo nhóm vcdocs-r1@ … vcdocs-r9@ thì vai trò còn được cấp qua nhóm; gán ở đây vẫn giữ.
+vai_tro:
+  R1: []   # Tổng giám đốc / Ban Điều hành — duyệt QĐ, QT cấp VCPV, bảng mã, thời hạn lưu
+  R3: []   # Kiểm soát tài liệu (HCNS) — cấp mã, ban hành tài liệu cấp VCPV
+  R8: []   # Kế toán trưởng
+  R9: []   # Quản trị hệ thống (IT)
