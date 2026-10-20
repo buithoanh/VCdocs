@@ -14,6 +14,7 @@ import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, MultiUserPicker, UserName } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
+import { AuditTools } from '@/components/AuditTools';
 import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
@@ -108,6 +109,7 @@ export function DocumentView({ id }: { id: string }) {
                   Phiếu duyệt
                 </Link>
               )}
+              <AuditTools target={{ documentId: d.id }} departmentId={d.departmentId} />
             </div>
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}

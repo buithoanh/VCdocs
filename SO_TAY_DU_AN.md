@@ -46,6 +46,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] Ghép FE giai đoạn 2 (nhánh `claude/strange-pare-e56c3f`) với BE giai đoạn 2, chạy thật M10, M15; chủ dự án xem đề nghị FE #16–#18 (#16 sửa schema `HandoverDetail`)
+
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Mở 2 phiên FE/BE giai đoạn 2 (M10, M15) từ nhánh `giai-doan-2`
 - [ ] IT thêm 2 quyền uỷ quyền toàn tên miền cho `vcdocs-backend` (`admin.datatransfer`, `admin.directory.group.member`) trước khi chạy thật bàn giao; BE thêm vào `real-google.ts`
@@ -73,6 +75,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · FE giai đoạn 2: M10 Bàn giao, M15 Nhật ký (`claude/strange-pare-e56c3f`)
+- Đã làm: gộp `giai-doan-2` (0ade10b, openapi 1.5.0-gd2) vào nhánh. Màn hình mới: `/ban-giao` (danh sách, lập biên bản R3), `/ban-giao/[id]` (sửa từng mục theo cách xử lý hợp loại, đổi người nhận, người nhận xác nhận, HCNS kiểm tra – trễ phải ghi lý do BR-25, chuyển quyền hỏi hai lần và khoá trước ngày làm việc cuối, xuất BM-VCPV-08, liệt kê lại, huỷ có lý do; việc 202 theo dõi /jobs), `/nhat-ky` (lọc audit-logs, chi tiết dòng có mã băm, dòng bị che; thẻ mã băm neo + kiểm chuỗi ngay cho R1, R3), `/nhat-ky/quyen-xem-tam` (R1 cấp, thu hồi theo allowedActions), `/nhat-ky/goi-bang-chung/[id]` (nội dung gói, SHA-256, tải ZIP; 404 = đã tự xoá). Nút "Xem nhật ký", "Lập gói bằng chứng" ở trang tài liệu, hồ sơ; menu theo vai trò + kiểm toán viên (`me.auditorAccess`). Trang nhân sự báo ghi ngày nghỉ tự lập biên bản (E4). FE 98 test (thêm 26), typecheck, build qua; chạy trên Prism: 5 màn hình mở được, 15 kiểu yêu cầu ghi được Prism nhận (202/200/201/204), khổ điện thoại không tràn.
+- Còn dở: đề nghị #16–#18 trong `apps/web/DE_NGHI_SUA_HOP_DONG.md` (#16 `HandoverDetail` sinh kiểu `Record<string, never>` – FE tự ghép kiểu tạm). Chưa chạy với BE thật – để phiên ghép. Không push.
 
 ### 2026-10-20 · Chuẩn bị hợp đồng giai đoạn 2: M10 Bàn giao, M15 Nhật ký (nhánh `giai-doan-2`)
 - Đã làm: đọc hợp đồng rev 22, BA (M10, M15, BR-25, 11.2 #20), mã audit_logs và PATCH /users leaving. Chủ dự án chốt 4 điểm nghiệp vụ theo đề xuất và đồng ý toàn bộ phần kỹ thuật → hợp đồng mục 10 (rev 24, v1.5): 10.1 phân giai đoạn mọi điểm cuối, 10.2 đối tượng mới, E1–E21; mục 6 thêm quyền `admin.directory.group.member`; Lịch sử v1.5. `contract/openapi.yaml` 1.5.0-gd2 (+20 điểm cuối, 6 `x-gia-dinh` mới), lint đạt; `NGUON.md`, `README.md`. Sinh lại `apps/web/src/api/schema.d.ts`; FE phải thêm 6 nhãn `jobTypeLabel` và cho `jobResultLink` bỏ qua loại chưa có trang (lỗi build vì enum mới). Build qua, FE 72/72, BE 116/116 (độ phủ 98/118 – 20 điểm cuối mới chờ BE). Commit trên `giai-doan-2`, chưa push.

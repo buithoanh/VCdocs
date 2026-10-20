@@ -9,7 +9,12 @@ import type {
   DocumentStatus,
   DocumentType,
   DriveRole,
+  AuditorAccessStatus,
   FolderKind,
+  HandoverItemAction,
+  HandoverItemKind,
+  HandoverItemStatus,
+  HandoverStatus,
   JobStatus,
   NotificationChannel,
   RecordKind,
@@ -173,6 +178,87 @@ export const channelLabel: Record<NotificationChannel, string> = {
   zalo: 'Zalo',
 };
 
+/* ── M10 Bàn giao (hợp đồng mục 10, E5, E7) ── */
+
+export const handoverStatusLabel: Record<HandoverStatus, string> = {
+  listing: 'Đang liệt kê',
+  open: 'Chờ người nhận',
+  received: 'Người nhận đã nhận',
+  verified: 'HCNS đã kiểm tra',
+  executing: 'Đang chuyển quyền',
+  done: 'Xong',
+  cancelled: 'Đã huỷ',
+};
+
+export const handoverItemKindLabel: Record<HandoverItemKind, string> = {
+  document: 'Tài liệu',
+  record: 'Hồ sơ',
+  approval_to_decide: 'Phiếu chờ người nghỉ duyệt',
+  approval_submitted: 'Phiếu người nghỉ đã trình',
+  external_share: 'Chia sẻ ra ngoài',
+  delegation: 'Uỷ quyền',
+  my_drive_file: 'File trong Drive của tôi',
+  group_membership: 'Nhóm Google',
+};
+
+export const handoverItemActionLabel: Record<HandoverItemAction, string> = {
+  reassign: 'Đổi người',
+  revoke: 'Gỡ',
+  end: 'Kết thúc',
+  transfer: 'Chuyển sở hữu Google',
+  remove: 'Gỡ khỏi nhóm',
+  keep: 'Để nguyên',
+};
+
+/** Cách xử lý hợp với từng loại dòng, cách đầu là mặc định (HandoverItemAction, E5). */
+export const handoverActionsByKind: Record<HandoverItemKind, HandoverItemAction[]> = {
+  document: ['reassign', 'keep'],
+  record: ['reassign', 'keep'],
+  approval_to_decide: ['reassign', 'keep'],
+  approval_submitted: ['reassign', 'keep'],
+  external_share: ['reassign', 'revoke'],
+  delegation: ['end', 'keep'],
+  my_drive_file: ['transfer'],
+  group_membership: ['remove', 'keep'],
+};
+
+export const handoverItemStatusLabel: Record<HandoverItemStatus, string> = {
+  pending: 'Chờ làm',
+  done: 'Đã làm',
+  skipped: 'Bỏ qua',
+  failed: 'Lỗi',
+};
+
+/* ── M15 Nhật ký (hợp đồng mục 10, E13–E17) ── */
+
+export const auditorAccessStatusLabel: Record<AuditorAccessStatus, string> = {
+  active: 'Đang hiệu lực',
+  expired: 'Đã hết hạn',
+  revoked: 'Đã thu hồi',
+};
+
+export const chainStatusLabel = { ok: 'Chuỗi nguyên vẹn', broken: 'Chuỗi bị lệch', never: 'Chưa kiểm lần nào' } as const;
+
+export const auditResultLabel = { ok: 'Thành công', denied: 'Bị từ chối' } as const;
+
+export const auditObjectTypeLabel: Record<string, string> = {
+  user: 'Nhân sự',
+  document: 'Tài liệu',
+  record: 'Hồ sơ',
+  record_type: 'Loại hồ sơ',
+  folder: 'Thư mục',
+  approval: 'Phiếu duyệt',
+  external_share: 'Chia sẻ ngoài',
+  code: 'Mã',
+  delegation: 'Uỷ quyền',
+  department: 'Phòng',
+  block: 'Khối',
+  division: 'Division',
+  handover: 'Bàn giao',
+  auditor_access: 'Quyền xem tạm',
+  evidence_pack: 'Gói bằng chứng',
+};
+
 export function label<K extends string>(map: Record<K, string>, value: K | undefined | null): string {
   if (!value) return '—';
   return map[value] ?? value;
@@ -205,6 +291,16 @@ const toneMap: Record<string, Tone> = {
   cancelled: 'grey',
   disposed: 'grey',
   disposal_proposed: 'amber',
+  listing: 'blue',
+  open: 'amber',
+  received: 'amber',
+  verified: 'blue',
+  executing: 'blue',
+  skipped: 'grey',
+  ok: 'green',
+  broken: 'red',
+  never: 'grey',
+  denied: 'red',
 };
 
 export function toneOf(status: string | undefined): Tone {

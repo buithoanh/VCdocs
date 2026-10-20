@@ -53,6 +53,16 @@ export const ROLE_RULES = {
   revokeAllShares: ['R4'],
   viewShareAnomalies: ['R3', 'R4'],
   viewAllJobs: ['R9'],
+  /** M10: lập biên bản bàn giao bằng tay (POST /handovers). */
+  createHandover: ['R3'],
+  /** M15: tra nhật ký thao tác (kiểm toán viên có quyền xem tạm cũng xem được, xem `me.auditorAccess`). */
+  viewAuditLogs: ['R1', 'R2', 'R3', 'R4', 'R9'],
+  /** Mã băm neo, kiểm chuỗi ngay. */
+  auditChain: ['R1', 'R3'],
+  viewAuditorAccess: ['R1', 'R3'],
+  grantAuditorAccess: ['R1'],
+  /** Gói bằng chứng (kiểm toán viên trong phạm vi cũng lập được). */
+  buildEvidencePack: ['R1', 'R3'],
 } as const satisfies Record<string, readonly SystemRole[]>;
 
 export type RoleRule = keyof typeof ROLE_RULES;
@@ -66,6 +76,8 @@ export type NavItem = {
   label: string;
   /** Không có = mọi người đã đăng nhập. */
   roles?: readonly SystemRole[];
+  /** Cũng hiện cho người đang có quyền xem tạm của kiểm toán viên (E16). */
+  auditor?: boolean;
   group: 'chinh' | 'danh-muc' | 'quan-tri';
 };
 
@@ -76,12 +88,15 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/ho-so', label: 'Hồ sơ', group: 'chinh' },
   { href: '/tai-lieu', label: 'Tài liệu', group: 'chinh' },
   { href: '/chia-se', label: 'Chia sẻ ra ngoài', roles: ROLE_RULES.viewShareRegister, group: 'chinh' },
+  { href: '/ban-giao', label: 'Bàn giao khi nghỉ việc', group: 'chinh' },
   { href: '/thu-muc', label: 'Cây thư mục', group: 'danh-muc' },
   { href: '/danh-muc-ho-so', label: 'Danh mục hồ sơ', group: 'danh-muc' },
   { href: '/bang-ma', label: 'Bảng mã', group: 'danh-muc' },
   { href: '/danh-muc', label: 'Khối, phòng, division', group: 'danh-muc' },
   { href: '/phe-duyet/uy-quyen', label: 'Uỷ quyền phê duyệt', roles: ROLE_RULES.manageDelegations, group: 'quan-tri' },
   { href: '/nhan-su', label: 'Nhân sự', roles: ROLE_RULES.viewUsers, group: 'quan-tri' },
+  { href: '/nhat-ky', label: 'Nhật ký thao tác', roles: ROLE_RULES.viewAuditLogs, auditor: true, group: 'quan-tri' },
+  { href: '/nhat-ky/quyen-xem-tam', label: 'Quyền xem của kiểm toán', roles: ROLE_RULES.viewAuditorAccess, group: 'quan-tri' },
   { href: '/drive', label: 'Bộ nhớ dùng chung', group: 'quan-tri' },
   { href: '/viec-nen', label: 'Việc đang chạy', group: 'quan-tri' },
 ];
@@ -92,6 +107,6 @@ export const NAV_GROUP_LABEL: Record<NavItem['group'], string> = {
   'quan-tri': 'Quản lý',
 };
 
-export function navFor(roles: readonly SystemRole[] | undefined): NavItem[] {
-  return NAV_ITEMS.filter((i) => !i.roles || hasAnyRole(roles, i.roles));
+export function navFor(roles: readonly SystemRole[] | undefined, opts: { auditor?: boolean } = {}): NavItem[] {
+  return NAV_ITEMS.filter((i) => !i.roles || hasAnyRole(roles, i.roles) || (i.auditor && opts.auditor));
 }

@@ -8,7 +8,7 @@ import { useAction } from '@/api/queries';
 import type { SystemRole } from '@/api/types';
 import { DeptName } from '@/components/pickers';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Button, Card, DefList, ErrorBox, PageHeader, QueryState, TextField } from '@/components/ui';
+import { Button, Card, DefList, ErrorBox, LinkButton, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { roleLabel, userStatusLabel } from '@/lib/labels';
 import { hasAction } from '@/lib/permissions';
@@ -68,16 +68,24 @@ export default function UserDetailPage() {
           )}
           {hasAction(u, 'update-leave') && (
             <Card title="Nghỉ việc">
-              <p className="hint">Ghi ngày làm việc cuối: người này chuyển sang “Sắp nghỉ” và Kiểm soát tài liệu nhận thông báo để lo bàn giao.</p>
+              <p className="hint">Ghi ngày làm việc cuối: người này chuyển sang “Sắp nghỉ” và hệ thống tự lập biên bản bàn giao (BM-VCPV-08) để người nhận, HCNS xử lý.</p>
               <TextField label="Ngày làm việc cuối" type="date" value={lastDay} onChange={setLastDay} />
               <Button
                 variant="danger"
                 disabled={!lastDay}
                 loading={patch.isPending}
-                onClick={() => patch.mutate({ lastWorkingDay: lastDay }, { onSuccess: () => toast.success('Đã ghi ngày nghỉ việc.') })}
+                onClick={() =>
+                  patch.mutate(
+                    { lastWorkingDay: lastDay },
+                    { onSuccess: () => toast.success('Đã ghi ngày nghỉ việc, biên bản bàn giao đang được lập.', { href: `/ban-giao?userId=${u.id}`, text: 'Xem biên bản' }) },
+                  )
+                }
               >
                 Ghi ngày nghỉ việc
               </Button>
+              {u.status !== 'active' && (
+                <LinkButton href={`/ban-giao?userId=${u.id}`}>Biên bản bàn giao</LinkButton>
+              )}
             </Card>
           )}
         </>
