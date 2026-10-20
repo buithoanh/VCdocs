@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { api, idem, unwrap } from '@/api/client';
-import { useAction, useBlocks } from '@/api/queries';
+import { recordTypeName, useAction, useBlocks, useRecordTypes } from '@/api/queries';
 import type { Delegation } from '@/api/types';
 import { DataTable } from '@/components/DataTable';
 import { UserName, UserPicker } from '@/components/pickers';
@@ -11,16 +11,18 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Button, ErrorBox, Modal, Notice, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
 import { formatDate, formatNumber, todayISO } from '@/lib/format';
+import { hasAction } from '@/lib/permissions';
 
 export default function DelegationsPage() {
   const { me } = useAuth();
   const blocks = useBlocks();
+  const types = useRecordTypes();
   const [blockId, setBlock] = useState('');
   const [edit, setEdit] = useState<Partial<Delegation> | null>(null);
   useEffect(() => {
     if (blockId || !blocks.data?.length) return;
-    setBlock((blocks.data.find((b) => b.directorId === me.user.id) ?? blocks.data[0]).id);
-  }, [blocks.data, blockId, me.user.id]);
+    setBlock(me.blockId ?? (blocks.data.find((b) => b.directorId === me.user.id) ?? blocks.data[0]).id);
+  }, [blocks.data, blockId, me.blockId, me.user.id]);
   const q = useQuery({
     queryKey: ['delegations', blockId],
     enabled: !!blockId,
@@ -47,13 +49,14 @@ export default function DelegationsPage() {
           rowKey={(d) => d.id}
           empty="Khối chưa có dòng uỷ quyền nào."
           columns={[
-            { key: 'task', header: 'Việc được duyệt', render: (d) => d.task },
+            { key: 'type', header: 'Loại hồ sơ được duyệt', render: (d) => <>{recordTypeName(types.data, d.recordTypeId)}{d.task && <div className="muted small">{d.task}</div>}</> },
+            { key: 'legal', header: 'Việc luật yêu cầu chữ ký', render: (d) => (d.isLegalSignature ? 'Có' : '—'), hideOnMobile: true },
             { key: 'limit', header: 'Hạn mức (đồng)', render: (d) => formatNumber(d.limitAmount), className: 'num' },
             { key: 'who', header: 'Người được uỷ quyền', render: (d) => <UserName id={d.delegateId} /> },
             { key: 'from', header: 'Từ ngày', render: (d) => formatDate(d.from) },
             { key: 'to', header: 'Đến ngày', render: (d) => (d.to ? formatDate(d.to) : 'Không thời hạn') },
             { key: 'state', header: 'Tình trạng', render: (d) => (d.from > today ? 'Chưa tới ngày' : d.to && d.to < today ? 'Hết hạn' : 'Đang hiệu lực'), hideOnMobile: true },
-            { key: 'edit', header: '', render: (d) => <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
+            { key: 'edit', header: '', render: (d) => hasAction(d, 'update') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
           ]}
         />
       </QueryState>
@@ -64,16 +67,19 @@ export default function DelegationsPage() {
 
 function DelegationForm({ initial, onClose }: { initial: Partial<Delegation>; onClose: () => void }) {
   const toast = useToast();
+  const types = useRecordTypes();
+  const [recordTypeId, setType] = useState(initial.recordTypeId ?? '');
   const [task, setTask] = useState(initial.task ?? '');
+  const [isLegalSignature, setLegal] = useState(initial.isLegalSignature ?? false);
   const [limit, setLimit] = useState(initial.limitAmount !== undefined ? String(initial.limitAmount) : '');
   const [delegateId, setDelegate] = useState(initial.delegateId ?? '');
   const [from, setFrom] = useState(initial.from ?? todayISO());
   const [to, setTo] = useState(initial.to ?? '');
   const limitNum = limit ? Number(limit.replace(/\./g, '')) : undefined;
-  const valid = task.trim() && delegateId && from && (limitNum === undefined || (Number.isFinite(limitNum) && limitNum >= 0)) && (!to || to >= from);
+  const valid = recordTypeId && !isLegalSignature && delegateId && from && (limitNum === undefined || (Number.isFinite(limitNum) && limitNum >= 0)) && (!to || to >= from);
   const save = useAction(
     (_: void, key: string) => {
-      const body = { blockId: initial.blockId!, task: task.trim(), limitAmount: limitNum, delegateId, from, to: to || undefined };
+      const body = { blockId: initial.blockId!, recordTypeId, task: task.trim() || undefined, isLegalSignature, limitAmount: limitNum, delegateId, from, to: to || undefined };
       return initial.id
         ? unwrap(api.PATCH('/delegations/{id}', { params: { path: { id: initial.id } }, body }))
         : unwrap(api.POST('/delegations', { body, ...idem(key) }));
@@ -95,7 +101,20 @@ function DelegationForm({ initial, onClose }: { initial: Partial<Delegation>; on
       }
     >
       <Notice>Hạn mức vượt mức tối đa của giám đốc khối, hoặc việc liên khối, việc luật yêu cầu người có thẩm quyền ký sẽ không lưu được.</Notice>
-      <TextField label="Việc được uỷ quyền duyệt" value={task} onChange={setTask} required placeholder="Đề xuất mua hàng dưới hạn mức" />
+      <SelectField
+        label="Loại hồ sơ được uỷ quyền duyệt"
+        value={recordTypeId}
+        onChange={setType}
+        required
+        placeholder={types.isLoading ? 'Đang tải…' : '— Chọn loại hồ sơ —'}
+        options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
+      />
+      <TextField label="Mô tả việc" value={task} onChange={setTask} placeholder="Đề xuất mua hàng dưới hạn mức" />
+      <label className="checkbox">
+        <input type="checkbox" checked={isLegalSignature} onChange={(e) => setLegal(e.target.checked)} />
+        Việc luật yêu cầu chữ ký người đại diện
+      </label>
+      {isLegalSignature && <Notice tone="warn">Việc luật yêu cầu chữ ký người đại diện không được uỷ quyền xuống (BR-24).</Notice>}
       <TextField
         label="Hạn mức (đồng)"
         value={limit ? formatNumber(limitNum) : ''}

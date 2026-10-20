@@ -1,4 +1,5 @@
 import type { RecordInput, RecordKind, RecordType } from '@/api/types';
+import { getLimits } from '@/api/client';
 import { todayISO } from './format';
 
 export type RecordFormValues = {
@@ -18,9 +19,25 @@ export function emptyRecordForm(workMonth: string): RecordFormValues {
   return { recordTypeId: '', functionCode: '', workMonth, subject: '', identifier: '', createdDate: todayISO(), backdateReason: '', source: 'template', file: null };
 }
 
-/** Lập ngày lùi (trước hôm nay) phải ghi lý do (BR-28). Máy chủ quyết định ngưỡng cuối cùng. */
-export function isBackdated(createdDate: string, today = todayISO()) {
-  return !!createdDate && createdDate < today;
+/** Lùi n ngày làm việc (bỏ thứ Bảy, Chủ nhật) tính từ hôm nay. */
+export function workingDaysBefore(today: string, n: number): string {
+  const d = new Date(`${today}T12:00:00`);
+  let left = n;
+  while (left > 0) {
+    d.setDate(d.getDate() - 1);
+    const wd = d.getDay();
+    if (wd !== 0 && wd !== 6) left--;
+  }
+  return todayISO(d);
+}
+
+/** Lập lùi quá N ngày làm việc (limits.backdateWorkingDays) phải ghi lý do (BR-28). Máy chủ vẫn quyết định. */
+export function isBackdated(createdDate: string, today = todayISO(), workingDays = getLimits().backdateWorkingDays) {
+  return !!createdDate && createdDate < workingDaysBefore(today, workingDays);
+}
+
+export function isTooLarge(file: File | null | undefined, maxMb = getLimits().uploadMaxMb) {
+  return !!file && file.size > maxMb * 1024 * 1024;
 }
 
 /** BR-20: chỉ loại hồ sơ có thời hạn đã duyệt mới lập được. */
@@ -40,6 +57,7 @@ export function validateRecordForm(v: RecordFormValues, type: RecordType | undef
   else if (v.createdDate > today) e.createdDate = 'Ngày lập không được sau hôm nay.';
   if (isBackdated(v.createdDate, today) && !v.backdateReason.trim()) e.backdateReason = 'Lập lùi ngày phải ghi lý do.';
   if (v.source === 'upload' && !v.file) e.file = 'Chọn file cần tải lên.';
+  else if (v.source === 'upload' && isTooLarge(v.file)) e.file = `File quá lớn (tối đa ${getLimits().uploadMaxMb} MB).`;
   return e;
 }
 

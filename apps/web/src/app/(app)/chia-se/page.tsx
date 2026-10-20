@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, unwrap } from '@/api/client';
+import { api, getLimits, unwrap } from '@/api/client';
 import type { ExternalShare, ShareStatus } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
 import { DataTable, Pagination } from '@/components/DataTable';
@@ -44,10 +44,14 @@ export default function SharesPage() {
     { key: 'file', header: 'File', render: (s: ExternalShare) => <strong>{s.fileName ?? s.fileId}</strong> },
     { key: 'email', header: 'Đối tác', render: (s: ExternalShare) => s.email },
     { key: 'role', header: 'Quyền', render: (s: ExternalShare) => shareRoleLabel[s.role], hideOnMobile: true },
-    { key: 'reason', header: 'Lý do', render: (s: ExternalShare) => s.reason, hideOnMobile: true },
+    { key: 'reason', header: 'Lý do', render: (s: ExternalShare) => (s.source === 'detected' ? <span className="muted">Chia sẻ ngoài VCdocs</span> : s.reason ?? '—'), hideOnMobile: true },
     { key: 'by', header: 'Người chia sẻ', render: (s: ExternalShare) => <UserName id={s.sharedBy} />, hideOnMobile: true },
     { key: 'dept', header: 'Phòng', render: (s: ExternalShare) => <DeptName id={s.departmentId} />, hideOnMobile: true },
-    { key: 'exp', header: 'Hết hạn', render: (s: ExternalShare) => formatDateTime(s.expiresAt) },
+    {
+      key: 'exp',
+      header: 'Hết hạn',
+      render: (s: ExternalShare) => (s.source === 'detected' ? <span className="muted">Phát hiện {formatDateTime(s.detectedAt)}</span> : formatDateTime(s.expiresAt)),
+    },
     {
       key: 'status',
       header: 'Tình trạng',
@@ -175,19 +179,30 @@ export default function SharesPage() {
 }
 
 function ExtendDialog({ share, onClose }: { share: ExternalShare; onClose: () => void }) {
-  const [date, setDate] = useState(addDaysISO(30));
+  const max = addDaysISO(getLimits().shareMaxDays);
+  const [date, setDate] = useState(max);
   return (
     <ActionDialog
       open
       title="Gia hạn chia sẻ"
       description={`${share.email} · hiện hết hạn ${formatDateTime(share.expiresAt)}`}
       confirmLabel="Gia hạn"
-      canConfirm={!!date}
+      canConfirm={!!date && date <= max}
       run={() => unwrap(api.POST('/external-shares/{id}/extend', { params: { path: { id: share.id } }, body: { expiresAt: endOfDayVN(date) } }))}
       invalidate={[['external-shares']]}
       onClose={onClose}
     >
-      <TextField label="Hết hạn ngày" type="date" value={date} onChange={setDate} required min={addDaysISO(1)} hint="Có giới hạn số ngày tối đa; vượt thì máy chủ báo." />
+      <TextField
+        label="Hết hạn ngày"
+        type="date"
+        value={date}
+        onChange={setDate}
+        required
+        min={addDaysISO(1)}
+        max={max}
+        hint={`Tối đa ${getLimits().shareMaxDays} ngày kể từ hôm nay.`}
+        error={date > max ? `Quá ${getLimits().shareMaxDays} ngày cho phép.` : undefined}
+      />
     </ActionDialog>
   );
 }

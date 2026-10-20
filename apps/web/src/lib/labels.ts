@@ -1,5 +1,7 @@
+import { formatNumber } from './format';
 import type {
   ApprovalObjectType,
+  Job,
   ApprovalStatus,
   CodeStatus,
   CodeType,
@@ -209,30 +211,29 @@ export function toneOf(status: string | undefined): Tone {
   return (status && toneMap[status]) || 'grey';
 }
 
-/** Tên việc chạy nền. Tên kỹ thuật lạ thì hiện "Việc chạy nền". */
-const jobTypeMap: Record<string, string> = {
+/** Tên việc chạy nền theo enum Job.type (D11). */
+export const jobTypeLabel: Record<Job['type'], string> = {
+  'document.withdraw': 'Huỷ bỏ tài liệu',
+  'google.sync': 'Đồng bộ nhân sự Google',
+  'codes.export': 'Xuất Bảng mã',
+  'folder.create': 'Tạo thư mục',
+  'folder.close_project': 'Kết thúc dự án',
+  'folder.ensure_periods': 'Tạo thư mục năm, tháng',
+  'document.create_draft': 'Tạo file nháp tài liệu',
+  'document.issue': 'Ban hành tài liệu',
+  'documents.catalog_export': 'Xuất Danh mục tài liệu',
+  'external_document.import': 'Nhập tài liệu bên ngoài',
+  'record_types.catalog_export': 'Xuất Danh mục hồ sơ',
   'record.create': 'Lập hồ sơ',
   'record.upload': 'Tải file hồ sơ',
   'record.claim': 'Đăng ký file có sẵn',
   'record.finalize': 'Chốt hồ sơ',
   'record.scan': 'Gắn bản scan',
-  'document.create_draft': 'Tạo file nháp tài liệu',
-  'document.issue': 'Ban hành tài liệu',
-  'document.catalog_export': 'Xuất Danh mục tài liệu',
-  'external_document.import': 'Nhập tài liệu bên ngoài',
-  'folder.create': 'Tạo thư mục',
-  'folder.close_project': 'Kết thúc dự án',
-  'folder.ensure_periods': 'Tạo thư mục năm, tháng',
-  'codes.export': 'Xuất Bảng mã',
-  'record_types.catalog_export': 'Xuất Danh mục hồ sơ',
-  'sync.google': 'Đồng bộ nhân sự Google',
-  'external_shares.revoke_all': 'Gỡ hết chia sẻ ngoài',
+  'share.revoke_all': 'Gỡ hết chia sẻ ngoài',
 };
 
 export function jobTypeText(type?: string): string {
-  if (!type) return 'Việc chạy nền';
-  const key = type.replace(/-/g, '_');
-  return jobTypeMap[type] ?? jobTypeMap[key] ?? 'Việc chạy nền';
+  return (type && jobTypeLabel[type as Job['type']]) || 'Việc chạy nền';
 }
 
 export const retentionStatusLabel = { draft: 'Nháp – chưa lập được hồ sơ', submitted: 'Đang trình duyệt', approved: 'Đã duyệt' } as const;
@@ -240,4 +241,46 @@ export const retentionStatusLabel = { draft: 'Nháp – chưa lập được h�
 export function retentionText(years?: number) {
   if (years === undefined) return '—';
   return years === 0 ? 'Vĩnh viễn' : `${years} năm`;
+}
+
+export const holdReasonLabel = {
+  dispute: 'Tranh chấp',
+  inspection: 'Thanh tra, kiểm toán',
+  warranty: 'Bảo hành',
+  receivable: 'Công nợ',
+  contract_open: 'Hợp đồng chưa thanh lý',
+  board_request: 'Ban Điều hành yêu cầu',
+} as const;
+export type HoldReasonType = keyof typeof holdReasonLabel;
+
+/** Job.summary (D16) → một câu ngắn, vd { created: 12, skipped: 1 } → "Đã tạo 12 · bỏ qua 1". */
+const summaryWords: Record<string, string> = {
+  created: 'tạo',
+  updated: 'cập nhật',
+  deleted: 'xoá',
+  removed: 'bỏ',
+  revoked: 'gỡ',
+  skipped: 'bỏ qua',
+  failed: 'lỗi',
+  moved: 'chuyển',
+  renamed: 'đổi tên',
+  notified: 'gửi thông báo',
+  users: 'nhân sự',
+  groups: 'nhóm',
+  members: 'thành viên',
+  folders: 'thư mục',
+  files: 'file',
+  rows: 'dòng',
+  total: 'tổng',
+};
+
+export function jobSummaryText(summary: Record<string, unknown> | undefined | null): string | undefined {
+  if (!summary) return undefined;
+  // Chỉ lấy số liệu có tên quen thuộc; trường kỹ thuật (googleId, name…) không hiện cho người dùng.
+  const parts = Object.entries(summary)
+    .filter(([k, v]) => typeof v === 'number' && k in summaryWords)
+    .map(([k, v]) => `${summaryWords[k]} ${formatNumber(v as number)}`);
+  if (!parts.length) return undefined;
+  const text = parts.join(' · ');
+  return `Đã ${text}.`;
 }

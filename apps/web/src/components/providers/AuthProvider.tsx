@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { api, setCsrfToken, unwrap } from '@/api/client';
+import { api, rememberPeople, setCsrfToken, setLimits, unwrap } from '@/api/client';
 import type { Me, SystemRole } from '@/api/types';
 import { canRole, type RoleRule } from '@/lib/permissions';
 
@@ -20,6 +20,8 @@ export function useMeQuery() {
     queryFn: async () => {
       const me = await unwrap(api.GET('/me'));
       setCsrfToken(me.csrfToken);
+      setLimits(me.limits);
+      rememberPeople({ [me.user.id]: { id: me.user.id, name: me.user.name, email: me.user.email } });
       return me;
     },
     staleTime: 5 * 60_000,
@@ -54,6 +56,7 @@ export function useAuth(): AuthValue {
 /** Cho test: dựng sẵn ngữ cảnh đăng nhập. */
 export function TestAuthProvider({ me, children }: { me: Me; children: ReactNode }) {
   setCsrfToken(me.csrfToken);
+  setLimits(me.limits);
   const roles = me.systemRoles ?? [];
   return <AuthContext.Provider value={{ me, roles, can: (rule) => canRole(roles, rule) }}>{children}</AuthContext.Provider>;
 }

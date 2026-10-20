@@ -4,18 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { api, idem, unwrap } from '@/api/client';
+import { api, getLimits, idem, unwrap } from '@/api/client';
+import { isTooLarge } from '@/lib/records';
 import { recordTypeName, useAction, useRecordTypes } from '@/api/queries';
 import type { VcRecord } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
 import { ApproverPreview } from '@/components/ApproverPreview';
 import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, UserName } from '@/components/pickers';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Field, LinkButton, Modal, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
+import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Field, LinkButton, Modal, Notice, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, formatMonth } from '@/lib/format';
-import { recordKindLabel, recordStatusLabel } from '@/lib/labels';
+import { holdReasonLabel, recordKindLabel, recordStatusLabel, type HoldReasonType } from '@/lib/labels';
+import { hasAction } from '@/lib/permissions';
 
 type Dialog = 'edit' | 'submit' | 'finalize' | 'adjust' | 'scan' | 'hold' | 'release' | null;
 
@@ -24,7 +25,6 @@ export function RecordView({ id }: { id: string }) {
   const types = useRecordTypes();
   const router = useRouter();
   const jobs = useJobs();
-  const { can } = useAuth();
   const [dialog, setDialog] = useState<Dialog>(null);
   const invalidate = [['record', id], ['records']];
   const r = q.data;
@@ -85,13 +85,16 @@ export function RecordView({ id }: { id: string }) {
               <DriveLink fileId={r.fileId}>Mở file</DriveLink>
               <DriveLink fileId={r.finalized?.pdfFileId}>Mở bản PDF đã chốt</DriveLink>
               {r.approvalId && <LinkButton href={`/phe-duyet/${r.approvalId}`}>Phiếu duyệt</LinkButton>}
-              {r.fileId && can('createShare') && <LinkButton href={`/chia-se/moi?fileId=${encodeURIComponent(r.fileId)}&ten=${encodeURIComponent(r.fileName ?? r.subject)}`}>Chia sẻ ra ngoài</LinkButton>}
+              {r.fileId && hasAction(r, 'share') && <LinkButton href={`/chia-se/moi?fileId=${encodeURIComponent(r.fileId)}&ten=${encodeURIComponent(r.fileName ?? r.subject)}`}>Chia sẻ ra ngoài</LinkButton>}
             </div>
           </Card>
           {r.finalized && <FinalizedCard r={r} />}
           {r.hold?.isActive && (
             <Card title="Đang giữ lại">
-              <p>{r.hold.reason}</p>
+              <p>
+                {r.hold.reasonType && <strong>{holdReasonLabel[r.hold.reasonType]}: </strong>}
+                {r.hold.reason}
+              </p>
               <p className="muted small">
                 <UserName id={r.hold.by} /> · {formatDateTime(r.hold.at)}
               </p>
@@ -150,19 +153,7 @@ export function RecordView({ id }: { id: string }) {
             />
           )}
           {dialog === 'scan' && <ScanDialog r={r} onClose={close} />}
-          {dialog === 'hold' && (
-            <ActionDialog
-              open
-              title="Giữ lại hồ sơ"
-              description="Hồ sơ giữ lại không được huỷ khi hết hạn (đang tranh chấp, thanh tra, kiểm toán…)."
-              confirmLabel="Giữ lại"
-              textLabel="Lý do"
-              textRequired
-              run={(reason) => unwrap(api.POST('/records/{id}/hold', { params: { path: { id } }, body: { reason } }))}
-              invalidate={invalidate}
-              onClose={close}
-            />
-          )}
+          {dialog === 'hold' && <HoldDialog id={id} onClose={close} />}
           {dialog === 'release' && (
             <ActionDialog
               open
@@ -180,7 +171,6 @@ export function RecordView({ id }: { id: string }) {
 }
 
 function FinalizedCard({ r }: { r: VcRecord }) {
-  const { can } = useAuth();
   const [check, setCheck] = useState(false);
   const integrity = useQuery({
     queryKey: ['record-integrity', r.id],
@@ -194,7 +184,7 @@ function FinalizedCard({ r }: { r: VcRecord }) {
     <Card
       title="Đã chốt"
       actions={
-        can('viewIntegrity') && (
+        hasAction(r, 'integrity') && (
           <Button onClick={() => (check ? integrity.refetch() : setCheck(true))} loading={integrity.isFetching}>
             Kiểm tra toàn vẹn
           </Button>
@@ -274,7 +264,7 @@ function ScanDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
       title="Gắn bản scan"
       description="Vị trí bản giấy được ghi cả vào phần Mô tả của file trên Drive."
       confirmLabel="Tải lên"
-      canConfirm={!!file && !!paperLocation.trim()}
+      canConfirm={!!file && !isTooLarge(file) && !!paperLocation.trim()}
       run={() => {
         const fd = new FormData();
         fd.append('file', file!);
@@ -284,10 +274,36 @@ function ScanDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
       onDone={(res) => jobs.track({ jobId: res.jobId, label: 'Gắn bản scan', invalidate: [['record', r.id]] })}
       onClose={onClose}
     >
-      <Field label="File scan" required htmlFor="scan-file">
+      <Field label="File scan" required htmlFor="scan-file" error={isTooLarge(file) ? `File quá lớn (tối đa ${getLimits().uploadMaxMb} MB).` : undefined}>
         <input id="scan-file" type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </Field>
       <TextField label="Vị trí bản giấy" value={paperLocation} onChange={setPaper} required placeholder="Tủ 2, ngăn 3, kệ B" />
+    </ActionDialog>
+  );
+}
+
+function HoldDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const [reasonType, setType] = useState<HoldReasonType | ''>('');
+  return (
+    <ActionDialog
+      open
+      title="Giữ lại hồ sơ"
+      description="Hồ sơ giữ lại không được huỷ khi hết hạn (BR-22)."
+      confirmLabel="Giữ lại"
+      textLabel="Diễn giải"
+      textRequired
+      canConfirm={!!reasonType}
+      run={(reason) => unwrap(api.POST('/records/{id}/hold', { params: { path: { id } }, body: { reasonType: reasonType as HoldReasonType, reason } }))}
+      invalidate={[['record', id], ['records']]}
+      onClose={onClose}
+    >
+      <SelectField
+        label="Lý do"
+        value={reasonType}
+        onChange={setType}
+        required
+        options={(Object.keys(holdReasonLabel) as HoldReasonType[]).map((k) => ({ value: k, label: holdReasonLabel[k] }))}
+      />
     </ActionDialog>
   );
 }

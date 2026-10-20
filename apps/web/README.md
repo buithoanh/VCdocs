@@ -75,8 +75,12 @@ trong `next.config.ts`).
 - Giao diện không giữ token; phiên là cookie HttpOnly do BE đặt. `csrfToken`
   lấy từ `GET /me`, chỉ giữ trong bộ nhớ.
 - Nút hành động trên một đối tượng chỉ hiện khi tên hành động có trong
-  `allowedActions` (so khớp không phân biệt `assign-code` / `assignCode`).
+  `allowedActions` (enum từng đối tượng, hợp đồng D9; so đúng từng chữ).
   Nút tạo mới (chưa có đối tượng) và mục menu dựa vào vai trò R1–R9.
+- Tên người lấy từ `people` (id → UserRef) trong phản hồi (D10), gom vào một kho
+  chung; chọn người bằng `GET /users/lookup`.
+- Giới hạn (`/me.limits`): hạn chia sẻ tối đa, số ngày lập lùi, cỡ file tải lên…
+  dùng để báo trước; máy chủ vẫn quyết định. 429 báo chờ theo `Retry-After`.
 - Việc trả 202 hiện tiến độ bằng `GET /jobs/{id}` (ngay trong trang, hoặc ở
   góc trái màn hình).
 - Lỗi hiện `error.message`; 422 thêm "(Quy tắc BR-xx)".
@@ -100,4 +104,4 @@ trong `next.config.ts`).
 | `/chia-se`, `/chia-se/moi` | M09 chia sẻ ngoài |
 | `/thong-bao`, `/viec-nen` | M14 thông báo, việc nền |
 
-Chỗ hợp đồng thiếu / FE phải tự chọn: xem `DE_NGHI_SUA_HOP_DONG.md`.
+Theo hợp đồng `1.1.0-gd1` (gộp từ `giai-doan-1`). Đề nghị sửa hợp đồng và tình trạng xử lý: `DE_NGHI_SUA_HOP_DONG.md`.

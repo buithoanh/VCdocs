@@ -1,18 +1,27 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
-import { ApiError } from '@/api/client';
-import { deptName, useDepartments, useUser, useUserSearch } from '@/api/queries';
+import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { getPeopleVersion, getPerson, subscribePeople } from '@/api/client';
+import { deptName, useDepartments, useUserLookup } from '@/api/queries';
 import { hasAction } from '@/lib/permissions';
 import { shortId } from '@/lib/format';
 import { Button, Field } from './ui';
 
-/** Hiện tên nhân sự từ id; không có quyền xem thì hiện id rút gọn. */
+/** Tên nhân sự lấy từ `people` của các phản hồi (D10); không gọi /users/{id}. */
+export function usePerson(id?: string) {
+  useSyncExternalStore(subscribePeople, getPeopleVersion, getPeopleVersion);
+  return getPerson(id);
+}
+
 export function UserName({ id }: { id?: string }) {
-  const q = useUser(id);
+  const p = usePerson(id);
   if (!id) return <>—</>;
-  if (q.data) return <span title={q.data.email}>{q.data.name}</span>;
-  return <span className="muted" title={id}>{q.isLoading ? '…' : `Nhân sự ${shortId(id)}`}</span>;
+  if (p) return <span title={p.email}>{p.name}</span>;
+  return (
+    <span className="muted" title={id}>
+      Nhân sự {shortId(id)}
+    </span>
+  );
 }
 
 export function DeptName({ id }: { id?: string }) {
@@ -45,17 +54,17 @@ export function UserPicker({ label, value, onChange, required, hint, excludeIds 
     const t = setTimeout(() => setDebounced(q.trim()), 250);
     return () => clearTimeout(t);
   }, [q]);
-  const search = useUserSearch(debounced);
+  const search = useUserLookup(debounced);
   const id = useId();
-  const forbidden = search.error instanceof ApiError && search.error.status === 403;
+  const selected = usePerson(value);
   const options = (search.data ?? []).filter((u) => !excludeIds.includes(u.id));
   return (
     <Field label={label} required={required} htmlFor={id} hint={hint}>
       <div className="picker">
         <input type="search" placeholder="Gõ tên hoặc email để tìm" value={q} onChange={(e) => setQ(e.target.value)} aria-label={`Tìm ${label.toLowerCase()}`} />
         <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required}>
-          <option value="">{search.isLoading ? 'Đang tìm…' : `— Chọn (${options.length} người) —`}</option>
-          {value && !options.some((u) => u.id === value) && <option value={value}>Đã chọn</option>}
+          <option value="">{!debounced ? '— Gõ tên để tìm —' : search.isLoading ? 'Đang tìm…' : `— Chọn (${options.length} người) —`}</option>
+          {value && !options.some((u) => u.id === value) && <option value={value}>{selected ? `${selected.name} · ${selected.email}` : 'Đã chọn'}</option>}
           {options.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name} · {u.email}
@@ -63,7 +72,7 @@ export function UserPicker({ label, value, onChange, required, hint, excludeIds 
           ))}
         </select>
       </div>
-      {forbidden && <p className="field-error">Bạn chưa được xem danh sách nhân sự. Nhờ trưởng phòng thực hiện việc này.</p>}
+      {search.error && <p className="field-error">Không tìm được người, vui lòng thử lại.</p>}
     </Field>
   );
 }
@@ -99,16 +108,16 @@ export function MultiUserPicker({ label, value, onChange, hint }: { label: strin
   );
 }
 
-export type ActionDef = {
-  /** Tên hành động trong allowedActions. */
-  action: string;
+export type ActionDef<A extends string = string> = {
+  /** Tên hành động trong allowedActions (enum của đối tượng). */
+  action: A;
   label: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'success';
   onClick: () => void;
 };
 
 /** Chỉ hiện nút có trong allowedActions của đối tượng. */
-export function ActionBar({ obj, actions, emptyText }: { obj: { allowedActions?: readonly string[] } | undefined; actions: ActionDef[]; emptyText?: string }) {
+export function ActionBar<A extends string>({ obj, actions, emptyText }: { obj: { allowedActions?: readonly A[] } | undefined; actions: ActionDef<NoInfer<A>>[]; emptyText?: string }) {
   const visible = actions.filter((a) => hasAction(obj, a.action));
   if (!visible.length) return emptyText ? <p className="muted small">{emptyText}</p> : null;
   return (

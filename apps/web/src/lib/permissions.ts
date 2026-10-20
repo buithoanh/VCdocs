@@ -8,15 +8,9 @@ import type { SystemRole } from '@/api/types';
  *   theo ma trận BA mục 4 và cột "Ai gọi" của hợp đồng.
  */
 
-/** Chuẩn hoá tên hành động: "assign-code", "assign_code", "assignCode" là một. */
-export function normalizeAction(name: string): string {
-  return name.replace(/[-_\s]/g, '').toLowerCase();
-}
-
-export function hasAction(obj: { allowedActions?: readonly string[] } | null | undefined, action: string): boolean {
-  if (!obj?.allowedActions?.length) return false;
-  const want = normalizeAction(action);
-  return obj.allowedActions.some((a) => normalizeAction(a) === want);
+/** Tên hành động là enum của từng đối tượng (hợp đồng D9); so đúng từng chữ. */
+export function hasAction<A extends string>(obj: { allowedActions?: readonly A[] } | null | undefined, action: A): boolean {
+  return !!obj?.allowedActions?.includes(action);
 }
 
 export function hasAnyRole(roles: readonly SystemRole[] | undefined, allowed: readonly SystemRole[]): boolean {
@@ -24,7 +18,10 @@ export function hasAnyRole(roles: readonly SystemRole[] | undefined, allowed: re
   return roles.some((r) => allowed.includes(r));
 }
 
-/** Việc theo vai trò (không gắn đối tượng). */
+/**
+ * Việc theo vai trò: chỉ cho việc chưa có đối tượng (nút tạo mới, mục menu).
+ * Việc trên đối tượng đã có luôn theo allowedActions (hợp đồng D9).
+ */
 export const ROLE_RULES = {
   /** Đăng ký tài liệu mới (POST /documents). */
   registerDocument: ['R4'],
@@ -40,20 +37,12 @@ export const ROLE_RULES = {
   /** Tạo thư mục mảng/dự án. */
   createFolder: ['R4', 'R5'],
   ensurePeriods: ['R3'],
-  /** Folder không có allowedActions trong hợp đồng: dựa vào vai trò. */
-  renameFolder: ['R4'],
-  closeProject: ['R4'],
-  resyncFolder: ['R3', 'R4'],
-  /** Xem khoá, mã băm (documents/records integrity). */
-  viewIntegrity: ['R3', 'R4'],
-  /** Danh mục nền: khối, phòng, division. */
+  /** Thêm khối, phòng, division (sửa thì theo allowedActions 'update'). */
   editMasterData: ['R3', 'R9'],
   proposeCode: ['R4'],
   exportCodes: ['R3'],
   /** Nhân sự. */
   viewUsers: ['R3', 'R4', 'R9'],
-  editSystemRoles: ['R9'],
-  setLastWorkingDay: ['R3'],
   syncGoogle: ['R9'],
   viewDriveMembers: ['R3', 'R4', 'R9'],
   /** Uỷ quyền phê duyệt của khối. */

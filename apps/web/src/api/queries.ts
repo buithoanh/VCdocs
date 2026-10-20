@@ -37,24 +37,12 @@ export function useRecordTypes(departmentId?: string) {
   });
 }
 
-/** Tên một nhân sự từ id. Không có quyền xem danh sách nhân sự thì trả undefined. */
-export function useUser(id?: string) {
+/** Tra người để chọn (mọi vai trò, D3). Chỉ gọi khi đã gõ chữ. */
+export function useUserLookup(q: string, departmentId?: string) {
   return useQuery({
-    queryKey: ['user', id],
-    enabled: !!id,
-    queryFn: () => unwrap(api.GET('/users/{id}', { params: { path: { id: id! } } })),
-    retry: false,
-    ...STATIC,
-  });
-}
-
-export function useUserSearch(q: string, enabled = true) {
-  return useQuery({
-    queryKey: ['users', 'search', q],
-    enabled,
-    queryFn: () =>
-      unwrap(api.GET('/users', { params: { query: { q: q || undefined, limit: 20, status: 'active' } } })).then((r) => r.items),
-    retry: false,
+    queryKey: ['users', 'lookup', q, departmentId ?? null],
+    enabled: q.trim().length > 0,
+    queryFn: () => unwrap(api.GET('/users/lookup', { params: { query: { q: q.trim(), departmentId } } })).then((r) => r.items),
     staleTime: 60_000,
   });
 }

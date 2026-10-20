@@ -9,7 +9,7 @@ import { JobProgress, jobResultLink } from '@/components/jobs';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Badge, Button, Modal, PageHeader, QueryState, Tabs } from '@/components/ui';
 import { formatDateTime } from '@/lib/format';
-import { jobStatusLabel, jobTypeText } from '@/lib/labels';
+import { jobStatusLabel, jobSummaryText, jobTypeText } from '@/lib/labels';
 
 const LIMIT = 30;
 
@@ -45,7 +45,7 @@ export default function JobsPage() {
           rowKey={(j) => j.id}
           empty="Chưa có việc nào."
           columns={[
-            { key: 'type', header: 'Việc', render: (j) => jobTypeText(j.type) },
+            { key: 'type', header: 'Việc', render: (j) => <>{jobTypeText(j.type)}{j.summary && <div className="muted small">{jobSummaryText(j.summary)}</div>}</> },
             { key: 'status', header: 'Tình trạng', render: (j) => <Badge status={j.status}>{jobStatusLabel[j.status]}</Badge> },
             { key: 'progress', header: 'Tiến độ', render: (j) => `${j.progress}%`, className: 'num' },
             { key: 'createdAt', header: 'Lúc bắt đầu', render: (j) => formatDateTime(j.createdAt), hideOnMobile: true },

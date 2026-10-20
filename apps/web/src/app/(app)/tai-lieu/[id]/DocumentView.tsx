@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError, api, idem, unwrap } from '@/api/client';
+import { api, getLimits, idem, unwrap } from '@/api/client';
 import { useAction, useDepartments } from '@/api/queries';
 import type { Document, RevisionKind } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
@@ -17,12 +17,14 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
+import { hasAction } from '@/lib/permissions';
 
 type Dialog = 'feedback' | 'submit' | 'issue' | 'revise' | 'withdraw' | 'review' | null;
 
 export function DocumentView({ id }: { id: string }) {
   const q = useQuery({ queryKey: ['document', id], queryFn: () => unwrap(api.GET('/documents/{id}', { params: { path: { id } } })) });
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
   const toast = useToast();
   const jobs = useJobs();
   const invalidate = [['document', id], ['documents']];
@@ -65,6 +67,7 @@ export function DocumentView({ id }: { id: string }) {
                   { action: 'assign-code', label: 'Cấp mã', variant: 'primary', onClick: () => assignCode.mutate() },
                   { action: 'create-draft', label: 'Tạo file nháp', variant: 'primary', onClick: () => createDraft.mutate() },
                   { action: 'request-feedback', label: 'Gửi lấy góp ý', onClick: () => setDialog('feedback') },
+                  { action: 'feedback', label: 'Xem góp ý', onClick: () => setShowFeedback(true) },
                   { action: 'submit', label: 'Trình duyệt', variant: 'primary', onClick: () => setDialog('submit') },
                   { action: 'issue', label: 'Ban hành', variant: 'success', onClick: () => setDialog('issue') },
                   { action: 'revise', label: 'Sửa đổi', onClick: () => setDialog('revise') },
@@ -108,8 +111,8 @@ export function DocumentView({ id }: { id: string }) {
             </div>
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}
-          {(d.status === 'drafting' || d.status === 'feedback') && <OpenCommentsCard id={id} />}
-          {(d.status === 'effective' || d.status === 'revising') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
+          {showFeedback && hasAction(d, 'feedback') && <OpenCommentsCard id={id} />}
+          {hasAction(d, 'integrity') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
           <Card title="Lịch sử phiên bản">
             <DataTable
               rows={[...(d.versions ?? [])].sort((a, b) => b.number - a.number)}
@@ -143,7 +146,6 @@ function OpenCommentsCard({ id }: { id: string }) {
     queryFn: () => unwrap(api.GET('/documents/{id}/feedback', { params: { path: { id } } })),
     retry: false,
   });
-  if (q.error instanceof ApiError && (q.error.status === 403 || q.error.status === 404)) return null;
   return (
     <Card title="Góp ý trên file" actions={<Button variant="ghost" onClick={() => q.refetch()}>Kiểm tra lại</Button>}>
       <QueryState q={q}>
@@ -167,7 +169,6 @@ function IntegrityCard({ id, lockedAt }: { id: string; lockedAt?: string }) {
     queryFn: () => unwrap(api.GET('/documents/{id}/integrity', { params: { path: { id } } })),
     retry: false,
   });
-  if (!can('viewIntegrity')) return null;
   const i = q.data;
   return (
     <Card title="Khoá và tính toàn vẹn" actions={<Button onClick={() => (enabled ? q.refetch() : setEnabled(true))} loading={q.isFetching}>Kiểm tra ngay</Button>}>
@@ -219,7 +220,7 @@ function ExternalCard({ doc }: { doc: Document }) {
           ['Bản gốc', ext?.originalUrl ? <a key="u" href={ext.originalUrl} target="_blank" rel="noreferrer">Mở</a> : '—'],
         ]}
       />
-      {can('importExternalDocument') && (
+      {hasAction(doc, 'update-external') && (
         <div className="actions" style={{ marginTop: '1rem' }}>
           <Button onClick={() => patch.mutate({ lastCheckedAt: new Date().toISOString() })} loading={patch.isPending}>
             Đã kiểm tra: vẫn hiệu lực
@@ -290,8 +291,10 @@ function FeedbackDialog({ id, onClose }: { id: string; onClose: () => void }) {
 
 function SubmitDialog({ doc, onClose }: { doc: Document; onClose: () => void }) {
   const router = useRouter();
+  // Chỉ hỏi số nhận xét mở khi có quyền xem góp ý (D18).
   const feedback = useQuery({
     queryKey: ['document-feedback', doc.id],
+    enabled: hasAction(doc, 'feedback'),
     queryFn: () => unwrap(api.GET('/documents/{id}/feedback', { params: { path: { id: doc.id } } })),
     retry: false,
   });
@@ -365,7 +368,7 @@ function IssueDialog({ doc, onClose }: { doc: Document; onClose: () => void }) {
 
 function ReviseDialog({ id, onClose }: { id: string; onClose: () => void }) {
   const [kind, setKind] = useState<RevisionKind>('minor');
-  const [days, setDays] = useState('3');
+  const [days, setDays] = useState(String(getLimits().minorUnlockDays));
   return (
     <ActionDialog
       open

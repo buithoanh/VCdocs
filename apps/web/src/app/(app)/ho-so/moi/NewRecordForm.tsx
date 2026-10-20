@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { api, idem, unwrap } from '@/api/client';
+import { api, getLimits, idem, unwrap } from '@/api/client';
 import { deptName, useAction, useApprovedCodes, useDepartments, useRecordTypes } from '@/api/queries';
 import type { Job } from '@/api/types';
 import { JobProgress } from '@/components/jobs';
@@ -50,8 +50,8 @@ export function NewRecordForm() {
   );
 
   function onFinished(job: Job) {
-    const r = (job.result ?? {}) as { objectType?: string; objectId?: string };
-    if (job.status === 'done' && r.objectType === 'record' && r.objectId) router.push(`/ho-so/${r.objectId}`);
+    const r = job.result;
+    if (job.status === 'done' && r && 'objectType' in r && r.objectType === 'record') router.push(`/ho-so/${r.objectId}`);
   }
 
   if (jobId) {
@@ -130,7 +130,7 @@ export function NewRecordForm() {
             <TextField label="Số định danh" value={v.identifier} onChange={set('identifier')} required error={err('identifier')} placeholder="Biển số, số PO, mã lớp…" />
           )}
           <TextField label="Ngày lập" type="date" value={v.createdDate} onChange={set('createdDate')} required error={err('createdDate')} />
-          {isBackdated(v.createdDate) && <TextField label="Lý do lập lùi ngày" value={v.backdateReason} onChange={set('backdateReason')} required error={err('backdateReason')} multiline />}
+           {isBackdated(v.createdDate) && <TextField label="Lý do lập lùi ngày" hint={`Lùi quá ${getLimits().backdateWorkingDays} ngày làm việc phải ghi lý do.`} value={v.backdateReason} onChange={set('backdateReason')} required error={err('backdateReason')} multiline />}
           <Field label="File hồ sơ">
             <label className="checkbox">
               <input type="radio" name="source" checked={v.source === 'template'} onChange={() => set('source')('template')} />
@@ -142,7 +142,7 @@ export function NewRecordForm() {
             </label>
           </Field>
           {v.source === 'upload' && (
-            <Field label="Chọn file" required error={err('file')} htmlFor="file-ho-so" hint="File Word, Excel, PowerPoint được đổi sang định dạng Google; hoá đơn, giấy tờ ký, scan giữ nguyên.">
+            <Field label="Chọn file" required error={err('file')} htmlFor="file-ho-so" hint={`Tối đa ${getLimits().uploadMaxMb} MB. File Word, Excel, PowerPoint được đổi sang định dạng Google; hoá đơn, giấy tờ ký, scan giữ nguyên.`}>
               <input id="file-ho-so" type="file" onChange={(e) => set('file')(e.target.files?.[0] ?? null)} />
             </Field>
           )}

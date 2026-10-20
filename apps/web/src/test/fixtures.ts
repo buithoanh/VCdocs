@@ -22,8 +22,8 @@ export const ids = {
 
 const base = { companyId: ids.company, createdAt: '2026-10-19T08:00:00+07:00', updatedAt: '2026-10-19T08:00:00+07:00' };
 
-export const user: S['User'] = { ...base, id: ids.me, email: 'nhanvien@vcprosperous.com', name: 'Nguyễn Văn A', status: 'active', systemRoles: ['R6'], departmentId: ids.dept };
-export const boss: S['User'] = { ...base, id: ids.boss, email: 'truongphong@vcprosperous.com', name: 'Trần Thị B', status: 'active', systemRoles: ['R4'], departmentId: ids.dept };
+export const user: S['User'] = { ...base, allowedActions: [], id: ids.me, email: 'nhanvien@vcprosperous.com', name: 'Nguyễn Văn A', status: 'active', systemRoles: ['R6'], departmentId: ids.dept };
+export const boss: S['User'] = { ...base, allowedActions: [], id: ids.boss, email: 'truongphong@vcprosperous.com', name: 'Trần Thị B', status: 'active', systemRoles: ['R4'], departmentId: ids.dept };
 
 export function makeMe(roles: S['SystemRole'][] = ['R6']): S['Me'] {
   return {
@@ -32,18 +32,19 @@ export function makeMe(roles: S['SystemRole'][] = ['R6']): S['Me'] {
     departmentId: ids.dept,
     drives: [{ driveId: '0AAmkt', departmentId: ids.dept, name: '11 MKT', role: 'writer', securityLevel: 'department' }],
     csrfToken: 'csrf-mau-123',
+    limits: { shareMaxDays: 30, backdateWorkingDays: 3, approvalDueDays: 3, minorUnlockDays: 3, uploadMaxMb: 100 },
     sessionExpiresAt: '2026-10-19T16:00:00+07:00',
   };
 }
 
 export const departments: S['Department'][] = [
-  { ...base, id: ids.dept, code: 'MKT', number: '11', name: 'Marketing', driveId: '0AAmkt', securityLevel: 'department', blockId: ids.block },
-  { ...base, id: ids.dept2, code: 'KT', number: '13', name: 'Kế toán', driveId: '0AAkt', securityLevel: 'confidential', blockId: ids.block },
+  { ...base, allowedActions: [], id: ids.dept, code: 'MKT', number: '11', name: 'Marketing', driveId: '0AAmkt', securityLevel: 'department', blockId: ids.block },
+  { ...base, allowedActions: [], id: ids.dept2, code: 'KT', number: '13', name: 'Kế toán', driveId: '0AAkt', securityLevel: 'confidential', blockId: ids.block },
 ];
 
 const rtBase = {
   ...base,
-  allowedActions: [] as string[],
+  allowedActions: [] as S['RecordType']['allowedActions'],
   departmentId: ids.dept,
   namingRule: '[Mã] [Loại] Nội dung – YYYY-MM-DD',
   folderId: ids.folder,
@@ -59,8 +60,14 @@ export const recordTypes: S['RecordType'][] = [
   { ...rtBase, id: ids.rtOps, name: 'Hồ sơ xe vào xưởng', kind: 'OPS', retentionStatus: 'approved' },
 ];
 
-export const approval: S['Approval'] = {
+export const people: S['People'] = {
+  [ids.me]: { id: ids.me, name: 'Nguyễn Văn A', email: 'nhanvien@vcprosperous.com' },
+  [ids.boss]: { id: ids.boss, name: 'Trần Thị B', email: 'truongphong@vcprosperous.com' },
+};
+
+export const approval: S['ApprovalDetail'] = {
   ...base,
+  people,
   id: ids.approval,
   allowedActions: ['decide'],
   objectType: 'document',
@@ -74,8 +81,9 @@ export const approval: S['Approval'] = {
   snapshot: { revisionId: 'r1', viewUrl: 'https://docs.google.com/document/d/x/edit' },
 };
 
-export const doc: S['Document'] = {
+export const doc: S['DocumentDetail'] = {
   ...base,
+  people,
   id: ids.doc,
   allowedActions: ['submit', 'request-feedback'],
   code: 'QT-MKT-01',
@@ -89,7 +97,7 @@ export const doc: S['Document'] = {
   versions: [],
 };
 
-export function makeJob(status: S['JobStatus'], extra: Partial<S['Job']> = {}): S['Job'] {
+export function makeJob(status: S['JobStatus'], extra: Partial<S['JobDetail']> = {}): S['JobDetail'] {
   return {
     ...base,
     id: ids.job,
@@ -101,11 +109,13 @@ export function makeJob(status: S['JobStatus'], extra: Partial<S['Job']> = {}): 
       { name: 'Đặt tên, chuyển vào thư mục tháng', status },
     ],
     requestedBy: ids.me,
+    people,
     ...extra,
   };
 }
 
 export const notifications: S['NotificationPage'] = {
+  people: {},
   page: 1,
   limit: 20,
   total: 1,
@@ -118,8 +128,25 @@ export function errorBody(code: S['ErrorCode'], message: string, rule?: string):
 }
 
 export const codes: S['CodePage'] = {
+  people: {},
   page: 1,
   limit: 200,
   total: 1,
   items: [{ ...base, id: '6712f0c2a1b2c3d4e5f607a1', allowedActions: [], code: 'SEO-PTDA', type: 'function', meaning: 'SEO – phát triển dự án', status: 'approved', departmentId: ids.dept }],
+};
+
+export const record: S['RecordDetail'] = {
+  ...base,
+  people,
+  id: ids.record,
+  allowedActions: ['hold', 'integrity'],
+  number: 'HS-2026-000123',
+  functionCode: 'SEO-PTDA',
+  kind: 'BC',
+  subject: 'Báo cáo tuần 42',
+  recordTypeId: ids.rtApproved,
+  workMonth: '2026-10',
+  status: 'finalized',
+  createdBy: ids.me,
+  finalized: { at: '2026-10-19T10:00:00+07:00', by: ids.me, verifyCode: 'ABC123', pdfSha256: 'a'.repeat(64) },
 };

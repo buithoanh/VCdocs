@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import { API, server } from '@/test/server';
 import { errorBody } from '@/test/fixtures';
-import { ApiError, api, errorText, idem, setCsrfToken, setUnauthorizedHandler, unwrap } from './client';
+import { ApiError, api, errorText, getPerson, idem, setCsrfToken, setUnauthorizedHandler, unwrap } from './client';
 
 describe('lớp gọi API', () => {
   it('gửi X-Request-Id cho mọi yêu cầu, không gửi CSRF cho GET', async () => {
@@ -42,6 +42,28 @@ describe('lớp gọi API', () => {
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(422);
     expect(errorText(err)).toBe('Quy định chỉ được đăng ký ở cấp VCPV (Quy tắc BR-02)');
+  });
+
+  it('429 báo chờ theo Retry-After', async () => {
+    server.use(http.get(`${API}/search`, () => HttpResponse.json(errorBody('RATE_LIMITED', 'Quá nhiều yêu cầu'), { status: 429, headers: { 'Retry-After': '12' } })));
+    const err = await unwrap(api.GET('/search', { params: { query: { q: 'x' } } })).catch((e) => e);
+    expect(err.retryAfter).toBe(12);
+    expect(errorText(err)).toBe('Bạn thao tác quá nhanh, vui lòng thử lại sau 12 giây.');
+  });
+
+  it('413 báo file quá lớn theo giới hạn', () => {
+    expect(errorText(new ApiError(413, { code: 'PAYLOAD_TOO_LARGE', message: 'x', requestId: 'r' }))).toBe('File hoặc nội dung quá lớn (tối đa 100 MB).');
+  });
+
+  it('gom people từ trang danh sách và từ từng dòng', async () => {
+    server.use(
+      http.get(`${API}/approvals`, () =>
+        HttpResponse.json({ page: 1, limit: 50, total: 0, items: [{ people: { b: { id: 'b', name: 'B', email: 'b@x' } } }], people: { a: { id: 'a', name: 'A', email: 'a@x' } } }),
+      ),
+    );
+    await unwrap(api.GET('/approvals'));
+    expect(getPerson('a')?.name).toBe('A');
+    expect(getPerson('b')?.name).toBe('B');
   });
 
   it('lỗi không có thân dùng câu mặc định tiếng Việt', () => {

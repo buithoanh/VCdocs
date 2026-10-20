@@ -13,6 +13,8 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Badge, Button, Card, DefList, ErrorBox, Loading, Modal, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
 import { currentMonth } from '@/lib/format';
 import { folderKindLabel, securityLabel } from '@/lib/labels';
+import { allowedFolderKinds, previewFolderName } from '@/lib/folders';
+import { hasAction } from '@/lib/permissions';
 
 const folderStatusLabel = { active: 'Đang dùng', closed: 'Đã kết thúc', archived: 'Lưu trữ' } as const;
 
@@ -34,7 +36,8 @@ export function FolderBrowser() {
   const roots = useQuery({
     queryKey: ['folders', 'roots', driveId],
     enabled: !!driveId,
-    queryFn: () => unwrap(api.GET('/folders', { params: { query: { driveId, depth: 1 } } })).then((r) => r.items.filter((f) => !f.parentId || !r.items.some((p) => p.id === f.parentId))),
+    // Không có parentId = thư mục cấp 1 của drive (D8).
+    queryFn: () => unwrap(api.GET('/folders', { params: { query: { driveId, depth: 1 } } })).then((r) => r.items),
   });
 
   return (
@@ -156,15 +159,15 @@ function FolderDetail({ id }: { id: string }) {
               <a className="btn btn-secondary" href={`https://drive.google.com/drive/folders/${encodeURIComponent(f.googleId)}`} target="_blank" rel="noreferrer">
                 Mở trên Drive
               </a>
-              {can('renameFolder') && f.status === 'active' && (
+              {hasAction(f, 'rename') && (
                 <Button onClick={() => setRenaming(true)}>Đổi tên</Button>
               )}
-              {can('closeProject') && f.kind === 'project' && f.status === 'active' && (
+              {hasAction(f, 'close-project') && (
                 <Button variant="danger" onClick={() => setClosing(true)}>
                   Kết thúc dự án
                 </Button>
               )}
-              {can('resyncFolder') && (
+              {hasAction(f, 'resync') && (
                 <Button onClick={() => resync.mutate()} loading={resync.isPending}>
                   Đọc lại từ Drive
                 </Button>
@@ -219,13 +222,7 @@ function RenameDialog({ folder, onClose }: { folder: Folder; onClose: () => void
   );
 }
 
-const CREATE_KINDS: FolderKind[] = ['area', 'project', 'operations'];
-
-/** Tên dự kiến theo mẫu "số MÃ-TÊN NGẮN tên đầy đủ"; tên chính thức do máy chủ ghép (BR-11). */
-export function previewFolderName(number: string, code: string, shortName: string, fullName: string) {
-  const head = [code.trim(), shortName.trim()].filter(Boolean).join('-');
-  return [number, head, fullName.trim()].filter(Boolean).join(' ');
-}
+const ROOT = '__goc__';
 
 function CreateFolderDialog({ driveId, parentId: initialParent, onClose }: { driveId: string; parentId: string | null; onClose: () => void }) {
   const jobs = useJobs();
@@ -235,17 +232,24 @@ function CreateFolderDialog({ driveId, parentId: initialParent, onClose }: { dri
   const parents = useQuery({
     queryKey: ['folders', 'parents', driveId],
     enabled: !!driveId,
-    queryFn: () => unwrap(api.GET('/folders', { params: { query: { driveId, depth: 2 } } })).then((r) => r.items.filter((f) => f.status === 'active')),
+    queryFn: () => unwrap(api.GET('/folders', { params: { query: { driveId, depth: 2 } } })).then((r) => r.items.filter((f) => hasAction(f, 'create-child'))),
   });
-  const [parentId, setParent] = useState(initialParent ?? '');
+  const { can } = useAuth();
+  const [parentId, setParent] = useState(initialParent ?? (can('createFolder') ? ROOT : ''));
+  const atRoot = parentId === ROOT;
   const [kind, setKind] = useState<FolderKind | ''>('area');
+  // Đổi sang gốc drive mà đang chọn năm/tháng/đối tượng thì bỏ chọn (D20).
+  useEffect(() => {
+    if (kind && !allowedFolderKinds(atRoot).includes(kind)) setKind('');
+  }, [atRoot, kind]);
   const [code, setCode] = useState('');
   const [shortName, setShort] = useState('');
   const [fullName, setFull] = useState('');
   const next = useQuery({
-    queryKey: ['folders', 'next-number', parentId, kind],
+    queryKey: ['folders', 'next-number', driveId, parentId, kind],
     enabled: !!parentId && !!kind,
-    queryFn: () => unwrap(api.GET('/folders/next-number', { params: { query: { parentId, kind: kind as FolderKind } } })).then((r) => r.number),
+    queryFn: () =>
+      unwrap(api.GET('/folders/next-number', { params: { query: atRoot ? { driveId, kind: kind as FolderKind } : { parentId, kind: kind as FolderKind } } })).then((r) => r.number),
   });
   const needsCode = kind === 'area' || kind === 'project';
   const valid = !!driveId && !!parentId && !!kind && !!shortName.trim() && (!needsCode || !!code);
@@ -254,7 +258,7 @@ function CreateFolderDialog({ driveId, parentId: initialParent, onClose }: { dri
     (_: void, key: string) =>
       unwrap(
         api.POST('/folders', {
-          body: { driveId, parentId, kind: kind as FolderKind, code: code || undefined, shortName: shortName.trim(), fullName: fullName.trim() || undefined },
+          body: { driveId, parentId: atRoot ? undefined : parentId, kind: kind as FolderKind, code: code || undefined, shortName: shortName.trim(), fullName: fullName.trim() || undefined },
           ...idem(key),
         }),
       ),
@@ -285,9 +289,9 @@ function CreateFolderDialog({ driveId, parentId: initialParent, onClose }: { dri
         onChange={setParent}
         required
         placeholder={parents.isLoading ? 'Đang tải…' : '— Chọn thư mục cha —'}
-        options={(parents.data ?? []).map((f) => ({ value: f.id, label: f.path }))}
+        options={[...(can('createFolder') ? [{ value: ROOT, label: `Gốc drive ${drive?.name ?? ''}` }] : []), ...(parents.data ?? []).map((f) => ({ value: f.id, label: f.path }))]}
       />
-      <SelectField label="Loại" value={kind} onChange={setKind} required options={CREATE_KINDS.map((k) => ({ value: k, label: folderKindLabel[k] }))} />
+      <SelectField label="Loại" value={kind} onChange={setKind} required options={allowedFolderKinds(atRoot).map((k) => ({ value: k, label: folderKindLabel[k] }))} hint={atRoot ? 'Thư mục năm, tháng, đối tượng chỉ tạo được bên trong một thư mục.' : undefined} />
       <p className="hint">Số kế tiếp còn trống: {next.isLoading ? '…' : <strong>{next.data ?? '—'}</strong>}</p>
       {next.error && <ErrorBox error={next.error} />}
       <SelectField

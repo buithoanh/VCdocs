@@ -62,7 +62,10 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Đặt cookie phiên, chuyển về trang đầu (hoặc returnTo) */
+                /**
+                 * @description Thành công: đặt cookie phiên, về trang đầu (hoặc returnTo).
+                 *     Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state.
+                 */
                 302: {
                     headers: {
                         "Set-Cookie"?: string;
@@ -70,15 +73,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
-                };
-                /** @description Tài khoản không thuộc tên miền vcprosperous.com */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
                 };
             };
         };
@@ -212,6 +206,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tra người để chọn – mọi người đã đăng nhập; chỉ người đang làm việc; tối đa 20 (D3) */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                    departmentId?: components["schemas"]["Id"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["UserRef"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{id}": {
         parameters: {
             query?: never;
@@ -252,7 +288,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Đổi vai trò hệ thống (R9); ghi ngày nghỉ việc (R3) → tự tạo handover */
+        /** Đổi vai trò hệ thống (R9, không tự sửa vai trò mình); ghi ngày nghỉ việc (R3) → status = leaving và thông báo handover_needed cho R3 (giai đoạn 1, D4) */
         patch: {
             parameters: {
                 query?: never;
@@ -278,6 +314,7 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
+                422: components["responses"]["RuleViolation"];
             };
         };
         trace?: never;
@@ -428,6 +465,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Block"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -518,6 +556,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
             };
         };
         trace?: never;
@@ -547,6 +586,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Department"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -637,6 +677,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
             };
         };
         trace?: never;
@@ -666,6 +707,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Division"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -756,6 +798,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
             };
         };
         trace?: never;
@@ -832,7 +875,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Code"];
+                        "application/json": components["schemas"]["CodeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -881,7 +924,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Code"];
+                        "application/json": components["schemas"]["CodeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -934,7 +977,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Cây thư mục từ sổ VCdocs (theo quyền drive) */
+        /** Cây thư mục từ sổ VCdocs (theo quyền drive). Không có parentId = thư mục cấp 1 của drive; depth tính từ đó (D8) */
         get: {
             parameters: {
                 query?: {
@@ -980,7 +1023,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         driveId: string;
-                        parentId: components["schemas"]["Id"];
+                        /** @description Thiếu = gốc drive (D8). Gốc drive chỉ cho docs, plan_report, operations, area, project, closed, archive; year, month, entity bắt buộc có parentId, thiếu → 422 BR-11 (D20) */
+                        parentId?: components["schemas"]["Id"];
                         kind: components["schemas"]["FolderKind"];
                         code?: string;
                         shortName: string;
@@ -1012,7 +1056,9 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    parentId: components["schemas"]["Id"];
+                    /** @description Bắt buộc khi không có parentId (gốc drive, D8) */
+                    driveId?: string;
+                    parentId?: components["schemas"]["Id"];
                     kind: components["schemas"]["FolderKind"];
                 };
                 header?: never;
@@ -1699,7 +1745,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trình duyệt (R4) → submitted; tạo Approval, khoá tạm, chụp phiên bản; còn nhận xét mở → 422 trừ khi override */
+        /** Trình duyệt (người soạn được giao hoặc R4 phòng soạn, D2) → submitted; tạo Approval, khoá tạm, chụp phiên bản; còn nhận xét mở → 422 trừ khi override */
         post: {
             parameters: {
                 query?: never;
@@ -1870,7 +1916,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Approval"];
+                        "application/json": components["schemas"]["ApprovalDetail"];
                     };
                 };
                 403: components["responses"]["Forbidden"];
@@ -2215,6 +2261,7 @@ export interface paths {
             requestBody?: never;
             responses: {
                 200: components["responses"]["ApprovalOk"];
+                403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
             };
         };
@@ -2309,6 +2356,7 @@ export interface paths {
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
                 409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
             };
         };
         delete?: never;
@@ -2419,6 +2467,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Delegation"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -2450,7 +2499,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Delegation"];
+                        "application/json": components["schemas"]["DelegationDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2503,7 +2552,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Delegation"];
+                        "application/json": components["schemas"]["DelegationDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2572,7 +2621,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2644,7 +2693,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -2679,7 +2728,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2722,7 +2771,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Approval"];
+                        "application/json": components["schemas"]["ApprovalDetail"];
                     };
                 };
                 403: components["responses"]["Forbidden"];
@@ -2780,7 +2829,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Lập hồ sơ từ biểu mẫu (R5, R6, R8) – tạo file, đặt tên, đặt chỗ (BR-09, BR-10, BR-28) */
+        /** Lập hồ sơ từ biểu mẫu (R4, R5, R6, R8) – tạo file, đặt tên, đặt chỗ (BR-09, BR-10, BR-28) */
         post: {
             parameters: {
                 query?: never;
@@ -2819,7 +2868,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tải file lên cùng trường lập hồ sơ (R5, R6, R8) – chuyển định dạng Google trừ PDF, XML, scan (BR-14) */
+        /** Tải file lên cùng trường lập hồ sơ (R4, R5, R6, R8) – chuyển định dạng Google trừ PDF, XML, scan (BR-14) */
         post: {
             parameters: {
                 query?: never;
@@ -2834,7 +2883,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "multipart/form-data": components["schemas"]["RecordInput"] & {
-                        /** Format: binary */
+                        /**
+                         * Format: binary
+                         * @description ≤ 100 MB
+                         */
                         file: string;
                     };
                 };
@@ -2843,6 +2895,7 @@ export interface paths {
                 202: components["responses"]["JobAccepted"];
                 400: components["responses"]["BadRequest"];
                 403: components["responses"]["Forbidden"];
+                413: components["responses"]["PayloadTooLarge"];
                 422: components["responses"]["RuleViolation"];
             };
         };
@@ -2963,6 +3016,7 @@ export interface paths {
             requestBody?: never;
             responses: {
                 200: components["responses"]["RecordOk"];
+                403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
             };
         };
@@ -3154,7 +3208,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "multipart/form-data": {
-                        /** Format: binary */
+                        /**
+                         * Format: binary
+                         * @description ≤ 100 MB
+                         */
                         file: string;
                         paperLocation: string;
                     };
@@ -3164,6 +3221,7 @@ export interface paths {
                 202: components["responses"]["JobAccepted"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
+                413: components["responses"]["PayloadTooLarge"];
             };
         };
         delete?: never;
@@ -3198,6 +3256,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        reasonType: components["schemas"]["HoldReasonType"];
+                        /** @description Diễn giải */
                         reason: string;
                     };
                 };
@@ -3380,6 +3440,7 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                429: components["responses"]["TooMany"];
             };
         };
         put?: never;
@@ -3421,6 +3482,7 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                429: components["responses"]["TooMany"];
             };
         };
         put?: never;
@@ -3911,7 +3973,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Job"];
+                        "application/json": components["schemas"]["JobDetail"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -3984,8 +4046,13 @@ export interface components {
         CodeType: "department" | "function" | "channel" | "project" | "division";
         /** @enum {string} */
         CodeStatus: "pending" | "approved" | "rejected" | "retired";
+        /**
+         * @description Tranh chấp · Thanh tra, kiểm toán · Bảo hành · Công nợ · Hợp đồng chưa thanh lý · Ban Điều hành yêu cầu (BR-22, D5)
+         * @enum {string}
+         */
+        HoldReasonType: "dispute" | "inspection" | "warranty" | "receivable" | "contract_open" | "board_request";
         /** @enum {string} */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DUPLICATE" | "STATE_INVALID" | "RULE_VIOLATION" | "LOCKED" | "RATE_LIMITED" | "DRIVE_ERROR" | "MAINTENANCE" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DUPLICATE" | "STATE_INVALID" | "RULE_VIOLATION" | "LOCKED" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "DRIVE_ERROR" | "MAINTENANCE" | "INTERNAL";
         Base: {
             id: components["schemas"]["Id"];
             companyId: components["schemas"]["Id"];
@@ -3994,14 +4061,61 @@ export interface components {
             updatedAt: components["schemas"]["DateTime"];
             updatedBy?: components["schemas"]["Id"];
         };
-        Actions: {
-            /** @description Tên hành động người gọi được làm lúc này (vd submit, issue, revise). FE chỉ hiện nút có ở đây. */
-            allowedActions: string[];
+        DocumentActions: {
+            allowedActions: ("assign-code" | "create-draft" | "request-feedback" | "feedback" | "submit" | "issue" | "revise" | "review" | "withdraw" | "relock" | "integrity" | "update-external")[];
+        };
+        ApprovalActions: {
+            allowedActions: ("check" | "decide" | "cancel" | "remind")[];
+        };
+        CodeActions: {
+            allowedActions: "decide"[];
+        };
+        RecordTypeActions: {
+            allowedActions: ("update" | "submit-retention")[];
+        };
+        RecordActions: {
+            allowedActions: ("update" | "submit" | "finalize" | "adjust" | "scan" | "hold" | "release-hold" | "share" | "integrity")[];
+        };
+        ExternalShareActions: {
+            allowedActions: ("extend" | "revoke")[];
+        };
+        UserActions: {
+            allowedActions: ("update-roles" | "update-leave")[];
+        };
+        FolderActions: {
+            allowedActions: ("create-child" | "rename" | "close-project" | "resync")[];
+        };
+        CatalogActions: {
+            allowedActions: "update"[];
         };
         PageMeta: {
             page: number;
             limit: number;
             total: number;
+            people: components["schemas"]["People"];
+        };
+        /** @description id người → UserRef, cho mọi id người xuất hiện trong phản hồi (D10) */
+        People: {
+            [key: string]: components["schemas"]["UserRef"];
+        };
+        /** @description Document kèm people (chi tiết một đối tượng, D17) */
+        DocumentDetail: components["schemas"]["Document"] & components["schemas"]["WithPeople"];
+        /** @description Record kèm people (chi tiết một đối tượng, D17) */
+        RecordDetail: components["schemas"]["Record"] & components["schemas"]["WithPeople"];
+        /** @description Approval kèm people (chi tiết một đối tượng, D17) */
+        ApprovalDetail: components["schemas"]["Approval"] & components["schemas"]["WithPeople"];
+        /** @description Code kèm people (chi tiết một đối tượng, D17) */
+        CodeDetail: components["schemas"]["Code"] & components["schemas"]["WithPeople"];
+        /** @description RecordType kèm people (chi tiết một đối tượng, D17) */
+        RecordTypeDetail: components["schemas"]["RecordType"] & components["schemas"]["WithPeople"];
+        /** @description ExternalShare kèm people (chi tiết một đối tượng, D17) */
+        ExternalShareDetail: components["schemas"]["ExternalShare"] & components["schemas"]["WithPeople"];
+        /** @description Delegation kèm people (chi tiết một đối tượng, D17) */
+        DelegationDetail: components["schemas"]["Delegation"] & components["schemas"]["WithPeople"];
+        /** @description Job kèm people (chi tiết một đối tượng, D17) */
+        JobDetail: components["schemas"]["Job"] & components["schemas"]["WithPeople"];
+        WithPeople: {
+            people: components["schemas"]["People"];
         };
         /**
          * @example {
@@ -4047,6 +4161,8 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
+            title?: string;
+            departmentId?: components["schemas"]["Id"];
         };
         Me: {
             user: components["schemas"]["User"];
@@ -4060,10 +4176,25 @@ export interface components {
                 role: components["schemas"]["DriveRole"];
                 securityLevel: components["schemas"]["SecurityLevel"];
             }[];
+            /** @description Khối tôi làm giám đốc (D12) */
+            blockId?: components["schemas"]["Id"];
+            /** @description Con số cấu hình để FE báo trước; BE vẫn là nơi quyết định (D12) */
+            limits: {
+                /** @example 30 */
+                shareMaxDays: number;
+                /** @example 3 */
+                backdateWorkingDays: number;
+                /** @example 3 */
+                approvalDueDays: number;
+                /** @example 3 */
+                minorUnlockDays: number;
+                /** @example 100 */
+                uploadMaxMb: number;
+            };
             csrfToken: string;
             sessionExpiresAt?: components["schemas"]["DateTime"];
         };
-        User: components["schemas"]["Base"] & {
+        User: components["schemas"]["Base"] & components["schemas"]["UserActions"] & {
             /** Format: email */
             email: string;
             name: string;
@@ -4098,7 +4229,7 @@ export interface components {
             /** @enum {string} */
             anomaly?: "direct_member" | "foreign_member";
         };
-        Block: components["schemas"]["Base"] & components["schemas"]["BlockInput"];
+        Block: components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["BlockInput"];
         BlockInput: {
             /** @example KD */
             code: string;
@@ -4106,7 +4237,7 @@ export interface components {
             name: string;
             directorId?: components["schemas"]["Id"];
         };
-        Department: components["schemas"]["Base"] & components["schemas"]["DepartmentInput"];
+        Department: components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["DepartmentInput"];
         DepartmentInput: {
             /** @example MKT */
             code: string;
@@ -4121,13 +4252,13 @@ export interface components {
             /** @description Nhóm Google gắn với drive */
             groupEmails?: string[];
         };
-        Division: components["schemas"]["Base"] & components["schemas"]["DivisionInput"];
+        Division: components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["DivisionInput"];
         DivisionInput: {
             /** @example VCS */
             prefix: string;
             name: string;
         };
-        Code: components["schemas"]["Base"] & components["schemas"]["Actions"] & {
+        Code: components["schemas"]["Base"] & components["schemas"]["CodeActions"] & {
             code: string;
             type: components["schemas"]["CodeType"];
             meaning: string;
@@ -4145,7 +4276,7 @@ export interface components {
             result: "approve" | "reject";
             comment?: string;
         };
-        Folder: components["schemas"]["Base"] & {
+        Folder: components["schemas"]["Base"] & components["schemas"]["FolderActions"] & {
             driveId: string;
             googleId: string;
             parentId?: components["schemas"]["Id"];
@@ -4184,7 +4315,7 @@ export interface components {
             revisionId?: string;
             pdfSha256?: string;
         };
-        DocumentSummary: components["schemas"]["Base"] & components["schemas"]["Actions"] & {
+        DocumentSummary: components["schemas"]["Base"] & components["schemas"]["DocumentActions"] & {
             /** @example QT-MKT-01 */
             code?: string;
             type: components["schemas"]["DocumentType"];
@@ -4241,7 +4372,7 @@ export interface components {
             device?: string;
             ip?: string;
         };
-        Approval: components["schemas"]["Base"] & components["schemas"]["Actions"] & {
+        Approval: components["schemas"]["Base"] & components["schemas"]["ApprovalActions"] & {
             objectType: components["schemas"]["ApprovalObjectType"];
             objectId: components["schemas"]["Id"];
             /** @description Tên hiển thị của đối tượng trình */
@@ -4265,15 +4396,24 @@ export interface components {
             dueAt?: components["schemas"]["DateTime"];
             reminders?: components["schemas"]["DateTime"][];
             invalidatedReason?: string;
+            /** @description Việc nền chạy sau quyết định, vd document.withdraw (D15) */
+            jobId?: components["schemas"]["Id"];
         };
         ApprovalPage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["Approval"][];
         };
-        Delegation: components["schemas"]["Base"] & components["schemas"]["DelegationInput"];
+        Delegation: components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["DelegationInput"];
         DelegationInput: {
             blockId: components["schemas"]["Id"];
-            /** @description Việc được uỷ quyền duyệt */
-            task: string;
+            /** @description Loại hồ sơ được uỷ quyền duyệt (D6) */
+            recordTypeId: components["schemas"]["Id"];
+            /** @description Mô tả việc */
+            task?: string;
+            /**
+             * @description Việc luật yêu cầu chữ ký người đại diện → không được uỷ quyền (422 BR-24)
+             * @default false
+             */
+            isLegalSignature: boolean;
             /** @description Hạn mức (VND) */
             limitAmount?: number;
             delegateId: components["schemas"]["Id"];
@@ -4312,7 +4452,7 @@ export interface components {
             templateId?: string;
             requiresApproval?: boolean;
         };
-        RecordType: components["schemas"]["Base"] & components["schemas"]["Actions"] & components["schemas"]["RecordTypeInput"] & {
+        RecordType: components["schemas"]["Base"] & components["schemas"]["RecordTypeActions"] & components["schemas"]["RecordTypeInput"] & {
             /**
              * @description approved mới lập được hồ sơ (BR-20)
              * @enum {string}
@@ -4333,7 +4473,7 @@ export interface components {
             /** @description Bắt buộc khi createdDate sớm quá hạn (BR-28) */
             backdateReason?: string;
         };
-        RecordSummary: components["schemas"]["Base"] & components["schemas"]["Actions"] & {
+        RecordSummary: components["schemas"]["Base"] & components["schemas"]["RecordActions"] & {
             /** @example HS-2026-000123 */
             number: string;
             functionCode: string;
@@ -4368,6 +4508,7 @@ export interface components {
             paperLocation?: string;
             hold?: {
                 isActive?: boolean;
+                reasonType?: components["schemas"]["HoldReasonType"];
                 reason?: string;
                 by?: components["schemas"]["Id"];
                 at?: components["schemas"]["DateTime"];
@@ -4409,7 +4550,7 @@ export interface components {
         SearchPage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["SearchHit"][];
         };
-        ExternalShare: components["schemas"]["Base"] & components["schemas"]["Actions"] & {
+        ExternalShare: components["schemas"]["Base"] & components["schemas"]["ExternalShareActions"] & {
             fileId: string;
             fileName?: string;
             recordId?: components["schemas"]["Id"];
@@ -4418,8 +4559,8 @@ export interface components {
             /** Format: email */
             email: string;
             role: components["schemas"]["ShareRole"];
-            reason: string;
-            expiresAt: components["schemas"]["DateTime"];
+            reason?: string;
+            expiresAt?: components["schemas"]["DateTime"];
             sharedBy?: components["schemas"]["Id"];
             approvalId?: components["schemas"]["Id"];
             permissionId?: string;
@@ -4428,6 +4569,7 @@ export interface components {
             revokedBy?: components["schemas"]["Id"];
             /** @enum {string} */
             source: "vcdocs" | "detected";
+            detectedAt?: components["schemas"]["DateTime"];
         };
         ExternalSharePage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["ExternalShare"][];
@@ -4455,8 +4597,8 @@ export interface components {
             digest: "instant" | "daily";
         };
         Job: components["schemas"]["Base"] & {
-            /** @example record.create */
-            type: string;
+            /** @enum {string} */
+            type: "document.withdraw" | "google.sync" | "codes.export" | "folder.create" | "folder.close_project" | "folder.ensure_periods" | "document.create_draft" | "document.issue" | "documents.catalog_export" | "external_document.import" | "record_types.catalog_export" | "record.create" | "record.upload" | "record.claim" | "record.finalize" | "record.scan" | "share.revoke_all";
             status: components["schemas"]["JobStatus"];
             progress: number;
             steps: {
@@ -4464,8 +4606,17 @@ export interface components {
                 status: components["schemas"]["JobStatus"];
                 error?: string;
             }[];
-            /** @description Kết quả cuối, vd { objectType, objectId } hoặc { fileId } */
+            /** @description Không có với google.sync, folder.ensure_periods, share.revoke_all (D16). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file */
             result?: {
+                /** @enum {string} */
+                objectType: "document" | "record" | "folder" | "approval" | "external_share" | "code" | "record_type";
+                objectId: components["schemas"]["Id"];
+            } | {
+                fileId: string;
+                url?: string;
+            };
+            /** @description Số liệu tóm tắt, vd { created: 12 } (D16) */
+            summary?: {
                 [key: string]: unknown;
             };
             error?: components["schemas"]["Error"];
@@ -4505,7 +4656,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Document"];
+                "application/json": components["schemas"]["DocumentDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4514,7 +4665,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Document"];
+                "application/json": components["schemas"]["DocumentDetail"];
             };
         };
         /** @description OK */
@@ -4523,7 +4674,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Record"];
+                "application/json": components["schemas"]["RecordDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4532,7 +4683,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Record"];
+                "application/json": components["schemas"]["RecordDetail"];
             };
         };
         /** @description OK */
@@ -4541,7 +4692,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Approval"];
+                "application/json": components["schemas"]["ApprovalDetail"];
             };
         };
         /** @description OK */
@@ -4550,7 +4701,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ExternalShare"];
+                "application/json": components["schemas"]["ExternalShareDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4559,7 +4710,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ExternalShare"];
+                "application/json": components["schemas"]["ExternalShareDetail"];
             };
         };
         /** @description Dữ liệu sai (VALIDATION) */
@@ -4625,8 +4776,19 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Quá nhiều yêu cầu */
+        /** @description Quá nhiều yêu cầu (600/phút/người; tìm kiếm 60/phút) */
         TooMany: {
+            headers: {
+                /** @description Số giây chờ trước khi gọi lại */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Thân JSON > 1 MB hoặc file > 100 MB */
+        PayloadTooLarge: {
             headers: {
                 [name: string]: unknown;
             };

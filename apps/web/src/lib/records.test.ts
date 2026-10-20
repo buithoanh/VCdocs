@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { recordTypes } from '@/test/fixtures';
-import { emptyRecordForm, previewRecordName, toFormData, toRecordInput, validateRecordForm } from './records';
+import { emptyRecordForm, previewRecordName, toFormData, toRecordInput, validateRecordForm, workingDaysBefore } from './records';
 
 const [approved, draft, ops] = recordTypes;
 const today = '2026-10-19';
@@ -20,14 +20,21 @@ describe('lập hồ sơ', () => {
     expect(validateRecordForm({ ...ok, recordTypeId: ops.id, identifier: '51G-123.45' }, ops, today)).toEqual({});
   });
 
-  it('lập lùi ngày phải ghi lý do; không cho ngày tương lai', () => {
+  it('lùi quá 3 ngày làm việc mới phải ghi lý do; không cho ngày tương lai', () => {
+    // 2026-10-19 là thứ Hai: lùi 3 ngày làm việc = thứ Tư 2026-10-14.
+    expect(workingDaysBefore(today, 3)).toBe('2026-10-14');
+    expect(validateRecordForm({ ...ok, createdDate: '2026-10-14' }, approved, today)).toEqual({});
+    expect(validateRecordForm({ ...ok, createdDate: '2026-10-13' }, approved, today).backdateReason).toBeTruthy();
     expect(validateRecordForm({ ...ok, createdDate: '2026-10-01' }, approved, today).backdateReason).toBeTruthy();
     expect(validateRecordForm({ ...ok, createdDate: '2026-10-01', backdateReason: 'Nhập bù' }, approved, today)).toEqual({});
     expect(validateRecordForm({ ...ok, createdDate: '2026-10-20' }, approved, today).createdDate).toBeTruthy();
   });
 
-  it('tải file lên thì phải chọn file', () => {
+  it('tải file lên thì phải chọn file, không quá giới hạn', () => {
     expect(validateRecordForm({ ...ok, source: 'upload' }, approved, today).file).toBeTruthy();
+    const big = new File(['x'], 'to.pdf');
+    Object.defineProperty(big, 'size', { value: 101 * 1024 * 1024 });
+    expect(validateRecordForm({ ...ok, source: 'upload', file: big }, approved, today).file).toMatch(/100 MB/);
   });
 
   it('chỉ gửi lý do lùi ngày khi lùi ngày', () => {
