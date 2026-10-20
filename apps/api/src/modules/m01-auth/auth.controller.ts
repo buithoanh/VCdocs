@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, HttpCode, Inject, Logger, Post, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Db } from '../../db/db.service';
@@ -20,6 +20,8 @@ function safeReturnTo(v?: string): string {
 /** M01: đăng nhập Google OAuth, chỉ tài khoản @vcprosperous.com (BR-15) */
 @Controller('auth')
 export class AuthController {
+  private readonly log = new Logger('AuthController');
+
   constructor(
     private readonly db: Db,
     private readonly sessions: SessionService,
@@ -45,7 +47,8 @@ export class AuthController {
   }
 
   /** Lỗi đăng nhập: không trả JSON mà về trang đăng nhập của giao diện (D13) */
-  private fail(res: Response, loi: 'domain' | 'locked' | 'expired' | 'state') {
+  // 'setup' chưa có trong hợp đồng – xem DE_NGHI_SUA_HOP_DONG.md N5
+  private fail(res: Response, loi: 'domain' | 'locked' | 'expired' | 'state' | 'setup') {
     res.redirect(302, `${this.cfg.webOrigin}/dang-nhap?loi=${loi}`);
   }
 
@@ -72,7 +75,14 @@ export class AuthController {
     if (claims.nonce !== st.nonce) return this.fail(res, 'state');
     if (claims.hd !== domain || !email.endsWith(`@${domain}`) || claims.email_verified === false) return this.fail(res, 'domain');
     const company = await this.db.m.Company.findOne({ domain }).lean<any>();
-    if (!company) return this.fail(res, 'domain');
+    if (!company) {
+      // Tài khoản hợp lệ nhưng CSDL chưa khởi tạo công ty: lỗi cấu hình máy chủ, không phải lỗi người dùng
+      this.log.error(
+        `Đăng nhập ${email} bị chặn: CSDL chưa có công ty tên miền ${domain}. ` +
+          `Chạy: pnpm --filter api run khoi-tao -- --ten "<Tên công ty>" --mien ${domain}`,
+      );
+      return this.fail(res, 'setup');
+    }
     const companyId = String(company._id);
     const dirUser = await this.google.directory.getUser(email);
     if (dirUser?.suspended) return this.fail(res, 'locked');
