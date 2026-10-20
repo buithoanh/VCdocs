@@ -1,0 +1,352 @@
+<title>Kiến trúc VCdocs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Bố cục: một cột đọc, sơ đồ chính rộng trong khung cuộn ngang riêng */
+:root {
+  --bg: #f5f7f8; --surface: #ffffff; --band: #e9eef1; --line: #b9c6cd;
+  --fg: #17242b; --muted: #55676f; --accent: #0f6e8c; --accent-soft: #d6ebf2;
+  --google: #8a5a12; --google-soft: #f6ead3; --contract: #6b3f8f; --contract-soft: #ece0f5;
+  --display: "Be Vietnam Pro", system-ui, sans-serif; --body: "Be Vietnam Pro", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f171b; --surface: #16222a; --band: #1c2b33; --line: #375059;
+  --fg: #e3ecef; --muted: #98abb3; --accent: #5cc0de; --accent-soft: #173a47;
+  --google: #e0b35f; --google-soft: #3a2e17; --contract: #c79ae8; --contract-soft: #33244a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f171b; --surface: #16222a; --band: #1c2b33; --line: #375059;
+  --fg: #e3ecef; --muted: #98abb3; --accent: #5cc0de; --accent-soft: #173a47;
+  --google: #e0b35f; --google-soft: #3a2e17; --contract: #c79ae8; --contract-soft: #33244a; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 40px; }
+header h1 { font-family: var(--display); font-size: 30px; font-weight: 700; margin: 0; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+.meta { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+h2 { font-size: 19px; font-weight: 600; margin: 0 0 12px; text-wrap: balance; }
+section > p { max-width: 70ch; margin: 0 0 12px; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.diagram svg { display: block; min-width: 900px; width: 100%; height: auto; }
+svg text { font-family: var(--body); }
+.band { fill: var(--band); stroke: var(--line); }
+.box { fill: var(--surface); stroke: var(--line); }
+.box-acc { fill: var(--accent-soft); stroke: var(--accent); }
+.box-g { fill: var(--google-soft); stroke: var(--google); }
+.box-c { fill: var(--contract-soft); stroke: var(--contract); }
+.t { fill: var(--fg); font-size: 13px; font-weight: 600; }
+.s { fill: var(--muted); font-size: 11px; }
+.h { fill: var(--fg); font-size: 14px; font-weight: 700; }
+.mono { font-family: var(--mono) !important; }
+.lbl { fill: var(--muted); font-size: 11px; font-style: italic; }
+.ar { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.ar-c { stroke: var(--contract); stroke-width: 1.3; fill: none; stroke-dasharray: 5 4; }
+.ar-g { stroke: var(--google); stroke-width: 1.4; fill: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid; display: inline-block; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.grid2 > * { min-width: 0; }
+ol, ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--band); padding: 1px 5px; border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.tbl { overflow-x: auto; }
+pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 0; }
+.note { color: var(--muted); font-size: 14px; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="meta">VCdocs · nhánh giai-doan-1 · hợp đồng 1.3.0-gd1 · 2026-10-20</div>
+  <h1>Kiến trúc VCdocs</h1>
+  <p>Monorepo pnpm gồm giao diện Next.js (<code>apps/web</code>), máy chủ NestJS (<code>apps/api</code>) và hợp đồng OpenAPI viết tay (<code>contract/</code>) làm gốc chung. Google Drive giữ file, MongoDB giữ sổ sách.</p>
+</header>
+
+<section>
+  <h2>Sơ đồ tổng thể</h2>
+  <div class="diagram">
+  <svg viewBox="0 0 1040 975" role="img" aria-label="Sơ đồ kiến trúc VCdocs: người dùng, apps/web, contract, apps/api, MongoDB, kho PDF, Google Workspace">
+    <defs>
+      <marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+      <marker id="mc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--contract)"/></marker>
+      <marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--google)"/></marker>
+    </defs>
+
+    <!-- Người dùng -->
+    <rect class="box" x="240" y="16" width="320" height="52" rx="8"/>
+    <text class="t" x="400" y="38" text-anchor="middle">Người dùng VCPV</text>
+    <text class="s" x="400" y="56" text-anchor="middle">trình duyệt · điện thoại · tài khoản @vcprosperous.com</text>
+    <path class="ar" d="M400 68 V108" marker-end="url(#m)"/>
+
+    <!-- apps/web -->
+    <rect class="band" x="20" y="110" width="760" height="200" rx="10"/>
+    <text class="h" x="40" y="134">apps/web</text>
+    <text class="s" x="112" y="134">Next.js App Router · TypeScript · cổng 3000</text>
+    <rect class="box" x="40" y="148" width="330" height="66" rx="6"/>
+    <text class="t mono" x="52" y="168">app/(app)/… · 25 màn hình</text>
+    <text class="s" x="52" y="186">tai-lieu · ho-so · phe-duyet · thu-muc · drive</text>
+    <text class="s" x="52" y="202">tra-cuu · chia-se · viec-nen · nhan-su · thong-bao</text>
+    <rect class="box" x="390" y="148" width="370" height="66" rx="6"/>
+    <text class="t mono" x="402" y="168">components/ · providers/</text>
+    <text class="s" x="402" y="186">AppShell · DataTable · ActionDialog · pickers · jobs</text>
+    <text class="s" x="402" y="202">AuthProvider (/me, CSRF) · ToastProvider</text>
+    <rect class="box" x="40" y="226" width="330" height="66" rx="6"/>
+    <text class="t mono" x="52" y="246">lib/</text>
+    <text class="s" x="52" y="264">permissions (nút theo allowedActions)</text>
+    <text class="s" x="52" y="280">labels · records · folders · drive · format</text>
+    <rect class="box-acc" x="390" y="226" width="370" height="66" rx="6"/>
+    <text class="t mono" x="402" y="246">api/client.ts · queries.ts</text>
+    <text class="s" x="402" y="264">openapi-fetch · X-Request-Id · X-CSRF-Token · Idempotency-Key</text>
+    <text class="s" x="402" y="280">401 → /dang-nhap · 429 Retry-After · 413</text>
+
+    <!-- contract -->
+    <rect class="box-c" x="800" y="110" width="220" height="200" rx="10"/>
+    <text class="h mono" x="814" y="134">contract/</text>
+    <text class="t mono" x="814" y="158">openapi.yaml</text>
+    <text class="s" x="814" y="175">1.3.0-gd1 · viết tay · là gốc</text>
+    <text class="s" x="814" y="200">→ schema.d.ts (openapi-typescript)</text>
+    <text class="s" x="814" y="218">→ ajv kiểm vào/ra ở BE</text>
+    <text class="s" x="814" y="236">→ test e2e kiểm 98/98 điểm cuối</text>
+    <text class="s" x="814" y="254">→ Prism mock :4010</text>
+    <text class="s mono" x="814" y="284">NGUON.md · DE_NGHI_SUA.md</text>
+    <path class="ar-c" d="M800 259 H762" marker-end="url(#mc)"/>
+    <path class="ar-c" d="M910 310 V386" marker-end="url(#mc)"/>
+
+    <!-- web → api -->
+    <path class="ar" d="M575 292 V386" marker-end="url(#m)"/>
+    <text class="lbl" x="585" y="332">rewrites /api/v1/* → :4000</text>
+    <text class="lbl" x="585" y="348">cookie HttpOnly vcdocs_sid</text>
+
+    <!-- apps/api -->
+    <rect class="band" x="20" y="350" width="1000" height="480" rx="10"/>
+    <text class="h" x="40" y="374">apps/api</text>
+    <text class="s" x="104" y="374">NestJS · MongoDB (mongoose) · cổng 4000 · tiền tố /api/v1</text>
+
+    <!-- pipeline -->
+    <g>
+      <rect class="box" x="40" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="104" y="407" text-anchor="middle">Middleware</text>
+      <text class="s" x="104" y="424" text-anchor="middle">request-id · JSON ≤1MB</text>
+      <rect class="box" x="178" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="242" y="407" text-anchor="middle">AuthGuard</text>
+      <text class="s" x="242" y="424" text-anchor="middle">phiên · CSRF · 429</text>
+      <rect class="box-c" x="316" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="380" y="407" text-anchor="middle">Contract</text>
+      <text class="s" x="380" y="424" text-anchor="middle">ajv theo openapi</text>
+      <rect class="box" x="454" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="518" y="407" text-anchor="middle">Idempotency</text>
+      <text class="s" x="518" y="424" text-anchor="middle">giữ kết quả 24 giờ</text>
+      <rect class="box" x="592" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="656" y="407" text-anchor="middle">Audit</text>
+      <text class="s" x="656" y="424" text-anchor="middle">X-Audit-Id</text>
+      <rect class="box" x="730" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="794" y="407" text-anchor="middle">People</text>
+      <text class="s" x="794" y="424" text-anchor="middle">gắn id → UserRef</text>
+      <rect class="box-acc" x="868" y="388" width="128" height="46" rx="6"/>
+      <text class="t" x="932" y="407" text-anchor="middle">Controller</text>
+      <text class="s" x="932" y="424" text-anchor="middle">lỗi → ErrorFilter</text>
+      <path class="ar" d="M168 411 H176" marker-end="url(#m)"/>
+      <path class="ar" d="M306 411 H314" marker-end="url(#m)"/>
+      <path class="ar" d="M444 411 H452" marker-end="url(#m)"/>
+      <path class="ar" d="M582 411 H590" marker-end="url(#m)"/>
+      <path class="ar" d="M720 411 H728" marker-end="url(#m)"/>
+      <path class="ar" d="M858 411 H866" marker-end="url(#m)"/>
+    </g>
+
+    <!-- modules -->
+    <text class="t" x="40" y="466">Phân hệ · <tspan class="mono">src/modules/</tspan></text>
+    <g>
+      <rect class="box" x="40" y="476" width="182" height="54" rx="6"/>
+      <text class="t" x="52" y="497">M01 Đăng nhập, nhân sự</text>
+      <text class="s" x="52" y="516">auth · users · drives · google-sync</text>
+      <rect class="box" x="232" y="476" width="182" height="54" rx="6"/>
+      <text class="t" x="244" y="497">M02 Danh mục</text>
+      <text class="s" x="244" y="516">khối · phòng · division · bảng mã</text>
+      <rect class="box" x="424" y="476" width="182" height="54" rx="6"/>
+      <text class="t" x="436" y="497">M03 Thư mục</text>
+      <text class="s" x="436" y="516">FoldersService · số kế tiếp</text>
+      <rect class="box-acc" x="616" y="476" width="182" height="54" rx="6"/>
+      <text class="t" x="628" y="497">M04 Tài liệu</text>
+      <text class="s" x="628" y="516">vòng đời · huỷ bỏ · góp ý</text>
+      <rect class="box-acc" x="808" y="476" width="182" height="54" rx="6"/>
+      <text class="t" x="820" y="497">M05 Phê duyệt</text>
+      <text class="s" x="820" y="516">ApprovalsService · uỷ quyền</text>
+
+      <rect class="box" x="40" y="540" width="182" height="54" rx="6"/>
+      <text class="t" x="52" y="561">M06 Danh mục hồ sơ</text>
+      <text class="s" x="52" y="580">record-types · thời hạn lưu</text>
+      <rect class="box-acc" x="232" y="540" width="182" height="54" rx="6"/>
+      <text class="t" x="244" y="561">M07 Hồ sơ</text>
+      <text class="s" x="244" y="580">lập · trình · chốt PDF + QR</text>
+      <rect class="box" x="424" y="540" width="182" height="54" rx="6"/>
+      <text class="t" x="436" y="561">M08 Tra cứu</text>
+      <text class="s" x="436" y="580">chữ không dấu · 60/phút</text>
+      <rect class="box" x="616" y="540" width="182" height="54" rx="6"/>
+      <text class="t" x="628" y="561">M09 Chia sẻ ngoài</text>
+      <text class="s" x="628" y="580">hạn chia sẻ · phát hiện chia sẻ</text>
+      <rect class="box" x="808" y="540" width="182" height="54" rx="6"/>
+      <text class="t" x="820" y="561">M14 Thông báo</text>
+      <text class="s" x="820" y="580">trong app · email Gmail</text>
+
+      <rect class="box" x="40" y="604" width="182" height="54" rx="6"/>
+      <text class="t" x="52" y="625">/jobs</text>
+      <text class="s" x="52" y="644">theo dõi việc nền (202 + jobId)</text>
+      <rect class="box" x="232" y="604" width="182" height="54" rx="6"/>
+      <text class="t" x="244" y="625">Scheduler</text>
+      <text class="s" x="244" y="644">phân hệ tự đăng ký việc</text>
+      <rect class="box" x="424" y="604" width="182" height="54" rx="6"/>
+      <text class="t" x="436" y="625">Shared</text>
+      <text class="s" x="436" y="644">DriveOpsService · ExportService</text>
+      <rect class="box" x="616" y="604" width="182" height="54" rx="6"/>
+      <text class="t" x="628" y="625">Seed</text>
+      <text class="s" x="628" y="644">dữ liệu mẫu · dựng lại Google giả</text>
+      <rect class="box-g" x="808" y="604" width="182" height="54" rx="6"/>
+      <text class="t" x="820" y="625">/dev/fake-google</text>
+      <text class="s" x="820" y="644">đăng nhập giả · chỉ khi fake</text>
+    </g>
+    <path class="ar" d="M320 658 V688" marker-end="url(#m)"/>
+    <text class="lbl" x="330" y="678">mọi phân hệ dùng</text>
+    <path class="ar-g" d="M810 658 V688" marker-end="url(#mg)"/>
+
+    <!-- Core -->
+    <rect class="box" x="40" y="690" width="560" height="120" rx="8"/>
+    <text class="t mono" x="52" y="710">CoreModule · @Global</text>
+    <g>
+      <rect class="box-acc" x="52" y="722" width="172" height="36" rx="5"/>
+      <text class="t" x="62" y="738">Db</text><text class="s" x="62" y="752">mongoose + tenant plugin</text>
+      <rect class="box-acc" x="232" y="722" width="172" height="36" rx="5"/>
+      <text class="t" x="242" y="738">SessionService</text><text class="s" x="242" y="752">phiên 8 giờ · CSRF</text>
+      <rect class="box-acc" x="412" y="722" width="176" height="36" rx="5"/>
+      <text class="t" x="422" y="738">AccessService</text><text class="s" x="422" y="752">vai trò · phòng · drive</text>
+      <rect class="box-acc" x="52" y="766" width="172" height="36" rx="5"/>
+      <text class="t" x="62" y="782">AuditService</text><text class="s" x="62" y="796">audit_logs nối mã băm</text>
+      <rect class="box-acc" x="232" y="766" width="172" height="36" rx="5"/>
+      <text class="t" x="242" y="782">JobsService</text><text class="s" x="242" y="796">hàng đợi Mongo · thử lại 3</text>
+      <rect class="box-acc" x="412" y="766" width="176" height="36" rx="5"/>
+      <text class="t" x="422" y="782">NotificationsService</text><text class="s" x="422" y="796">ghi thông báo · gửi mail</text>
+    </g>
+
+    <!-- Google -->
+    <rect class="box-g" x="620" y="690" width="380" height="120" rx="8"/>
+    <text class="t mono" x="632" y="710">GoogleModule · google/</text>
+    <rect class="box" x="632" y="722" width="356" height="36" rx="5"/>
+    <text class="t mono" x="642" y="738">ports.ts · GooglePorts</text>
+    <text class="s" x="642" y="752">Auth · Directory · Drive · Docs · Sheets · Gmail · Reports</text>
+    <rect class="box" x="632" y="766" width="172" height="36" rx="5"/>
+    <text class="t" x="642" y="782">FakeGoogle</text><text class="s" x="642" y="796">fake-google.json</text>
+    <rect class="box" x="816" y="766" width="172" height="36" rx="5"/>
+    <text class="t" x="826" y="782">RealGoogle</text><text class="s" x="826" y="796">googleapis · service account</text>
+
+    <!-- externals -->
+    <path class="ar" d="M138 802 V868" marker-end="url(#m)"/>
+    <path class="ar" d="M500 810 V868" marker-end="url(#m)"/>
+    <text class="lbl" x="510" y="846">vault.ts · pdf-stamp.ts</text>
+    <path class="ar-g" d="M902 802 V868" marker-end="url(#mg)"/>
+    <text class="lbl" x="912" y="846">GOOGLE_MODE=real</text>
+
+    <rect class="box" x="20" y="870" width="340" height="88" rx="8"/>
+    <text class="t" x="36" y="894">MongoDB</text>
+    <text class="s" x="36" y="914">21 collection: users, documents, approvals, records,</text>
+    <text class="s" x="36" y="930">folders, jobs, audit_logs, external_shares…</text>
+    <text class="s" x="36" y="946">mọi truy vấn bắt buộc có companyId</text>
+    <rect class="box" x="380" y="870" width="260" height="88" rx="8"/>
+    <text class="t" x="396" y="894">Kho riêng (VAULT_DIR)</text>
+    <text class="s" x="396" y="914">PDF hồ sơ đã chốt</text>
+    <text class="s" x="396" y="930">dấu ĐÃ CHỐT · QR · SHA-256</text>
+    <rect class="box-g" x="660" y="870" width="360" height="88" rx="8"/>
+    <text class="t" x="676" y="894">Google Workspace vcprosperous.com</text>
+    <text class="s" x="676" y="914">11 shared drive (file thật) · Admin Directory</text>
+    <text class="s" x="676" y="930">Docs · Sheets · Gmail · Reports</text>
+    <text class="s" x="676" y="946">vcdocs-backend · domain-wide delegation 8 quyền</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></i>lõi nghiệp vụ, dịch vụ dùng chung</span>
+    <span><i class="sw" style="background:var(--contract-soft);border-color:var(--contract)"></i>hợp đồng API (nét đứt: sinh kiểu hoặc kiểm dữ liệu)</span>
+    <span><i class="sw" style="background:var(--google-soft);border-color:var(--google)"></i>Google</span>
+  </div>
+</section>
+
+<section class="grid2">
+  <div>
+    <h2>Một yêu cầu ghi đi qua BE</h2>
+    <ol>
+      <li><code>requestContextMiddleware</code> gán X-Request-Id; thân JSON quá 1 MB trả 413.</li>
+      <li><code>AuthGuard</code> đọc cookie phiên, kiểm X-CSRF-Token, giới hạn 600 yêu cầu/phút.</li>
+      <li><code>ContractInterceptor</code> kiểm thân yêu cầu bằng schema trong <code>openapi.yaml</code>, loại trường lạ.</li>
+      <li><code>IdempotencyInterceptor</code> trả lại kết quả cũ nếu cùng Idempotency-Key trong 24 giờ.</li>
+      <li>Controller gọi Service; Service hỏi <code>AccessService</code> rồi ghi Mongo hoặc đẩy việc nền.</li>
+      <li><code>AuditInterceptor</code> ghi <code>audit_logs</code> (cả lần bị 403), trả X-Audit-Id.</li>
+      <li><code>PeopleInterceptor</code> gắn bảng <code>people</code> (id → tên) vào phản hồi.</li>
+      <li>Lỗi bất kỳ đi qua <code>ErrorFilter</code> thành schema Error có mã BR.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Việc nền gọi Google nhiều bước</h2>
+    <ol>
+      <li>API trả <code>202</code> kèm <code>jobId</code>; FE theo dõi bằng <code>GET /jobs/{id}</code> (trang “Việc đang chạy”).</li>
+      <li><code>JobsService</code> lấy việc từ collection <code>jobs</code>, chạy từng bước qua <code>GooglePorts</code>.</li>
+      <li>Drive làm xong mới ghi sổ VCdocs; bước lỗi thì việc dừng và báo bước nào.</li>
+      <li>Lỗi Google tạm thời tự thử lại tối đa 3 lần, giãn cách tăng dần.</li>
+    </ol>
+    <p class="note" style="margin-top:12px">Ví dụ: <code>document.withdraw</code> (huỷ bỏ tài liệu sau khi duyệt), tạo thư mục trên shared drive, chốt hồ sơ.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Phân hệ nào gọi phân hệ nào</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Dịch vụ</th><th>Gọi tới</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+      <tr><td><code>DocumentsService</code> (M04)</td><td>FoldersService, ApprovalsService, DriveOpsService, JobsService, GooglePorts</td><td>đăng ký, cấp mã, nháp, trình, ban hành, huỷ bỏ</td></tr>
+      <tr><td><code>RecordsService</code> (M07)</td><td>FoldersService, ApprovalsService, DriveOpsService, VaultPort, pdf-stamp</td><td>lập hồ sơ, trình, chốt thành PDF lưu kho riêng</td></tr>
+      <tr><td><code>ApprovalsService</code> (M05)</td><td>AccessService, NotificationsService</td><td>chọn người duyệt (cả D21: GĐ khối duyệt huỷ bỏ cấp phòng)</td></tr>
+      <tr><td><code>FoldersService</code> (M03)</td><td>AccessService, GooglePorts</td><td>ghép tên thư mục, số kế tiếp</td></tr>
+      <tr><td><code>GoogleSyncService</code> (M01)</td><td>GooglePorts (Directory, Drive), AccessService</td><td>đồng bộ nhân sự, nhóm, vai trò drive</td></tr>
+      <tr><td>các phân hệ → <code>SchedulerService</code></td><td>tự đăng ký việc bằng <code>add()</code></td><td>gỡ chia sẻ hết hạn, nhắc hạn, tạo thư mục tháng, thư tổng hợp</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="grid2">
+  <div>
+    <h2>Cây thư mục</h2>
+<pre>VCdocs/
+├─ contract/          openapi.yaml (gốc chung)
+├─ apps/
+│  ├─ web/            Next.js
+│  │  └─ src/
+│  │     ├─ app/      (app)/… màn hình, dang-nhap/
+│  │     ├─ api/      client.ts, schema.d.ts
+│  │     ├─ components/
+│  │     ├─ lib/
+│  │     └─ test/     Vitest + MSW
+│  └─ api/            NestJS
+│     ├─ src/
+│     │  ├─ bootstrap.ts, main.ts
+│     │  ├─ common/   guard, interceptor, lỗi
+│     │  ├─ config/  contract/  db/
+│     │  ├─ access/  audit/  session/
+│     │  ├─ jobs/    notifications/
+│     │  ├─ google/  ports, fake/, real/
+│     │  ├─ modules/ m01…m14, shared, scheduler
+│     │  └─ seed/
+│     └─ test/        e2e (supertest)
+├─ docs/huong-dan/    ảnh hướng dẫn Google
+└─ SO_TAY_DU_AN.md</pre>
+  </div>
+  <div>
+    <h2>Nguyên tắc giữ kiến trúc</h2>
+    <ul>
+      <li><code>contract/openapi.yaml</code> là gốc: FE sinh kiểu từ nó, BE kiểm dữ liệu bằng nó, test e2e kiểm mọi phản hồi khớp nó.</li>
+      <li>Phiên FE/BE không sửa <code>contract/</code>; đề nghị sửa ghi vào <code>DE_NGHI_SUA_HOP_DONG.md</code>.</li>
+      <li>Google đi qua một lớp cổng (<code>ports.ts</code>), có bản giả cho test và chạy local, bản thật cho môi trường thật.</li>
+      <li>FE hiện nút theo <code>allowedActions</code> do BE trả, không tự đoán quyền.</li>
+      <li><code>companyId</code> lấy từ phiên; plugin của Db chặn truy vấn thiếu nó.</li>
+      <li>Hàng đợi, giới hạn tần suất, file tạm đang chạy trong một tiến trình; chạy nhiều máy cần Redis/BullMQ.</li>
+    </ul>
+  </div>
+</section>
+</div>
