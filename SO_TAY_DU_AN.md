@@ -48,8 +48,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
-- [ ] Push `giai-doan-1` (đã ghép khởi tạo công ty + D22, chờ chủ dự án cho phép)
-- [ ] Máy thật: chạy `pnpm --filter api run khoi-tao -- --ten "…"` trên CSDL mới thay vì thêm tay bản ghi công ty
+- [ ] Mở PR `giai-doan-1` → `main` trên web (khởi tạo công ty + D22 đã lên GitHub ở 89b0162)
 - [ ] Dựng máy ảo production theo `deploy/README.md` (IP tĩnh, DNS `vcdocs`, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
 - [ ] Hộp thư vcdocs@ cho `MAIL_FROM` (Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
@@ -83,7 +82,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ### 2026-10-20 · Ghép khởi tạo công ty, hợp đồng v1.4 (D22)
 - Đã làm: chủ dự án chốt N5 → D22 trong hợp đồng mục 9.4 + lịch sử phiên bản v1.4 (Claude Docs rev 22); `contract/openapi.yaml` 1.4.0-gd1 (mô tả callback thêm `setup`), `contract/NGUON.md`. FE: câu báo `loi=setup` ở /dang-nhap + 3 test. Ghép `claude/khoi-tao-cong-ty` (fca348e) vào `giai-doan-1` (gỡ xung đột sổ tay). Build qua, BE 116/116 (98/98 điểm cuối), FE 72/72. Chưa push.
-- Còn dở: push `giai-doan-1` khi chủ dự án cho phép.
+- Chạy thật (chủ dự án tự làm): Google thật + CSDL mới → /dang-nhap?loi=setup đúng câu báo; chạy `khoi-tao` → đăng nhập được. 89b0162 đã có trên `origin/giai-doan-1`.
+- Còn dở: mở PR lên `main` trên web.
 
 ### 2026-10-20 · Vẽ lại kiến trúc code
 - Đã làm: đọc code `apps/web`, `apps/api`, `contract/`; vẽ sơ đồ kiến trúc (Artifact riêng tư): https://claude.ai/artifact/Bh992AU1qAhyneRJxkbRhF — tầng FE, hợp đồng, chuỗi guard/interceptor BE, 14 module, CoreModule, lớp cổng Google (giả/thật), MongoDB, kho PDF, Google Workspace; kèm luồng yêu cầu ghi, việc nền, bảng phụ thuộc giữa các Service. Không đổi mã.
