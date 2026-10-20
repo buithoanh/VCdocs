@@ -20,7 +20,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 16: đủ mục 1–8 + M16; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất])
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.3 (rev 21). Build qua, BE 110 test, FE 69 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Chưa push.
+- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.3 (rev 21). Build qua, BE 110 test, FE 69 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push lên GitHub (origin/giai-doan-1).
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`.
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
@@ -44,7 +44,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà các chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
-- [ ] Push `giai-doan-1`, mở PR `giai-doan-1` → `main`; đóng PR #1 (chỉ có FE, đích main) — máy chưa có `gh`
+- [ ] Chủ dự án mở PR `giai-doan-1` → `main` trên web (https://github.com/buithoanh/VCdocs/pull/new/giai-doan-1) và đóng PR #1 — nhánh đã push 2026-10-20
 - [ ] Tài khoản Google thử nghiệm (service account, shared drive) để chạy bản Google thật; IT tạo nhóm Google theo mẫu C1
 - [ ] Sửa đoạn mở đầu của hợp đồng API: hiện ghi "OpenAPI sinh tự động từ mã NestJS", phải đổi thành "`contract/openapi.yaml` viết tay là gốc"
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
@@ -65,7 +65,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ### 2026-10-20 · Hợp đồng v1.3 (D21), ghép lần 3
 - Đã làm: chủ dự án chốt D21 → hợp đồng mục 9.4 (rev 21), `contract/openapi.yaml` 1.3.0-gd1. BE sửa D21 và lỗi Google giả mất người dùng khi khởi động lại; ghép vào `giai-doan-1`. Build qua, BE 110/110, FE 69/69. Chạy thật: khởi động trên CSDL cũ vẫn đăng nhập được; HD-MKT-01 trưởng phòng trình huỷ bỏ → GĐ khối KD duyệt → việc nền xong → withdrawn; khởi động lại lần 2 vẫn đăng nhập được.
-- Còn dở: push `giai-doan-1` + PR (chờ chủ dự án); Google thật.
+- Đã push `giai-doan-1` lên GitHub (chủ dự án cho phép git push).
+- Còn dở: chủ dự án mở PR và đóng PR #1 trên web; Google thật.
 
 ### 2026-10-20 · Vẽ lại sơ đồ quy trình trong BA (mục 5)
 - Đã làm: vẽ lại sơ đồ "vòng đời tài liệu và hồ sơ" trong tài liệu BA (Claude Docs, rev 20) theo hợp đồng v1.2. Tài liệu: người soạn hoặc trưởng phòng trình, lấy góp ý không bắt buộc, có vòng sửa lớn, huỷ bỏ phải duyệt. Hồ sơ: thêm bước trình duyệt, vòng yêu cầu sửa, nhánh Giữ lại; Bàn giao thành việc bên lề. Sửa câu đọc sơ đồ. Không đổi mã.
