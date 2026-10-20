@@ -74,7 +74,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-20 · Dựng production bước 5–9
 - Đã làm: bước 5 trên `vcdocs-prod` (đĩa `/mnt/vcdocs-data`, swap 2 GB, Docker 29.9). Deploy key `vcdocs-prod` (chỉ đọc) thêm qua Chrome, chủ dự án xác nhận sudo GitHub; clone `main` vào `/srv/vcdocs`. Tạo `deploy/.env` (mật khẩu Mongo sinh trên máy), `api.env` (GOOGLE_ADMIN_SUBJECT, MAIL_FROM tạm = mail chủ dự án). Khoá SA ở `deploy/secrets/vcdocs-sa.json` (400, uid 1000). Build 2 image. Cron sao lưu 02:30 hằng đêm; chạy thử đạt (dump lên `gs://vcdocs-sao-luu-csdl/mongo/`).
 - Có người/phiên khác làm song song trên máy ảo (chưa rõ ai): điền OAuth client production (`…8l6s8pao…`) vào `api.env`, `up -d` lúc 11:22, bật caddy (chứng chỉ đạt), khởi tạo công ty "Công ty TNHH VC Phồn Vinh", tạo uptime check `vcdocs-dang-nhap` (bản trùng do phiên này tạo đã xoá). Kiểm tra: `/dang-nhap` 200 qua HTTPS, `/api/v1/auth/google` 302 đúng redirect_uri production.
-- Còn dở: thử đăng nhập thật; xác nhận tên pháp lý công ty; cảnh báo uptime gửi email.
+- Chủ dự án đăng nhập thật trên production thành công.
+- Còn dở: xác nhận tên pháp lý công ty; cảnh báo uptime gửi email.
 
 ### 2026-10-20 · Production bước 8–9: sao lưu, theo dõi
 - Đã làm: chạy `backup.sh` trên máy ảo – dump Mongo lên `gs://vcdocs-sao-luu-csdl/mongo/`, đồng bộ kho PDF (đang trống); `mongorestore --dryRun` bản dump đạt. Cài cron 02:30. Tạo uptime check `vcdocs-dang-nhap` và cảnh báo email (kênh email chủ dự án) qua Monitoring API. Chủ dự án đã đăng nhập thật thành công.
@@ -201,4 +202,4 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ### 2026-10-19 · Tạo sổ tay dự án
 - Đã làm: tạo `SO_TAY_DU_AN.md` và `CLAUDE.md` (nhắc mọi phiên đọc/ghi sổ tay).
-- Còn dở: chưa có nội dung dự án.- [ ] Production đã chạy ở https://vcdocs.vcprosperous.com (2026-10-20). Còn: chủ dự án thử đăng nhập Google thật; cảnh báo email cho uptime check; khoá retention bucket kho PDF; hộp thư vcdocs@
+- Còn dở: chưa có nội dung dự án.- [ ] Production đã chạy ở https://vcdocs.vcprosperous.com (2026-10-20). Chủ dự án đã đăng nhập Google thật thành công. Còn: cảnh báo email cho uptime check; khoá retention bucket kho PDF; hộp thư vcdocs@
