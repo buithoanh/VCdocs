@@ -45,7 +45,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
-- [ ] Google thật, còn: OAuth client đăng nhập (`GOOGLE_CLIENT_ID/SECRET`), shared drive thử, nhóm Google theo mẫu C1, chạy BE với `GOOGLE_MODE=real`
+- [ ] Google thật, còn: shared drive thử (thêm `vcdocs-backend@vcdocs.iam.gserviceaccount.com` làm Quản lý), nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
+- [ ] BE: chế độ thật chưa có bước khởi tạo công ty — CSDL trống thì đăng nhập báo nhầm lỗi "chỉ tài khoản @vcprosperous.com" (`fail('domain')` khi thiếu Company). Cần lệnh khởi tạo công ty và mã lỗi riêng
 - [ ] Máy chủ và hộp thư vcdocs@ (tên miền vcprosperous.com đã có; Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
@@ -58,14 +59,15 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - Máy local chưa cài `gh` CLI; thao tác GitHub (tạo, đổi tên, xoá repo) phải làm trên web.
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
-- Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`.
+- Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
 
 ### 2026-10-20 · PR lên main và chuẩn bị Google thật (lái Chrome)
 - Đã làm: mở PR #2 `giai-doan-1` → `main`; chủ dự án merge cả PR #1 và #2. Hướng dẫn chủ dự án (qua Claude in Chrome) tạo project `vcdocs`, bật API, tạo service account `vcdocs-backend` và khoá JSON (tắt chính sách chặn tạo khoá riêng cho project), thêm domain-wide delegation 8 quyền — đã kiểm tra đủ. Ảnh hướng dẫn lưu `docs/huong-dan/anh/`.
-- Còn dở: OAuth client đăng nhập, shared drive, nhóm C1, chạy BE với Google thật.
+- Tạo OAuth client, `.env` chế độ thật. Chạy thật: đăng nhập Google thật thành công (sau khi thêm tay bản ghi công ty vào CSDL `vcdocs_that`); Directory đọc được 48 người, 1 nhóm; Drive chưa có shared drive nào cho service account.
+- Còn dở: shared drive thử, nhóm C1, sơ đồ tổ chức, BE khởi tạo công ty.
 
 ### 2026-10-20 · Hợp đồng v1.3 (D21), ghép lần 3
 - Đã làm: chủ dự án chốt D21 → hợp đồng mục 9.4 (rev 21), `contract/openapi.yaml` 1.3.0-gd1. BE sửa D21 và lỗi Google giả mất người dùng khi khởi động lại; ghép vào `giai-doan-1`. Build qua, BE 110/110, FE 69/69. Chạy thật: khởi động trên CSDL cũ vẫn đăng nhập được; HD-MKT-01 trưởng phòng trình huỷ bỏ → GĐ khối KD duyệt → việc nền xong → withdrawn; khởi động lại lần 2 vẫn đăng nhập được.
