@@ -49,7 +49,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: chủ dự án điền `apps/api/so-do-to-chuc.yaml` (từ mẫu `so-do-to-chuc.mau.yaml`, nhánh `claude/so-do-to-chuc-22aacc`) rồi chạy `nap-so-do`; IT (anh Hùng) tạo 64 nhóm C1 theo báo cáo `nhom-c1` (hiện có 0); sau đó R9 đồng bộ Google
-- [ ] CSDL thật chưa có cây thư mục (`folders` = 0) dù drive đã có thư mục: cần cách nhận cây thư mục sẵn có trên drive vào VCdocs
+- [ ] Nhận cây thư mục vào CSDL thật: sau `nap-so-do`, chạy `pnpm --filter api run nhan-cay-thu-muc -- --thu` rồi chạy thật (nhánh `claude/nhan-cay-thu-muc`, cắt từ `claude/so-do-to-chuc-22aacc`). Chạy thử 2026-10-20 trên bản sao: 291 thư mục, nhận 201, sai mẫu 73 + 17 con — gần hết là `Tháng NN` trong `11 MKT / 10 SEO / 0x SEO-… / 01 Kế hoạch / <năm>` (nên là `YYYY-MM`), `Bài viết` trong thư mục tháng, `00 Tài liệu / Bản nháp`, `20 Social / 04 TT-ĐK- …` (mã dở). Báo cáo đủ: ghi chú phiên `nhan-cay-thu-muc-thu-2026-10-20.md`
+- [ ] Ghép nhánh `claude/nhan-cay-thu-muc` vào `dev` (sau hoặc cùng `claude/so-do-to-chuc-22aacc`)
 - [ ] Ghép nhánh `claude/so-do-to-chuc-22aacc` (lệnh nạp sơ đồ + báo cáo C1) vào `giai-doan-1`/`dev`
 - [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
 - [ ] Dọn 7 nhánh `claude/…` đã gộp/rỗng và worktree của chúng; xoá 2 nhánh lỗi thời trên GitHub (chờ chủ dự án đồng ý)
@@ -61,6 +62,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
 - Sơ đồ tổ chức (mẫu `apps/api/so-do-to-chuc.mau.yaml`): email GĐ 2 khối, trưởng 11 phòng, người giữ R1/R3/R8/R9; xác nhận khối của BDH, IT, VCE, MH, mã XDV, danh sách division. Nhóm "xem" của drive 00 có chứa cả công ty không, hay drive 00 cấp quyền cả tên miền.
+- Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCdocs nhận, hay để VCdocs chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCdocs không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 
 ## 5. Lưu ý & bài học
@@ -69,9 +71,16 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
+- Lịch hằng tháng (`folder.ensure_periods` tự động) tạo năm/tháng cho mọi thư mục `hasPeriods`; thư mục nhận từ Drive chỉ bật `hasPeriods` khi các thư mục năm bên trong đều đúng `YYYY-MM`, tránh sinh `2026-10` cạnh `Tháng 10`.
+- `vcdocs_that` (2026-10-20) mới có bản ghi công ty và 1 người: chưa chạy `nap-so-do` nên chưa có phòng. Mongo local của phiên chính chạy ở cổng 27019.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · BE: lệnh nhận cây thư mục có sẵn trên Drive (nhánh `claude/nhan-cay-thu-muc`)
+- Đã làm: `pnpm --filter api run nhan-cay-thu-muc -- [--drive 11] [--thu] [--ra file]` (`src/nhan-cay-thu-muc.ts`, `src/seed/nhan-cay-thu-muc.ts`). Chỉ đọc Drive; đọc tên theo mẫu `<số> <MÃ>-<tên ngắn> <tên đầy đủ>` và khung 00–99, gán kind; sai mẫu thì không nhận cả nhánh, chỉ báo; chạy lại khớp googleId không trùng; ghi `folder_numbers`, audit `folder.import`; cảnh báo khung thiếu, mã chưa có trong Bảng mã, số trùng, thư mục đã đổi/xoá trên Drive. 6 test e2e (gồm nhận lại nguyên cây mẫu sau khi xoá sổ). Build qua, BE 129/129, 98/98 điểm cuối. Không sửa `contract/`, không cần đổi hợp đồng.
+- Chạy thật Google (chỉ đọc) trên CSDL tạm `vcdocs_thu_nhan_cay` (khởi tạo + `nap-so-do` file mẫu) rồi xoá; `vcdocs_that` không đổi. Kết quả ở mục 3.
+- Còn dở: chạy trên `vcdocs_that` sau khi có sơ đồ phòng; chủ dự án quyết câu hỏi cây MKT (mục 4); chưa push.
 
 ### 2026-10-20 · Sơ đồ tổ chức và nhóm Google C1 (nhánh `claude/so-do-to-chuc-22aacc`, tách từ `giai-doan-1`)
 - Đã làm: khối/phòng/division nằm trong `blocks`, `departments` (số drive, mã, driveId, mức bảo mật, headId, groupEmails), `divisions`; vai trò = nhóm Google (C1) ∪ `manualRoles`. CSDL `vcdocs_that` mới có công ty + 1 người, 0 khối/phòng. File mẫu `apps/api/so-do-to-chuc.mau.yaml` (khối, 11 phòng khớp đúng tên 11 shared drive thật, division; email để trống). Lệnh `pnpm --filter api run nap-so-do -- --file … [--thu]`: chạy lại không trùng, sửa theo file, không xoá, ghi audit `org.import`; người lấy từ Directory; GĐ khối → R2, trưởng phòng → R4 (+ phòng), `vai_tro` → R1/R3/R8/R9 vào `manualRoles` (dùng được trước khi có nhóm). Lệnh `nhom-c1` (chỉ đọc Google): nhóm thiếu/thừa, chưa gắn drive hoặc sai vai trò drive, thiếu người. Chạy thật với file mẫu: 11/11 drive khớp; cần 64 nhóm, có 0 (Directory chỉ có `giao_vien_lop_hoc@`). `nap-so-do --thu` trên `vcdocs_that` chạy đúng (chưa ghi thật). 7 test mới, BE 123/123, 98/98 điểm cuối, build qua. Không sửa `contract/`, không cần đề nghị mới. Chưa push.

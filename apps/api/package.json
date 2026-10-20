@@ -10,6 +10,7 @@
     "khoi-tao": "tsx src/khoi-tao.ts",
     "nap-so-do": "tsx src/nap-so-do.ts",
     "nhom-c1": "tsx src/nhom-c1.ts",
+    "nhan-cay-thu-muc": "tsx src/nhan-cay-thu-muc.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "MONGOMS_SYSTEM_BINARY=${MONGOMS_SYSTEM_BINARY:-/usr/local/bin/mongod} jest"
   },
