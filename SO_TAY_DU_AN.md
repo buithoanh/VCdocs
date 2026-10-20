@@ -51,7 +51,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
 - [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
 - [ ] Dọn 7 nhánh `claude/…` đã gộp/rỗng và worktree của chúng; xoá 2 nhánh lỗi thời trên GitHub (chờ chủ dự án đồng ý)
-- [ ] Dựng máy ảo production theo `deploy/README.md` (IP tĩnh, DNS `vcdocs`, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
+- [ ] Dựng máy ảo production theo `deploy/README.md`: xong bước 1–4 (2026-10-20); còn DNS A `vcdocs` → 34.87.68.77 trên Cloudflare (DNS only), xoá rule `default-allow-ssh`/`default-allow-rdp`, bước 5–9 (cài máy, deploy key, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
 - [ ] Hộp thư vcdocs@ cho `MAIL_FROM` (Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
@@ -65,10 +65,15 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Máy local chưa cài `gh` CLI; thao tác GitHub (tạo, đổi tên, xoá repo) phải làm trên web.
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
+- Production (2026-10-20): project `vcdocs` đã gắn thanh toán; máy ảo `vcdocs-prod` (e2-medium, asia-southeast1-b, Debian 12), IP tĩnh `vcdocs-ip` = 34.87.68.77, đĩa `vcdocs-data` 50 GB (snapshot `vcdocs-hang-ngay` 02:00 giờ VN, giữ 14 ngày), service account máy `vcdocs-vm` (chỉ ghi 2 bucket), bucket `gs://vcdocs-sao-luu-csdl` (xoá sau 90 ngày) và `gs://vcdocs-sao-luu-kho-pdf` (retention 10 năm, chưa khoá), firewall `vcdocs-allow-web`, `vcdocs-allow-iap-ssh`. DNS `vcprosperous.com` ở Cloudflare. gcloud cài trên máy Mac ở `/usr/local/bin/gcloud`. Chế độ auto của Claude chặn xoá firewall rule và `git push`.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Dựng hạ tầng production bước 1–4
+- Đã làm: `main` lên ngang `dev` (d6474b2, chủ dự án push). Cài gcloud (Homebrew); chủ dự án đăng nhập và gắn thanh toán. Tạo IP tĩnh, service account `vcdocs-vm`, 2 bucket sao lưu, đĩa dữ liệu, máy ảo `vcdocs-prod`, firewall web + SSH qua IAP, lịch snapshot (chi tiết ở mục 5).
+- Còn dở: bản ghi DNS trên Cloudflare; xoá `default-allow-ssh`, `default-allow-rdp` (bị chặn, chủ dự án tự xoá); bước 5–9.
 
 ### 2026-10-20 · Cấu hình deploy phương án A (`deploy/`)
 - Đã làm: `deploy/api.Dockerfile` (pnpm deploy --prod, font DejaVu, user node, healthcheck qua /me), `deploy/web.Dockerfile` (Next standalone; `next.config.ts` bật `output: 'standalone'` khi `NEXT_OUTPUT=standalone`), `docker-compose.prod.yml` (caddy/web/api/mongo có mật khẩu, không mở cổng Mongo, dữ liệu ở `DATA_DIR`), `Caddyfile` (`/api/*` thẳng sang api – khớp `trust proxy 1`), mẫu `.env.example` + `api.env.example`, `backup.sh`, `.dockerignore`, hướng dẫn dựng VM `deploy/README.md`. Máy local không có Docker nên chưa build image; đã chạy lại đúng các bước build ngoài Docker: API production (Google thật, khoá giả) khởi động, /me 401, khởi tạo công ty chạy bằng `node dist/khoi-tao.js`, redirect OAuth đúng `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`, cookie Secure; web standalone phục vụ trang + static + chuyển tiếp /api.
