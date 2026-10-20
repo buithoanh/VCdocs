@@ -47,8 +47,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ## 3. Việc đang làm / cần làm
 
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
-- [ ] Mở 2 phiên FE/BE giai đoạn 2 (M10, M15) từ nhánh `giai-doan-2`
-- [ ] IT thêm 2 quyền uỷ quyền toàn tên miền cho `vcdocs-backend` (`admin.datatransfer`, `admin.directory.group.member`) trước khi chạy thật bàn giao; BE thêm vào `real-google.ts`
+- [ ] Ghép BE giai đoạn 2 (nhánh `claude/silly-perlman-f78be6`, M10 + M15 xong) và FE vào `giai-doan-2`, chạy thật
+- [ ] IT thêm 2 quyền uỷ quyền toàn tên miền cho `vcdocs-backend` (`admin.datatransfer`, `admin.directory.group.member`) và bật Admin SDK Data Transfer API trước khi chạy thật bàn giao (BE đã thêm vào `real-google.ts`)
+- [ ] Soạn BM-VCPV-08 (Google Docs) có chỗ giữ BE điền khi xuất biên bản bàn giao – danh sách ở `apps/api/README.md`
+- [ ] Chủ dự án rà đề nghị N6–N14 (giai đoạn 2) trong `apps/api/DE_NGHI_SUA_HOP_DONG.md`
 - [ ] Rà 22 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn; 6 chỗ mới của giai đoạn 2)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
@@ -73,6 +75,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · BE giai đoạn 2: M10 Bàn giao, M15 Nhật ký (nhánh `claude/silly-perlman-f78be6`)
+- Đã làm: gộp `giai-doan-2` (0ade10b, openapi 1.5.0-gd2). M10: 11 điểm cuối /handovers, việc nền `handover.list` (8 loại dòng), `handover.execute` (đổi người trong VCdocs, Data Transfer Drive của tôi, gỡ nhóm Google; lỗi → về verified, gọi lại chạy dòng lỗi), `handover.export` (BM-VCPV-08 → thư mục tháng drive HCNS); PATCH /users lastWorkingDay tự lập biên bản isAuto (E4); việc 00:30 chuyển `left` + huỷ phiên + báo quá hạn; nhắc kiểm tra trước 2 ngày làm việc. M15: 9 điểm cuối; audit_logs ghi `departmentId` (E14), phạm vi xem R2/R4/kiểm toán viên, ẩn before/after drive Mật; `audit.verify` 01:00, `audit.anchor` 07:00 thứ Hai (email R1 + file Sheets khoá ở 01 BĐH); quyền xem tạm kiểm toán viên (BR-15, ≤ 30 ngày, `auditor.view`, /me.auditorAccess); gói bằng chứng ZIP (tự viết bộ ghi ZIP, không thêm thư viện) lưu kho riêng 7 ngày. Google giả + thật: `removeGroupMember`, `dataTransfer`, `listOwnedFiles`, `appendRows`. Tài liệu ban hành từ nay lưu PDF từng phiên bản vào kho riêng. Dữ liệu mẫu thêm BM-VCPV-08. Build qua, 156/156 test, độ phủ 118/118. Commit, không push.
+- Còn dở: đề nghị N6–N14; IT thêm 2 quyền DWD + bật Data Transfer API; BM-VCPV-08 thật có chỗ giữ; chưa chạy với Google thật.
 
 ### 2026-10-20 · Chuẩn bị hợp đồng giai đoạn 2: M10 Bàn giao, M15 Nhật ký (nhánh `giai-doan-2`)
 - Đã làm: đọc hợp đồng rev 22, BA (M10, M15, BR-25, 11.2 #20), mã audit_logs và PATCH /users leaving. Chủ dự án chốt 4 điểm nghiệp vụ theo đề xuất và đồng ý toàn bộ phần kỹ thuật → hợp đồng mục 10 (rev 24, v1.5): 10.1 phân giai đoạn mọi điểm cuối, 10.2 đối tượng mới, E1–E21; mục 6 thêm quyền `admin.directory.group.member`; Lịch sử v1.5. `contract/openapi.yaml` 1.5.0-gd2 (+20 điểm cuối, 6 `x-gia-dinh` mới), lint đạt; `NGUON.md`, `README.md`. Sinh lại `apps/web/src/api/schema.d.ts`; FE phải thêm 6 nhãn `jobTypeLabel` và cho `jobResultLink` bỏ qua loại chưa có trang (lỗi build vì enum mới). Build qua, FE 72/72, BE 116/116 (độ phủ 98/118 – 20 điểm cuối mới chờ BE). Commit trên `giai-doan-2`, chưa push.

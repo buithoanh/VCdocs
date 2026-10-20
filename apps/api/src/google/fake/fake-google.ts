@@ -43,6 +43,9 @@ interface World {
   files: Record<string, FakeFile>;
   activities: ShareActivity[];
   outbox: { to: string[]; subject: string; html: string; at: string }[];
+  /** Drive của tôi: email chủ sở hữu → file (bàn giao) */
+  myDrive?: Record<string, { fileId: string; name: string; mimeType: string; createdTime: string; modifiedTime?: string }[]>;
+  transfers?: { id: string; from: string; to: string; status: 'inProgress' | 'completed' | 'failed' }[];
 }
 
 const FIXED_DATE = new Date('2026-01-01T00:00:00Z');
@@ -198,6 +201,17 @@ export class FakeGoogle implements GooglePorts {
   fileState(fileId: string) {
     return this.world.files[fileId];
   }
+  /** File trong Drive của tôi của một người */
+  addMyDriveFile(email: string, name: string, mimeType = GDOC_MIME) {
+    const my = (this.world.myDrive ??= {});
+    const f = { fileId: this.id('my'), name, mimeType, createdTime: new Date().toISOString() };
+    (my[email] ??= []).push(f);
+    this.touch();
+    return f;
+  }
+  myDriveOf(email: string) {
+    return [...(this.world.myDrive?.[email] ?? [])];
+  }
 
   // ───────────── Đăng nhập ─────────────
   auth = {
@@ -233,6 +247,31 @@ export class FakeGoogle implements GooglePorts {
       this.world.groups.filter((g) => g.email.endsWith(`@${domain}`)).map(({ email, name }) => ({ email, name })),
     listGroupMembers: async (groupEmail: string) => [...(this.world.groups.find((g) => g.email === groupEmail)?.members ?? [])],
     listUserGroups: async (email: string) => this.world.groups.filter((g) => g.members.includes(email)).map((g) => g.email),
+    removeGroupMember: async (groupEmail: string, email: string) => {
+      this.check('directory.removeGroupMember');
+      const g = this.world.groups.find((x) => x.email === groupEmail);
+      if (g) g.members = g.members.filter((m) => m !== email);
+      this.touch();
+    },
+  };
+
+  // ───────────── Admin SDK Data Transfer ─────────────
+  dataTransfer = {
+    transferDrive: async (p: { fromEmail: string; toEmail: string }) => {
+      this.check('dataTransfer.transferDrive');
+      const my = (this.world.myDrive ??= {});
+      (my[p.toEmail] ??= []).push(...(my[p.fromEmail] ?? []));
+      my[p.fromEmail] = [];
+      const t = { id: this.id('tr'), from: p.fromEmail, to: p.toEmail, status: 'completed' as const };
+      (this.world.transfers ??= []).push(t);
+      this.touch();
+      return { transferId: t.id, status: t.status };
+    },
+    getTransfer: async (transferId: string) => {
+      const t = this.world.transfers?.find((x) => x.id === transferId);
+      if (!t) throw new GoogleError('Không có lượt chuyển này', 404);
+      return { status: t.status };
+    },
   };
 
   // ───────────── Drive ─────────────
@@ -361,6 +400,12 @@ export class FakeGoogle implements GooglePorts {
       this.touch();
     },
     listFilePermissions: async (fileId: string) => this.file(fileId).permissions.map((p) => ({ ...p })),
+    listOwnedFiles: async (email: string, max: number) => {
+      this.check('drive.listOwnedFiles');
+      return this.myDriveOf(email)
+        .slice(0, max)
+        .map((f) => ({ ...f, parents: [] }));
+    },
   };
 
   // ───────────── Docs / Sheets ─────────────
@@ -403,6 +448,13 @@ export class FakeGoogle implements GooglePorts {
       this.check('sheets.createSheet');
       const f = this.newFile({ name: p.title, mimeType: GSHEET_MIME, parents: p.parentGoogleId ? [p.parentGoogleId] : [], rows: [p.header, ...p.rows] });
       return f.fileId;
+    },
+    appendRows: async (fileId: string, rows: (string | number)[][]) => {
+      this.check('sheets.appendRows');
+      const f = this.file(fileId);
+      f.rows = [...(f.rows ?? []), ...rows];
+      f.revision++;
+      this.touch();
     },
   };
 

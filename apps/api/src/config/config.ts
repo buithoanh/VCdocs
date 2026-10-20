@@ -45,6 +45,10 @@ export interface AppConfig {
     accountingDeptCodes: string[];
     hrDeptCodes: string[];
     internalOpsBlockCode: string;
+    /** Hạn tối đa quyền xem tạm của kiểm toán viên (E16, E21) */
+    auditorMaxDays: number;
+    /** Số ngày giữ gói bằng chứng trên máy chủ (E17, E21) */
+    evidencePackDays: number;
   };
   rateLimit: { perMinute: number; searchPerMinute: number };
 }
@@ -118,6 +122,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       accountingDeptCodes: list(env.ACCOUNTING_DEPT_CODES, ['TCKT', 'LT']),
       hrDeptCodes: list(env.HR_DEPT_CODES, ['HCNS']),
       internalOpsBlockCode: env.INTERNAL_OPS_BLOCK_CODE || 'VHNB',
+      auditorMaxDays: num(env.AUDITOR_MAX_DAYS, 30),
+      evidencePackDays: num(env.EVIDENCE_PACK_DAYS, 7),
     },
     rateLimit: { perMinute: num(env.RATE_LIMIT_PER_MINUTE, 600), searchPerMinute: num(env.RATE_LIMIT_SEARCH_PER_MINUTE, 60) },
     ...overrides,

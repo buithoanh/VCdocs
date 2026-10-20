@@ -42,6 +42,15 @@ export interface DirectoryPort {
   listGroupMembers(groupEmail: string): Promise<string[]>;
   /** Nhóm mà một người thuộc về */
   listUserGroups(email: string): Promise<string[]>;
+  /** Gỡ một người khỏi nhóm (members.delete – bàn giao, E10). Không còn trong nhóm thì coi như xong */
+  removeGroupMember(groupEmail: string, email: string): Promise<void>;
+}
+
+export type TransferStatus = 'inProgress' | 'completed' | 'failed';
+/** Admin SDK Data Transfer: chuyển toàn bộ Drive của tôi sang người khác (bàn giao, E5, E10) */
+export interface DataTransferPort {
+  transferDrive(p: { fromEmail: string; toEmail: string }): Promise<{ transferId: string; status: TransferStatus }>;
+  getTransfer(transferId: string): Promise<{ status: TransferStatus }>;
 }
 
 export interface SharedDrive {
@@ -122,6 +131,11 @@ export interface DrivePort {
   updatePermissionExpiry(fileId: string, permissionId: string, expirationTime: string): Promise<boolean>;
   deletePermission(fileId: string, permissionId: string): Promise<void>;
   listFilePermissions(fileId: string): Promise<DrivePermission[]>;
+  /**
+   * File trong Drive của tôi của một người (uỷ quyền toàn tên miền, q = 'me' in owners).
+   * Chỉ đọc tên, loại, ngày – không đọc nội dung (hợp đồng mục 6).
+   */
+  listOwnedFiles(email: string, max: number): Promise<DriveFileMeta[]>;
 }
 
 export interface DocsPort {
@@ -136,6 +150,8 @@ export interface DocsPort {
 export interface SheetsPort {
   /** Tạo bảng tính theo quy cách HD-VCPV-02, trả fileId */
   createSheet(p: { parentGoogleId?: string; title: string; header: string[]; rows: (string | number)[][] }): Promise<string>;
+  /** Thêm dòng vào cuối trang tính đầu tiên (values.append) */
+  appendRows(fileId: string, rows: (string | number)[][]): Promise<void>;
 }
 
 export interface GmailPort {
@@ -165,6 +181,7 @@ export interface GooglePorts {
   mode: 'fake' | 'real';
   auth: GoogleAuthPort;
   directory: DirectoryPort;
+  dataTransfer: DataTransferPort;
   drive: DrivePort;
   docs: DocsPort;
   sheets: SheetsPort;
