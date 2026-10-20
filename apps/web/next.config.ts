@@ -11,6 +11,8 @@ const apiPathPrefix = process.env.API_PATH_PREFIX ?? '/api/v1';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Image Docker (deploy/web.Dockerfile) đặt NEXT_OUTPUT=standalone; local giữ nguyên `next start`.
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const } : {}),
   // Gốc workspace pnpm (2 cấp trên apps/web).
   outputFileTracingRoot: path.join(__dirname, '../..'),
   async rewrites() {

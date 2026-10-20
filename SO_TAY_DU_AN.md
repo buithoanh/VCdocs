@@ -21,13 +21,14 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 22: đủ mục 1–9; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
 - **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
-- **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`.
+- **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`). Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
 ## 2. Quyết định đã chốt
 
 | Ngày | Quyết định | Lý do |
 |------|-----------|-------|
+| 2026-10-20 | Deploy phương án A: 1 máy ảo Compute Engine `e2-medium` ở `asia-southeast1` (project `vcdocs`), Docker Compose (caddy, web, api, mongo), tên miền `vcdocs.vcprosperous.com`; đĩa dữ liệu riêng có snapshot + `deploy/backup.sh` lên Cloud Storage. Cấu hình và hướng dẫn ở `deploy/` | Chạy được ngay không sửa logic; kho PDF nằm trên đĩa và lịch định kỳ chỉ chạy 1 bản nên hợp với 1 máy |
 | 2026-10-19 | Quy trình code: chốt hợp đồng → viết tay `contract/openapi.yaml` → lát mỏng đầu cuối (khung monorepo, đăng nhập Google, `/me`, CSRF, mẫu lỗi) → 2 phiên FE (`apps/web`, chạy trên mock) và BE (`apps/api`, có test kiểm hợp đồng) song song trên 2 worktree, không phiên nào sửa `contract/` → 1 phiên ghép, test đầu cuối | FE và BE làm song song mà không chờ nhau, lệch được phát hiện sớm |
 | 2026-10-19 | `contract/openapi.yaml` viết tay là gốc, không sinh từ mã NestJS | Bên nào cũng phải code theo nó; sinh từ mã thì BE thành gốc |
 | 2026-10-19 | Code theo giai đoạn, giai đoạn 1 trước, không làm cả 15 phân hệ một lần | Mỗi lần ghép nhỏ, ít rủi ro |
@@ -49,13 +50,14 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
 - [ ] Push `giai-doan-1` (đã ghép khởi tạo công ty + D22, chờ chủ dự án cho phép)
 - [ ] Máy thật: chạy `pnpm --filter api run khoi-tao -- --ten "…"` trên CSDL mới thay vì thêm tay bản ghi công ty
-- [ ] Máy chủ và hộp thư vcdocs@ (tên miền vcprosperous.com đã có; Q3 chưa chốt)
+- [ ] Dựng máy ảo production theo `deploy/README.md` (IP tĩnh, DNS `vcdocs`, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
+- [ ] Hộp thư vcdocs@ cho `MAIL_FROM` (Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
 
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
-- _(trống)_
+- Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 
 ## 5. Lưu ý & bài học
 
@@ -66,6 +68,18 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Cấu hình deploy phương án A (`deploy/`)
+- Đã làm: `deploy/api.Dockerfile` (pnpm deploy --prod, font DejaVu, user node, healthcheck qua /me), `deploy/web.Dockerfile` (Next standalone; `next.config.ts` bật `output: 'standalone'` khi `NEXT_OUTPUT=standalone`), `docker-compose.prod.yml` (caddy/web/api/mongo có mật khẩu, không mở cổng Mongo, dữ liệu ở `DATA_DIR`), `Caddyfile` (`/api/*` thẳng sang api – khớp `trust proxy 1`), mẫu `.env.example` + `api.env.example`, `backup.sh`, `.dockerignore`, hướng dẫn dựng VM `deploy/README.md`. Máy local không có Docker nên chưa build image; đã chạy lại đúng các bước build ngoài Docker: API production (Google thật, khoá giả) khởi động, /me 401, khởi tạo công ty chạy bằng `node dist/khoi-tao.js`, redirect OAuth đúng `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`, cookie Secure; web standalone phục vụ trang + static + chuyển tiếp /api.
+- Còn dở: chưa build image Docker thật (làm ở bước 7 trên VM); chủ dự án dựng VM theo hướng dẫn.
+
+### 2026-10-20 · Đưa BA, hợp đồng API, kiến trúc vào `docs/`, tạo nhánh `dev`
+- Đã làm: xuất BA (rev 20) và hợp đồng API (rev 22, v1.4) từ Claude Docs ra Markdown, chép trang kiến trúc HTML vào `docs/ba/`, `docs/hop-dong-api/`, `docs/kien-truc/`; `docs/README.md` ghi link artifact gốc (bản gốc đúng khi lệch). Hình vòng đời trong BA mục 5 không xuất được, thay bằng câu dẫn link. Commit 24488b5 trên `claude/docs-tai-lieu` (cắt từ `main`). Chủ dự án chọn tạo `dev` từ `main`: merge vào `dev` (e30943e), đã push `origin/dev`.
+- Còn dở: `dev` chưa có code mới của `giai-doan-1` (khởi tạo công ty, v1.4); sửa BA/hợp đồng thì xuất lại vào `docs/`.
+
+### 2026-10-20 · Đề xuất phương án deploy
+- Đã làm: đọc cấu hình chạy (`apps/api/.env.example`, `next.config.ts`, `main.ts`, hàng đợi việc). Ràng buộc: PDF đã chốt lưu đĩa (`VAULT_DIR`, giữ đến 2031) → cần đĩa bền + sao lưu; lịch định kỳ chạy trong tiến trình API, không khoá → chỉ chạy 1 bản API; hàng đợi việc đã khoá `lockedUntil`; không dùng transaction → Mongo đơn lẻ được; `API_ORIGIN` của web đọc lúc build; repo chưa có Dockerfile. Đề xuất A (khuyên dùng) / B / C trong chat, chưa đổi mã.
+- Còn dở: chủ dự án đã chốt A (xem phiên dưới).
 
 ### 2026-10-20 · Ghép khởi tạo công ty, hợp đồng v1.4 (D22)
 - Đã làm: chủ dự án chốt N5 → D22 trong hợp đồng mục 9.4 + lịch sử phiên bản v1.4 (Claude Docs rev 22); `contract/openapi.yaml` 1.4.0-gd1 (mô tả callback thêm `setup`), `contract/NGUON.md`. FE: câu báo `loi=setup` ở /dang-nhap + 3 test. Ghép `claude/khoi-tao-cong-ty` (fca348e) vào `giai-doan-1` (gỡ xung đột sổ tay). Build qua, BE 116/116 (98/98 điểm cuối), FE 72/72. Chưa push.

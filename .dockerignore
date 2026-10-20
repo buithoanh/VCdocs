@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+**/.vault
+**/.uploads
+**/.vcdocs-dev
+.git
+.claude
+docs
+deploy/*.env
+deploy/secrets

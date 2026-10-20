@@ -9,3 +9,7 @@ coverage/
 .DS_Store
 
 .claude/
+
+# Cấu hình production trên máy chủ (deploy/README.md)
+deploy/api.env
+deploy/secrets/
