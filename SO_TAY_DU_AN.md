@@ -59,6 +59,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - Máy local chưa cài `gh` CLI; thao tác GitHub (tạo, đổi tên, xoá repo) phải làm trên web.
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
+- Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
@@ -67,7 +68,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-20 · PR lên main và chuẩn bị Google thật (lái Chrome)
 - Đã làm: mở PR #2 `giai-doan-1` → `main`; chủ dự án merge cả PR #1 và #2. Hướng dẫn chủ dự án (qua Claude in Chrome) tạo project `vcdocs`, bật API, tạo service account `vcdocs-backend` và khoá JSON (tắt chính sách chặn tạo khoá riêng cho project), thêm domain-wide delegation 8 quyền — đã kiểm tra đủ. Ảnh hướng dẫn lưu `docs/huong-dan/anh/`.
 - Tạo OAuth client, `.env` chế độ thật. Chạy thật: đăng nhập Google thật thành công (sau khi thêm tay bản ghi công ty vào CSDL `vcdocs_that`); Directory đọc được 48 người, 1 nhóm; Drive chưa có shared drive nào cho service account.
-- Drive thật (chỉ đọc) trên `00 VCPV Chung`: đọc được 10 thành viên, 18 thư mục, 61 tệp (52 Docs, 9 Sheets). Chưa ghi gì lên drive.
+- Drive thật (chỉ đọc) trên `00 VCPV Chung`: đọc được 10 thành viên, 18 thư mục, 61 tệp (52 Docs, 9 Sheets). Thử ghi (chủ dự án đồng ý): tạo thư mục `_VCdocs thử` + 1 Docs trống, đọc lại đúng drive/cha, rồi bỏ cả hai vào thùng rác (còn trong thùng rác của drive).
 - Phiên phụ làm BE khởi tạo công ty: commit fca348e trên `claude/khoi-tao-cong-ty`, chưa push, chưa ghép; FE chưa có câu báo `loi=setup`; đề nghị N5.
 - Còn dở: 10 drive còn lại, nhóm C1, sơ đồ tổ chức, ghép nhánh khởi tạo công ty.
 
