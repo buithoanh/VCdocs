@@ -45,7 +45,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
-- [ ] Google thật, còn: thêm `vcdocs-backend@vcdocs.iam.gserviceaccount.com` làm Quản lý cho 10 shared drive còn lại (chủ dự án chọn cả 11; đã có `00 VCPV Chung`), nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
+- [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
 - [ ] Ghép `claude/khoi-tao-cong-ty` (lệnh khởi tạo công ty, `loi=setup`); chốt đề nghị N5; FE thêm câu báo cho `setup`
 - [ ] Máy chủ và hộp thư vcdocs@ (tên miền vcprosperous.com đã có; Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
@@ -70,7 +70,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Tạo OAuth client, `.env` chế độ thật. Chạy thật: đăng nhập Google thật thành công (sau khi thêm tay bản ghi công ty vào CSDL `vcdocs_that`); Directory đọc được 48 người, 1 nhóm; Drive chưa có shared drive nào cho service account.
 - Drive thật (chỉ đọc) trên `00 VCPV Chung`: đọc được 10 thành viên, 18 thư mục, 61 tệp (52 Docs, 9 Sheets). Thử ghi (chủ dự án đồng ý): tạo thư mục `_VCdocs thử` + 1 Docs trống, đọc lại đúng drive/cha, rồi bỏ cả hai vào thùng rác (còn trong thùng rác của drive).
 - Phiên phụ làm BE khởi tạo công ty: commit fca348e trên `claude/khoi-tao-cong-ty`, chưa push, chưa ghép; FE chưa có câu báo `loi=setup`; đề nghị N5.
-- Còn dở: 10 drive còn lại, nhóm C1, sơ đồ tổ chức, ghép nhánh khởi tạo công ty.
+- `vcdocs-backend` đã vào đủ 11 shared drive, vai trò Quản lý.
+- Còn dở: nhóm C1, sơ đồ tổ chức, ghép nhánh khởi tạo công ty.
 
 ### 2026-10-20 · Hợp đồng v1.3 (D21), ghép lần 3
 - Đã làm: chủ dự án chốt D21 → hợp đồng mục 9.4 (rev 21), `contract/openapi.yaml` 1.3.0-gd1. BE sửa D21 và lỗi Google giả mất người dùng khi khởi động lại; ghép vào `giai-doan-1`. Build qua, BE 110/110, FE 69/69. Chạy thật: khởi động trên CSDL cũ vẫn đăng nhập được; HD-MKT-01 trưởng phòng trình huỷ bỏ → GĐ khối KD duyệt → việc nền xong → withdrawn; khởi động lại lần 2 vẫn đăng nhập được.
