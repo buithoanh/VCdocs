@@ -48,7 +48,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
-- [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
+- [ ] Google thật, còn: chủ dự án điền `apps/api/so-do-to-chuc.yaml` (từ mẫu `so-do-to-chuc.mau.yaml`, nhánh `claude/so-do-to-chuc-22aacc`) rồi chạy `nap-so-do`; IT (anh Hùng) tạo 64 nhóm C1 theo báo cáo `nhom-c1` (hiện có 0); sau đó R9 đồng bộ Google
+- [ ] CSDL thật chưa có cây thư mục (`folders` = 0) dù drive đã có thư mục: cần cách nhận cây thư mục sẵn có trên drive vào VCdocs
+- [ ] Ghép nhánh `claude/so-do-to-chuc-22aacc` (lệnh nạp sơ đồ + báo cáo C1) vào `giai-doan-1`/`dev`
 - [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
 - [ ] Dọn 7 nhánh `claude/…` đã gộp/rỗng và worktree của chúng; xoá 2 nhánh lỗi thời trên GitHub (chờ chủ dự án đồng ý)
 - [ ] Dựng máy ảo production theo `deploy/README.md` (IP tĩnh, DNS `vcdocs`, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
@@ -58,6 +60,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
+- Sơ đồ tổ chức (mẫu `apps/api/so-do-to-chuc.mau.yaml`): email GĐ 2 khối, trưởng 11 phòng, người giữ R1/R3/R8/R9; xác nhận khối của BDH, IT, VCE, MH, mã XDV, danh sách division. Nhóm "xem" của drive 00 có chứa cả công ty không, hay drive 00 cấp quyền cả tên miền.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 
 ## 5. Lưu ý & bài học
@@ -69,6 +72,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Sơ đồ tổ chức và nhóm Google C1 (nhánh `claude/so-do-to-chuc-22aacc`, tách từ `giai-doan-1`)
+- Đã làm: khối/phòng/division nằm trong `blocks`, `departments` (số drive, mã, driveId, mức bảo mật, headId, groupEmails), `divisions`; vai trò = nhóm Google (C1) ∪ `manualRoles`. CSDL `vcdocs_that` mới có công ty + 1 người, 0 khối/phòng. File mẫu `apps/api/so-do-to-chuc.mau.yaml` (khối, 11 phòng khớp đúng tên 11 shared drive thật, division; email để trống). Lệnh `pnpm --filter api run nap-so-do -- --file … [--thu]`: chạy lại không trùng, sửa theo file, không xoá, ghi audit `org.import`; người lấy từ Directory; GĐ khối → R2, trưởng phòng → R4 (+ phòng), `vai_tro` → R1/R3/R8/R9 vào `manualRoles` (dùng được trước khi có nhóm). Lệnh `nhom-c1` (chỉ đọc Google): nhóm thiếu/thừa, chưa gắn drive hoặc sai vai trò drive, thiếu người. Chạy thật với file mẫu: 11/11 drive khớp; cần 64 nhóm, có 0 (Directory chỉ có `giao_vien_lop_hoc@`). `nap-so-do --thu` trên `vcdocs_that` chạy đúng (chưa ghi thật). 7 test mới, BE 123/123, 98/98 điểm cuối, build qua. Không sửa `contract/`, không cần đề nghị mới. Chưa push.
+- Còn dở: chủ dự án điền file → chạy `nap-so-do` thật; hỏi IT tạo nhóm C1; ghép nhánh.
 
 ### 2026-10-20 · Cấu hình deploy phương án A (`deploy/`)
 - Đã làm: `deploy/api.Dockerfile` (pnpm deploy --prod, font DejaVu, user node, healthcheck qua /me), `deploy/web.Dockerfile` (Next standalone; `next.config.ts` bật `output: 'standalone'` khi `NEXT_OUTPUT=standalone`), `docker-compose.prod.yml` (caddy/web/api/mongo có mật khẩu, không mở cổng Mongo, dữ liệu ở `DATA_DIR`), `Caddyfile` (`/api/*` thẳng sang api – khớp `trust proxy 1`), mẫu `.env.example` + `api.env.example`, `backup.sh`, `.dockerignore`, hướng dẫn dựng VM `deploy/README.md`. Máy local không có Docker nên chưa build image; đã chạy lại đúng các bước build ngoài Docker: API production (Google thật, khoá giả) khởi động, /me 401, khởi tạo công ty chạy bằng `node dist/khoi-tao.js`, redirect OAuth đúng `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`, cookie Secure; web standalone phục vụ trang + static + chuyển tiếp /api.

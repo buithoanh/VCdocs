@@ -8,6 +8,8 @@
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "khoi-tao": "tsx src/khoi-tao.ts",
+    "nap-so-do": "tsx src/nap-so-do.ts",
+    "nhom-c1": "tsx src/nhom-c1.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "MONGOMS_SYSTEM_BINARY=${MONGOMS_SYSTEM_BINARY:-/usr/local/bin/mongod} jest"
   },

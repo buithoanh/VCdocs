@@ -136,6 +136,37 @@ pnpm --filter api run khoi-tao -- --ten "Công ty TNHH VC Phồn Vinh" --mien vc
 Thiếu `--mien` thì lấy `ALLOWED_DOMAIN`. Lệnh đọc `MONGODB_URI` từ `apps/api/.env`. Trên máy
 chủ đã build: `node dist/khoi-tao.js --ten "…"`.
 
+## Nạp sơ đồ tổ chức và kiểm nhóm Google C1 (Google thật)
+
+Sau khi khởi tạo công ty, nạp khối, phòng (số drive, mã, drive, mức bảo mật, trưởng phòng),
+division và người giữ R1/R3/R8/R9 từ một file YAML. Chép mẫu
+`so-do-to-chuc.mau.yaml` thành `so-do-to-chuc.yaml` (git bỏ qua vì có email người thật), điền rồi:
+
+```bash
+pnpm --filter api run nap-so-do -- --file so-do-to-chuc.yaml --thu   # chỉ in việc sẽ làm
+pnpm --filter api run nap-so-do -- --file so-do-to-chuc.yaml
+```
+
+- Chạy lại không tạo trùng: khối khớp theo mã, phòng theo mã (đổi mã thì khớp theo drive),
+  division theo tiền tố; có rồi thì sửa theo file. Không xoá gì — có trong CSDL mà thiếu
+  trong file thì chỉ cảnh báo. Mỗi thay đổi ghi `audit_logs` (`org.import`).
+- Drive tìm theo tên đúng từng chữ hoặc id. Người chưa có trong CSDL thì lấy từ Google Directory;
+  không có trong Workspace → báo lỗi, không ghi gì.
+- Vai trò: GĐ khối → R2, trưởng phòng → R4 (kèm phòng nếu người đó chưa có phòng), mục `vai_tro`
+  → R1/R3/R8/R9. Ghi vào `manualRoles` (như R9 gán tay), chỉ thêm, không gỡ; nên dùng được
+  ngay cả khi IT chưa tạo nhóm. R5–R7 chỉ đến từ nhóm Google.
+
+Báo cáo nhóm Google theo mẫu C1 (hợp đồng mục 9.3) — chỉ đọc Google, không tạo nhóm:
+
+```bash
+pnpm --filter api run nhom-c1 -- --file so-do-to-chuc.yaml --ra bao-cao-nhom-c1.md
+pnpm --filter api run nhom-c1        # không --file: lấy sơ đồ đã nạp trong CSDL
+```
+
+Liệt kê nhóm cần có (`<số>-<mã>-quan-ly|quan-ly-noi-dung|dong-gop|nhan-xet|xem@`, `vcdocs-r1@`…`r9@`),
+nhóm thiếu, nhóm chưa gắn vào drive hoặc gắn sai vai trò, người theo sơ đồ chưa ở trong nhóm,
+nhóm đúng dạng C1 mà sơ đồ không có. Sau khi IT tạo nhóm, R9 chạy đồng bộ Google (`POST /sync/google`).
+
 ## Những gì còn dùng bản giả hoặc chưa làm
 
 - **Google**: test và chạy local dùng `FakeGoogle` (trong bộ nhớ). Bản thật
