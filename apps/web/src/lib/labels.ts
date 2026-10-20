@@ -230,6 +230,12 @@ export const jobTypeLabel: Record<Job['type'], string> = {
   'record.finalize': 'Chốt hồ sơ',
   'record.scan': 'Gắn bản scan',
   'share.revoke_all': 'Gỡ hết chia sẻ ngoài',
+  'handover.list': 'Liệt kê bàn giao',
+  'handover.execute': 'Chuyển quyền bàn giao',
+  'handover.export': 'Xuất biên bản bàn giao',
+  'audit.verify': 'Kiểm chuỗi nhật ký',
+  'audit.anchor': 'Neo nhật ký',
+  'evidence_pack.build': 'Lập gói bằng chứng',
 };
 
 export function jobTypeText(type?: string): string {

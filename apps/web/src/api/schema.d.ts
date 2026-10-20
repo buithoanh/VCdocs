@@ -288,7 +288,12 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Đổi vai trò hệ thống (R9, không tự sửa vai trò mình); ghi ngày nghỉ việc (R3) → status = leaving và thông báo handover_needed cho R3 (giai đoạn 1, D4) */
+        /**
+         * Đổi vai trò hệ thống (R9, không tự sửa vai trò mình); ghi ngày nghỉ việc (R3) → status = leaving, thông báo handover_needed cho R3 và tự lập biên bản bàn giao (D4, E4)
+         * @description Từ 1.5.0-gd2: ghi lastWorkingDay tự tạo biên bản (isAuto, job handover.list),
+         *     thông báo handover_assigned cho người nhận. Đã có biên bản chưa xong thì cập nhật
+         *     ngày của biên bản đó (verified → received); biên bản executing, done → 409.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -3723,6 +3728,465 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/handovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách biên bản bàn giao (R1, R3, R9 tất cả; R2 khối mình; người nghỉ, người nhận biên bản của mình – E12) */
+        get: {
+            parameters: {
+                query?: {
+                    page?: components["parameters"]["Page"];
+                    limit?: components["parameters"]["Limit"];
+                    /** @description Ví dụ -createdAt,title (dấu trừ = giảm dần) */
+                    sort?: components["parameters"]["Sort"];
+                    status?: components["schemas"]["HandoverStatus"];
+                    userId?: components["schemas"]["Id"];
+                    receiverId?: components["schemas"]["Id"];
+                    departmentId?: components["schemas"]["Id"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HandoverPage"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /**
+         * Lập biên bản bằng tay (R3) – ghi lastWorkingDay, người đó → leaving; 202 job handover.list tự liệt kê (E4, E5)
+         * @description Biên bản được tạo ngay ở trạng thái listing; việc nền handover.list liệt kê
+         *     tài liệu, hồ sơ, phiếu chờ, chia sẻ ngoài, uỷ quyền, file Drive của tôi, nhóm
+         *     Google rồi chuyển sang open. receiverId bỏ trống = người nhận mặc định (E3).
+         *     Mỗi người chỉ một biên bản chưa xong → 409 DUPLICATE.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        userId: components["schemas"]["Id"];
+                        lastWorkingDay: components["schemas"]["Date"];
+                        receiverId?: components["schemas"]["Id"];
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                202: components["responses"]["HandoverAccepted"];
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        /** Chi tiết biên bản kèm items */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Đổi người nhận, ghi chú (R3; khi open hoặc received – E3, E8). Hành động update */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        receiverId?: components["schemas"]["Id"];
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        trace?: never;
+    };
+    "/handovers/{id}/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+                itemId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Đổi cách xử lý một dòng (R3, người nhận; khi open hoặc received – E5, E8). Hành động update-items
+         * @description action phải hợp kind (bảng HandoverItemAction) – sai → 400. toUserId chỉ dùng với reassign; bỏ trống = người nhận của biên bản.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                    itemId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        action?: components["schemas"]["HandoverItemAction"];
+                        toUserId?: components["schemas"]["Id"];
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        trace?: never;
+    };
+    "/handovers/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Liệt kê lại (R3, người nhận; khi open hoặc received) – 202 job handover.list (E6)
+         * @description Dòng cũ giữ action đã sửa, thêm dòng mới, dòng không còn → skipped.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                202: components["responses"]["JobAccepted"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}/confirm-receiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Người nhận xác nhận nhận bàn giao (receiverId) – open → received (E7) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** HCNS kiểm tra (R3) – received → verified; sau ngày làm việc cuối bắt buộc lateReason, thiếu → 422 BR-25 (E9) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        note?: string;
+                        /** @description Bắt buộc khi hôm nay (giờ Việt Nam) sau lastWorkingDay */
+                        lateReason?: string;
+                    };
+                };
+            };
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chuyển quyền (R9) – verified → executing; 202 job handover.execute; không đảo ngược, FE hỏi xác nhận hai lần (E7, E10)
+         * @description Chỉ từ ngày lastWorkingDay trở đi (giờ Việt Nam), sớm hơn → 422 BR-25 (E9).
+         *     Các bước: liệt kê lại → đổi người trong VCdocs → Data Transfer Drive của tôi
+         *     sang người nhận → gỡ khỏi nhóm Google → done. Việc lỗi → biên bản về verified;
+         *     gọi lại chỉ chạy dòng pending, failed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                202: components["responses"]["JobAccepted"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+                502: components["responses"]["DriveError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Xuất BM-VCPV-08 (R3) – 202 job handover.export → { fileId, url }; mọi trạng thái trừ listing, cancelled (E11) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                202: components["responses"]["JobAccepted"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/handovers/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Huỷ biên bản (R3; trước executing) – xoá lastWorkingDay, người đó về active (E7, E8) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                200: components["responses"]["HandoverOk"];
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications": {
         parameters: {
             query?: never;
@@ -3905,6 +4369,392 @@ export interface paths {
         };
         trace?: never;
     };
+    "/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nhật ký thao tác, chỉ đọc (R1, R3, R9 tất cả; R2 khối mình; R4 phòng mình; kiểm toán viên phòng được cấp – E13, E14)
+         * @description Dòng không có departmentId (gồm mọi dòng ghi trước v1.5) chỉ R1, R3, R9 thấy.
+         *     Dòng về đối tượng ở drive người gọi không được xem → không có before, after;
+         *     isRedacted = true (R9 cũng vậy).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: components["parameters"]["Page"];
+                    limit?: components["parameters"]["Limit"];
+                    /** @description Mặc định -seq (mới nhất trước) */
+                    sort?: "-seq" | "seq";
+                    objectType?: string;
+                    objectId?: string;
+                    actorId?: components["schemas"]["Id"];
+                    /** @description So đúng chữ */
+                    action?: string;
+                    departmentId?: components["schemas"]["Id"];
+                    from?: components["schemas"]["DateTime"];
+                    to?: components["schemas"]["DateTime"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditLogPage"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-logs/anchor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mã băm cuối chuỗi, lần kiểm chuỗi và lần neo gần nhất (R1, R3) – không kiểm lại khi gọi (E15) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditAnchor"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-logs/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kiểm toàn chuỗi ngay (R1, R3) – 202 job audit.verify; việc nền cũng chạy 01:00 hằng đêm (E15) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                202: components["responses"]["JobAccepted"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auditor-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách quyền xem tạm (R1, R3 – E16) */
+        get: {
+            parameters: {
+                query?: {
+                    page?: components["parameters"]["Page"];
+                    limit?: components["parameters"]["Limit"];
+                    status?: components["schemas"]["AuditorAccessStatus"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditorAccessPage"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Cấp quyền xem tạm cho kiểm toán viên (R1) – chỉ tài khoản @vcprosperous.com đang làm việc (422 BR-15); expiresAt ≤ 30 ngày (400) (E16) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        departmentIds: components["schemas"]["Id"][];
+                        expiresAt: components["schemas"]["DateTime"];
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditorAccessDetail"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                422: components["responses"]["RuleViolation"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auditor-access/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Thu hồi quyền xem tạm (R1) – status revoked; đã thu hồi hoặc hết hạn → 409 (E16). Hành động revoke */
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã thu hồi */
+                204: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gói bằng chứng (R1, R3, kiểm toán viên trong phạm vi) – 202 job evidence_pack.build → { objectType: evidence_pack, objectId } (E17)
+         * @description Đúng một trong documentId, recordId; thiếu hoặc cả hai → 400.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        documentId?: components["schemas"]["Id"];
+                        recordId?: components["schemas"]["Id"];
+                    };
+                };
+            };
+            responses: {
+                202: components["responses"]["JobAccepted"];
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence-pack/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        /** Thông tin gói bằng chứng (người tạo, R1, R3); hết hạn 7 ngày → 404 (E17) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvidencePackDetail"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evidence-pack/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        /** Tải ZIP (người tạo, R1, R3); hết hạn → 404 (E17) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description File ZIP: manifest.json, PDF, approvals.json, audit-logs.csv, anchor.json */
+                200: {
+                    headers: {
+                        /** @description attachment; filename="…zip" */
+                        "Content-Disposition"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/zip": string;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs": {
         parameters: {
             query?: never;
@@ -4051,6 +4901,25 @@ export interface components {
          * @enum {string}
          */
         HoldReasonType: "dispute" | "inspection" | "warranty" | "receivable" | "contract_open" | "board_request";
+        /**
+         * @description Đang liệt kê · Chờ người nhận · Người nhận đã nhận · HCNS đã kiểm tra · Đang chuyển quyền · Xong · Đã huỷ (E7)
+         * @enum {string}
+         */
+        HandoverStatus: "listing" | "open" | "received" | "verified" | "executing" | "done" | "cancelled";
+        /** @enum {string} */
+        HandoverItemKind: "document" | "record" | "approval_to_decide" | "approval_submitted" | "external_share" | "delegation" | "my_drive_file" | "group_membership";
+        /**
+         * @description Đổi người · Gỡ · Kết thúc · Chuyển sở hữu Google · Gỡ khỏi nhóm · Để nguyên (E5).
+         *     Hợp kind: document, record, approval_to_decide, approval_submitted → reassign, keep;
+         *     external_share → reassign (mặc định), revoke; delegation → end (mặc định), keep;
+         *     my_drive_file → transfer; group_membership → remove, keep.
+         * @enum {string}
+         */
+        HandoverItemAction: "reassign" | "revoke" | "end" | "transfer" | "remove" | "keep";
+        /** @enum {string} */
+        HandoverItemStatus: "pending" | "done" | "skipped" | "failed";
+        /** @enum {string} */
+        AuditorAccessStatus: "active" | "expired" | "revoked";
         /** @enum {string} */
         ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DUPLICATE" | "STATE_INVALID" | "RULE_VIOLATION" | "LOCKED" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "DRIVE_ERROR" | "MAINTENANCE" | "INTERNAL";
         Base: {
@@ -4190,6 +5059,22 @@ export interface components {
                 minorUnlockDays: number;
                 /** @example 100 */
                 uploadMaxMb: number;
+                /**
+                 * @description Hạn tối đa quyền xem tạm (E21, từ 1.5.0)
+                 * @example 30
+                 */
+                auditorMaxDays?: number;
+                /**
+                 * @description Số ngày giữ gói bằng chứng (E21, từ 1.5.0)
+                 * @example 7
+                 */
+                evidencePackDays?: number;
+            };
+            /** @description Có khi tôi đang có quyền xem tạm của kiểm toán viên (E16) */
+            auditorAccess?: {
+                id: components["schemas"]["Id"];
+                departmentIds: components["schemas"]["Id"][];
+                expiresAt: components["schemas"]["DateTime"];
             };
             csrfToken: string;
             sessionExpiresAt?: components["schemas"]["DateTime"];
@@ -4574,9 +5459,192 @@ export interface components {
         ExternalSharePage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["ExternalShare"][];
         };
+        HandoverActions: {
+            allowedActions: ("update" | "update-items" | "refresh" | "confirm-receiver" | "verify" | "execute" | "export" | "cancel")[];
+        };
+        HandoverItem: {
+            id: components["schemas"]["Id"];
+            kind: components["schemas"]["HandoverItemKind"];
+            /**
+             * @description Có với mọi kind trừ my_drive_file, group_membership
+             * @enum {string}
+             */
+            objectType?: "document" | "record" | "approval" | "external_share" | "delegation";
+            objectId?: components["schemas"]["Id"];
+            /** @description Id Google của file (my_drive_file) hoặc file gắn với đối tượng */
+            fileId?: string;
+            /**
+             * Format: email
+             * @description Chỉ group_membership
+             */
+            groupEmail?: string;
+            /** @description Mã + tên tài liệu, số hồ sơ, tên file, email nhóm… để hiện trên biên bản */
+            name: string;
+            /** @description Trạng thái, vai trò của người nghỉ trên đối tượng, ngày sửa… */
+            detail?: string;
+            action: components["schemas"]["HandoverItemAction"];
+            /** @description Người nhận dòng này khi action = reassign; mặc định receiverId */
+            toUserId?: components["schemas"]["Id"];
+            status: components["schemas"]["HandoverItemStatus"];
+            error?: string;
+            note?: string;
+        };
+        Handover: components["schemas"]["Base"] & components["schemas"]["HandoverActions"] & {
+            /** @description Người nghỉ việc */
+            userId: components["schemas"]["Id"];
+            departmentId?: components["schemas"]["Id"];
+            lastWorkingDay: components["schemas"]["Date"];
+            /** @description Mặc định trưởng phòng; người nghỉ là trưởng phòng → GĐ khối (E3) */
+            receiverId: components["schemas"]["Id"];
+            status: components["schemas"]["HandoverStatus"];
+            /** @description true khi tạo từ PATCH /users/{id} lastWorkingDay (E4) */
+            isAuto: boolean;
+            /** @description Đếm dòng theo trạng thái – để danh sách hiện tiến độ mà không cần items */
+            counts: {
+                total: number;
+                pending: number;
+                done: number;
+                skipped: number;
+                failed: number;
+            };
+            receipt?: {
+                at: components["schemas"]["DateTime"];
+                by: components["schemas"]["Id"];
+                note?: string;
+            };
+            verification?: {
+                at: components["schemas"]["DateTime"];
+                by: components["schemas"]["Id"];
+                note?: string;
+                /** @description Kiểm tra sau ngày làm việc cuối (BR-25, E9) */
+                isLate: boolean;
+                lateReason?: string;
+            };
+            execution?: {
+                startedAt?: components["schemas"]["DateTime"];
+                finishedAt?: components["schemas"]["DateTime"];
+                by?: components["schemas"]["Id"];
+                jobId?: components["schemas"]["Id"];
+            };
+            /** @description Việc handover.list gần nhất */
+            listJobId?: components["schemas"]["Id"];
+            /** @description File BM-VCPV-08 xuất gần nhất (E11) */
+            exportFileId?: string;
+            cancelledAt?: components["schemas"]["DateTime"];
+            cancelledBy?: components["schemas"]["Id"];
+            cancelReason?: string;
+            note?: string;
+            /** @description Chỉ có ở chi tiết; danh sách không trả items */
+            items?: components["schemas"]["HandoverItem"][];
+        };
+        /** @description Handover kèm items và people (chi tiết một đối tượng, D17) */
+        HandoverDetail: components["schemas"]["Handover"] & components["schemas"]["WithPeople"] & Record<string, never>;
+        HandoverPage: components["schemas"]["PageMeta"] & {
+            items: components["schemas"]["Handover"][];
+        };
+        /** @description Một dòng audit_logs – chỉ thêm, không sửa xoá; hash = SHA-256(prevHash + nội dung dòng) */
+        AuditLog: {
+            id: components["schemas"]["Id"];
+            /** @description Số thứ tự trong chuỗi của công ty */
+            seq: number;
+            at: components["schemas"]["DateTime"];
+            /** @description Trống với việc nền, Google */
+            actorId?: components["schemas"]["Id"];
+            actorEmail?: string;
+            /** @description Ví dụ user.update, record.finalize, handover.execute, auditor.view */
+            action: string;
+            objectType?: string;
+            objectId?: string;
+            /** @description Phòng của đối tượng (từ v1.5, E14) */
+            departmentId?: components["schemas"]["Id"];
+            /** @description Giá trị trước; không có khi isRedacted */
+            before?: unknown;
+            /** @description Giá trị sau; không có khi isRedacted */
+            after?: unknown;
+            /** @enum {string} */
+            result: "ok" | "denied";
+            requestId?: string;
+            ip?: string;
+            device?: string;
+            prevHash: string;
+            hash: string;
+            /** @description true = đối tượng ở drive người gọi không được xem, đã bỏ before, after (E14) */
+            isRedacted: boolean;
+        };
+        AuditLogPage: components["schemas"]["PageMeta"] & {
+            items: components["schemas"]["AuditLog"][];
+        };
+        AuditAnchor: {
+            /** @description 0 khi chưa có dòng nào */
+            lastSeq: number;
+            lastHash?: string;
+            lastAt?: components["schemas"]["DateTime"];
+            verification: {
+                /**
+                 * @description never = chưa kiểm lần nào
+                 * @enum {string}
+                 */
+                status: "ok" | "broken" | "never";
+                checkedAt?: components["schemas"]["DateTime"];
+                /** @description Số dòng đã kiểm */
+                count?: number;
+                /** @description Dòng đầu tiên bị lệch khi status = broken */
+                brokenAtSeq?: number;
+                jobId?: components["schemas"]["Id"];
+            };
+            /** @description Lần neo gần nhất (07:00 thứ Hai): email cho R1 + dòng trong file Sheets khoá ở drive 01 BĐH */
+            latestAnchor?: {
+                at: components["schemas"]["DateTime"];
+                seq: number;
+                hash: string;
+                sentTo?: string[];
+                /** @description File Sheets "Mỏ neo nhật ký VCdocs" */
+                fileId?: string;
+            };
+        };
+        AuditorAccessActions: {
+            allowedActions: "revoke"[];
+        };
+        AuditorAccess: components["schemas"]["Base"] & components["schemas"]["AuditorAccessActions"] & {
+            /** Format: email */
+            email: string;
+            userId: components["schemas"]["Id"];
+            departmentIds: components["schemas"]["Id"][];
+            expiresAt: components["schemas"]["DateTime"];
+            reason?: string;
+            grantedBy: components["schemas"]["Id"];
+            status: components["schemas"]["AuditorAccessStatus"];
+            revokedAt?: components["schemas"]["DateTime"];
+            revokedBy?: components["schemas"]["Id"];
+            lastUsedAt?: components["schemas"]["DateTime"];
+        };
+        /** @description AuditorAccess kèm people (chi tiết một đối tượng, D17) */
+        AuditorAccessDetail: components["schemas"]["AuditorAccess"] & components["schemas"]["WithPeople"];
+        AuditorAccessPage: components["schemas"]["PageMeta"] & {
+            items: components["schemas"]["AuditorAccess"][];
+        };
+        EvidencePack: components["schemas"]["Base"] & {
+            /** @enum {string} */
+            targetType: "document" | "record";
+            targetId: components["schemas"]["Id"];
+            /** @description Nội dung ZIP, như manifest.json */
+            files: {
+                /** @example pdf/QT-MKT-01 v2.pdf */
+                path: string;
+                sha256: string;
+                sizeBytes: number;
+            }[];
+            /** @description Mã băm của cả file ZIP */
+            sha256: string;
+            sizeBytes: number;
+            /** @description Xoá khỏi máy chủ sau 7 ngày */
+            expiresAt: components["schemas"]["DateTime"];
+        };
+        /** @description EvidencePack kèm people (chi tiết một đối tượng, D17) */
+        EvidencePackDetail: components["schemas"]["EvidencePack"] & components["schemas"]["WithPeople"];
         Notification: {
             id: components["schemas"]["Id"];
-            /** @description Ví dụ approval_pending, approval_decided, document_issued, share_expiring, job_done, job_failed */
+            /** @description Ví dụ approval_pending, approval_decided, document_issued, share_expiring, job_done, job_failed; giai đoạn 2 (E19): handover_needed, handover_assigned, handover_verify_due, handover_ready, handover_done, handover_overdue, auditor_access_granted, audit_chain_broken */
             type: string;
             title: string;
             body?: string;
@@ -4598,7 +5666,7 @@ export interface components {
         };
         Job: components["schemas"]["Base"] & {
             /** @enum {string} */
-            type: "document.withdraw" | "google.sync" | "codes.export" | "folder.create" | "folder.close_project" | "folder.ensure_periods" | "document.create_draft" | "document.issue" | "documents.catalog_export" | "external_document.import" | "record_types.catalog_export" | "record.create" | "record.upload" | "record.claim" | "record.finalize" | "record.scan" | "share.revoke_all";
+            type: "handover.list" | "handover.execute" | "handover.export" | "audit.verify" | "audit.anchor" | "evidence_pack.build" | "document.withdraw" | "google.sync" | "codes.export" | "folder.create" | "folder.close_project" | "folder.ensure_periods" | "document.create_draft" | "document.issue" | "documents.catalog_export" | "external_document.import" | "record_types.catalog_export" | "record.create" | "record.upload" | "record.claim" | "record.finalize" | "record.scan" | "share.revoke_all";
             status: components["schemas"]["JobStatus"];
             progress: number;
             steps: {
@@ -4606,10 +5674,10 @@ export interface components {
                 status: components["schemas"]["JobStatus"];
                 error?: string;
             }[];
-            /** @description Không có với google.sync, folder.ensure_periods, share.revoke_all (D16). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file */
+            /** @description Không có với google.sync, folder.ensure_periods, share.revoke_all (D16), audit.verify, audit.anchor, handover.list (E18). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file */
             result?: {
                 /** @enum {string} */
-                objectType: "document" | "record" | "folder" | "approval" | "external_share" | "code" | "record_type";
+                objectType: "document" | "record" | "folder" | "approval" | "external_share" | "code" | "record_type" | "handover" | "evidence_pack";
                 objectId: components["schemas"]["Id"];
             } | {
                 fileId: string;
@@ -4711,6 +5779,28 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["ExternalShareDetail"];
+            };
+        };
+        /** @description OK */
+        HandoverOk: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["HandoverDetail"];
+            };
+        };
+        /** @description Đã tạo biên bản (status listing), việc liệt kê chạy nền */
+        HandoverAccepted: {
+            headers: {
+                "X-Audit-Id": components["headers"]["AuditId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    jobId: components["schemas"]["Id"];
+                    handoverId: components["schemas"]["Id"];
+                };
             };
         };
         /** @description Dữ liệu sai (VALIDATION) */
