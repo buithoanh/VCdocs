@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 1.2.0-gd1
+  version: 1.3.0-gd1
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
@@ -684,7 +684,7 @@ paths:
     parameters: [{ $ref: '#/components/parameters/IdPath' }]
     post:
       tags: [M04 Tài liệu hệ thống]
-      summary: Trình huỷ bỏ (R4) – tạo Approval document_withdrawal (BR-08)
+      summary: 'Trình huỷ bỏ (R4) – tạo Approval document_withdrawal (BR-08). HD, BM cấp phòng do trưởng phòng trình thì GĐ khối phụ trách duyệt (D21, BR-05)'
       parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
       requestBody:
         required: true
