@@ -18,9 +18,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - **Mục tiêu:** Phần mềm quản lý tài liệu – hồ sơ VCdocs cho VCPV. Giao diện Next.js, máy chủ NestJS, MongoDB, tích hợp Google Drive.
 - **Tài liệu gốc (Claude Docs):**
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
-  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 22: đủ mục 1–9; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
+  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 24, v1.5: đủ mục 1–10, mục 10 = giai đoạn 2 đợt 1 M10 + M15 và bảng phân giai đoạn 10.1; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
 - **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
+- **Giai đoạn 2:** nhánh `giai-doan-2` (cắt từ `giai-doan-1`) có hợp đồng v1.5, `contract/openapi.yaml` 1.5.0-gd2 (M10 Bàn giao, M15 Nhật ký, 118 điểm cuối). Chưa code tính năng; chờ mở 2 phiên FE/BE từ nhánh này.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
@@ -28,6 +29,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 | Ngày | Quyết định | Lý do |
 |------|-----------|-------|
+| 2026-10-20 | Giai đoạn 2 đợt 1 = M10 Bàn giao + M15 Nhật ký (hợp đồng mục 10, v1.5, E1–E21); M11, M12, M13, M16 đợt sau. Chia sẻ ngoài của người nghỉ chuyển cho người nhận; HCNS kiểm tra trễ phải ghi lý do; chuyển quyền từ ngày làm việc cuối, hôm sau VCdocs tự khoá (left); kiểm toán viên chỉ tài khoản @vcprosperous.com, ≤ 30 ngày. OpenAPI 1.5.0-gd2 (chỉ thêm, không lên 2.0) | Chủ dự án chọn theo đề xuất; BE đã có audit_logs mã băm và trạng thái leaving |
 | 2026-10-20 | Có nhánh `dev`: code mới (nhánh giai đoạn, nhánh phiên `claude/…`) merge vào `dev` trước; `main` chỉ nhận từ `dev` khi chủ dự án cho phép | Chủ dự án yêu cầu; giữ `main` ổn định |
 | 2026-10-20 | Deploy phương án A: 1 máy ảo Compute Engine `e2-medium` ở `asia-southeast1` (project `vcdocs`), Docker Compose (caddy, web, api, mongo), tên miền `vcdocs.vcprosperous.com`; đĩa dữ liệu riêng có snapshot + `deploy/backup.sh` lên Cloud Storage. Cấu hình và hướng dẫn ở `deploy/` | Chạy được ngay không sửa logic; kho PDF nằm trên đĩa và lịch định kỳ chỉ chạy 1 bản nên hợp với 1 máy |
 | 2026-10-19 | Quy trình code: chốt hợp đồng → viết tay `contract/openapi.yaml` → lát mỏng đầu cuối (khung monorepo, đăng nhập Google, `/me`, CSRF, mẫu lỗi) → 2 phiên FE (`apps/web`, chạy trên mock) và BE (`apps/api`, có test kiểm hợp đồng) song song trên 2 worktree, không phiên nào sửa `contract/` → 1 phiên ghép, test đầu cuối | FE và BE làm song song mà không chờ nhau, lệch được phát hiện sớm |
@@ -45,9 +47,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ## 3. Việc đang làm / cần làm
 
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
-- [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
+- [ ] Mở 2 phiên FE/BE giai đoạn 2 (M10, M15) từ nhánh `giai-doan-2`
+- [ ] IT thêm 2 quyền uỷ quyền toàn tên miền cho `vcdocs-backend` (`admin.datatransfer`, `admin.directory.group.member`) trước khi chạy thật bàn giao; BE thêm vào `real-google.ts`
+- [ ] Rà 22 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn; 6 chỗ mới của giai đoạn 2)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
-- [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
 - [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
 - [ ] Dọn 7 nhánh `claude/…` đã gộp/rỗng và worktree của chúng; xoá 2 nhánh lỗi thời trên GitHub (chờ chủ dự án đồng ý)
@@ -66,9 +69,15 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
+- Từ 1.5.0-gd2, test BE (`pnpm --filter @vcdocs/api test`) báo lỗi ở cổng độ phủ 98/118 cho tới khi BE làm xong M10, M15; muốn chỉ kiểm phần cũ thì đặt `ALLOW_PARTIAL_COVERAGE=1`. FE dùng `Record<enum, …>` đầy đủ (vd `jobTypeLabel`): hợp đồng thêm giá trị enum thì FE lỗi build, phải thêm nhãn.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Chuẩn bị hợp đồng giai đoạn 2: M10 Bàn giao, M15 Nhật ký (nhánh `giai-doan-2`)
+- Đã làm: đọc hợp đồng rev 22, BA (M10, M15, BR-25, 11.2 #20), mã audit_logs và PATCH /users leaving. Chủ dự án chốt 4 điểm nghiệp vụ theo đề xuất và đồng ý toàn bộ phần kỹ thuật → hợp đồng mục 10 (rev 24, v1.5): 10.1 phân giai đoạn mọi điểm cuối, 10.2 đối tượng mới, E1–E21; mục 6 thêm quyền `admin.directory.group.member`; Lịch sử v1.5. `contract/openapi.yaml` 1.5.0-gd2 (+20 điểm cuối, 6 `x-gia-dinh` mới), lint đạt; `NGUON.md`, `README.md`. Sinh lại `apps/web/src/api/schema.d.ts`; FE phải thêm 6 nhãn `jobTypeLabel` và cho `jobResultLink` bỏ qua loại chưa có trang (lỗi build vì enum mới). Build qua, FE 72/72, BE 116/116 (độ phủ 98/118 – 20 điểm cuối mới chờ BE). Commit trên `giai-doan-2`, chưa push.
+- Còn dở: mở 2 phiên FE/BE; IT thêm 2 quyền DWD; xuất lại hợp đồng vào `docs/` (nhánh `dev`).
+
 
 ### 2026-10-20 · Cấu hình deploy phương án A (`deploy/`)
 - Đã làm: `deploy/api.Dockerfile` (pnpm deploy --prod, font DejaVu, user node, healthcheck qua /me), `deploy/web.Dockerfile` (Next standalone; `next.config.ts` bật `output: 'standalone'` khi `NEXT_OUTPUT=standalone`), `docker-compose.prod.yml` (caddy/web/api/mongo có mật khẩu, không mở cổng Mongo, dữ liệu ở `DATA_DIR`), `Caddyfile` (`/api/*` thẳng sang api – khớp `trust proxy 1`), mẫu `.env.example` + `api.env.example`, `backup.sh`, `.dockerignore`, hướng dẫn dựng VM `deploy/README.md`. Máy local không có Docker nên chưa build image; đã chạy lại đúng các bước build ngoài Docker: API production (Google thật, khoá giả) khởi động, /me 401, khởi tạo công ty chạy bằng `node dist/khoi-tao.js`, redirect OAuth đúng `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`, cookie Secure; web standalone phục vụ trang + static + chuyển tiếp /api.

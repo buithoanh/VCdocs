@@ -35,7 +35,8 @@ export function jobResultLink(job?: Job): { href: string; text: string; external
   const r = job?.result;
   if (!r) return undefined;
   if ('objectType' in r && r.objectId) {
-    const map: Record<typeof r.objectType, [string, string]> = {
+    // Partial: loại đối tượng của giai đoạn sau (handover, evidence_pack) chưa có trang thì không hiện link
+    const map: Partial<Record<typeof r.objectType, [string, string]>> = {
       record: ['/ho-so/', 'Mở hồ sơ'],
       document: ['/tai-lieu/', 'Mở tài liệu'],
       folder: ['/thu-muc?folder=', 'Mở thư mục'],

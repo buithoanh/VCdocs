@@ -1,11 +1,18 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 1.4.0-gd1
+  version: 1.5.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
-    https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
-    M01–M09, M14 và /jobs.
+    https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT). Phạm vi:
+    - Giai đoạn 1: M01–M09, M14 và /jobs (98 điểm cuối, không đổi so với 1.4.0-gd1).
+    - Giai đoạn 2 đợt 1 (hợp đồng mục 10, v1.5): M10 Bàn giao, M15 Nhật ký (20 điểm cuối).
+    - Chưa có: M11, M12, M13, M16 (giai đoạn 2 đợt sau); Zalo (giai đoạn 3).
+
+    Phiên bản 1.5.0 (không phải 2.0.0): mục 10 chỉ thêm điểm cuối, trường, giá trị
+    enum ở phản hồi và trường tuỳ chọn ở /me – FE, BE giai đoạn 1 vẫn khớp (hợp đồng
+    mục 7 "Đổi hợp đồng"). Đuôi -gd2 = phạm vi file. Thay đổi hành vi duy nhất:
+    PATCH /users/{id} lastWorkingDay tự lập biên bản bàn giao (D4, E4).
 
     File này VIẾT TAY và là gốc cho cả FE (apps/web) lẫn BE (apps/api).
     Không sinh từ mã. Phiên FE/BE không được sửa file này; thấy cần sửa thì
@@ -58,7 +65,9 @@ tags:
   - name: M07 Hồ sơ
   - name: M08 Tra cứu
   - name: M09 Chia sẻ ngoài
+  - name: M10 Bàn giao
   - name: M14 Thông báo
+  - name: M15 Nhật ký
   - name: Việc nền
 
 paths:
@@ -152,7 +161,11 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
       tags: [M01 Đăng nhập, người dùng]
-      summary: 'Đổi vai trò hệ thống (R9, không tự sửa vai trò mình); ghi ngày nghỉ việc (R3) → status = leaving và thông báo handover_needed cho R3 (giai đoạn 1, D4)'
+      summary: 'Đổi vai trò hệ thống (R9, không tự sửa vai trò mình); ghi ngày nghỉ việc (R3) → status = leaving, thông báo handover_needed cho R3 và tự lập biên bản bàn giao (D4, E4)'
+      description: |
+        Từ 1.5.0-gd2: ghi lastWorkingDay tự tạo biên bản (isAuto, job handover.list),
+        thông báo handover_assigned cho người nhận. Đã có biên bản chưa xong thì cập nhật
+        ngày của biên bản đó (verified → received); biên bản executing, done → 409.
       parameters: [{ $ref: '#/components/parameters/Csrf' }]
       requestBody:
         required: true
@@ -1331,6 +1344,203 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/RuleViolation' }
 
+  # ───────────────────────── M10 (giai đoạn 2, hợp đồng mục 10.3) ─────────────────────────
+  /handovers:
+    get:
+      tags: [M10 Bàn giao]
+      summary: Danh sách biên bản bàn giao (R1, R3, R9 tất cả; R2 khối mình; người nghỉ, người nhận biên bản của mình – E12)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/HandoverStatus' } }
+        - { name: userId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: receiverId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/HandoverPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Lập biên bản bằng tay (R3) – ghi lastWorkingDay, người đó → leaving; 202 job handover.list tự liệt kê (E4, E5)'
+      description: |
+        Biên bản được tạo ngay ở trạng thái listing; việc nền handover.list liệt kê
+        tài liệu, hồ sơ, phiếu chờ, chia sẻ ngoài, uỷ quyền, file Drive của tôi, nhóm
+        Google rồi chuyển sang open. receiverId bỏ trống = người nhận mặc định (E3).
+        Mỗi người chỉ một biên bản chưa xong → 409 DUPLICATE.
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, lastWorkingDay]
+              properties:
+                userId: { $ref: '#/components/schemas/Id' }
+                lastWorkingDay: { $ref: '#/components/schemas/Date' }
+                receiverId: { $ref: '#/components/schemas/Id' }
+                note: { type: string, maxLength: 2000 }
+      responses:
+        '202': { $ref: '#/components/responses/HandoverAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /handovers/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M10 Bàn giao]
+      summary: Chi tiết biên bản kèm items
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [M10 Bàn giao]
+      summary: 'Đổi người nhận, ghi chú (R3; khi open hoặc received – E3, E8). Hành động update'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                receiverId: { $ref: '#/components/schemas/Id' }
+                note: { type: string, maxLength: 2000 }
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /handovers/{id}/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+      - { name: itemId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    patch:
+      tags: [M10 Bàn giao]
+      summary: 'Đổi cách xử lý một dòng (R3, người nhận; khi open hoặc received – E5, E8). Hành động update-items'
+      description: 'action phải hợp kind (bảng HandoverItemAction) – sai → 400. toUserId chỉ dùng với reassign; bỏ trống = người nhận của biên bản.'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action: { $ref: '#/components/schemas/HandoverItemAction' }
+                toUserId: { $ref: '#/components/schemas/Id' }
+                note: { type: string, maxLength: 2000 }
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /handovers/{id}/refresh:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Liệt kê lại (R3, người nhận; khi open hoặc received) – 202 job handover.list (E6)'
+      description: 'Dòng cũ giữ action đã sửa, thêm dòng mới, dòng không còn → skipped.'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /handovers/{id}/confirm-receiver:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Người nhận xác nhận nhận bàn giao (receiverId) – open → received (E7)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { note: { type: string, maxLength: 2000 } } }
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /handovers/{id}/verify:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'HCNS kiểm tra (R3) – received → verified; sau ngày làm việc cuối bắt buộc lateReason, thiếu → 422 BR-25 (E9)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 2000 }
+                lateReason: { type: string, maxLength: 2000, description: 'Bắt buộc khi hôm nay (giờ Việt Nam) sau lastWorkingDay' }
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /handovers/{id}/execute:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Chuyển quyền (R9) – verified → executing; 202 job handover.execute; không đảo ngược, FE hỏi xác nhận hai lần (E7, E10)'
+      description: |
+        Chỉ từ ngày lastWorkingDay trở đi (giờ Việt Nam), sớm hơn → 422 BR-25 (E9).
+        Các bước: liệt kê lại → đổi người trong VCdocs → Data Transfer Drive của tôi
+        sang người nhận → gỡ khỏi nhóm Google → done. Việc lỗi → biên bản về verified;
+        gọi lại chỉ chạy dòng pending, failed.
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+        '502': { $ref: '#/components/responses/DriveError' }
+  /handovers/{id}/export:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Xuất BM-VCPV-08 (R3) – 202 job handover.export → { fileId, url }; mọi trạng thái trừ listing, cancelled (E11)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /handovers/{id}/cancel:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    post:
+      tags: [M10 Bàn giao]
+      summary: 'Huỷ biên bản (R3; trước executing) – xoá lastWorkingDay, người đó về active (E7, E8)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 2000 } } }
+      responses:
+        '200': { $ref: '#/components/responses/HandoverOk' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   # ───────────────────────── M14 ─────────────────────────
   /notifications:
     get:
@@ -1374,6 +1584,141 @@ paths:
         '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/NotificationSettings' } } } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '422': { $ref: '#/components/responses/RuleViolation' }
+
+  # ───────────────────────── M15 (giai đoạn 2, hợp đồng mục 10.4) ─────────────────────────
+  /audit-logs:
+    get:
+      tags: [M15 Nhật ký]
+      summary: 'Nhật ký thao tác, chỉ đọc (R1, R3, R9 tất cả; R2 khối mình; R4 phòng mình; kiểm toán viên phòng được cấp – E13, E14)'
+      description: |
+        Dòng không có departmentId (gồm mọi dòng ghi trước v1.5) chỉ R1, R3, R9 thấy.
+        Dòng về đối tượng ở drive người gọi không được xem → không có before, after;
+        isRedacted = true (R9 cũng vậy).
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: sort, in: query, description: 'Mặc định -seq (mới nhất trước)', schema: { type: string, enum: [-seq, seq], default: -seq }, x-gia-dinh: 'Chỉ cho sắp theo seq' }
+        - { name: objectType, in: query, schema: { type: string } }
+        - { name: objectId, in: query, schema: { type: string } }
+        - { name: actorId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: action, in: query, description: 'So đúng chữ', schema: { type: string } }
+        - { name: departmentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: from, in: query, schema: { $ref: '#/components/schemas/DateTime' } }
+        - { name: to, in: query, schema: { $ref: '#/components/schemas/DateTime' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/AuditLogPage' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /audit-logs/anchor:
+    get:
+      tags: [M15 Nhật ký]
+      summary: 'Mã băm cuối chuỗi, lần kiểm chuỗi và lần neo gần nhất (R1, R3) – không kiểm lại khi gọi (E15)'
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/AuditAnchor' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /audit-logs/verify:
+    post:
+      tags: [M15 Nhật ký]
+      summary: 'Kiểm toàn chuỗi ngay (R1, R3) – 202 job audit.verify; việc nền cũng chạy 01:00 hằng đêm (E15)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /auditor-access:
+    get:
+      tags: [M15 Nhật ký]
+      summary: 'Danh sách quyền xem tạm (R1, R3 – E16)'
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/AuditorAccessStatus' } }
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/AuditorAccessPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [M15 Nhật ký]
+      summary: 'Cấp quyền xem tạm cho kiểm toán viên (R1) – chỉ tài khoản @vcprosperous.com đang làm việc (422 BR-15); expiresAt ≤ 30 ngày (400) (E16)'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, departmentIds, expiresAt]
+              properties:
+                email: { type: string, format: email }
+                departmentIds: { type: array, minItems: 1, uniqueItems: true, items: { $ref: '#/components/schemas/Id' } }
+                expiresAt: { $ref: '#/components/schemas/DateTime' }
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        '201': { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/AuditorAccessDetail' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+  /auditor-access/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    delete:
+      tags: [M15 Nhật ký]
+      summary: 'Thu hồi quyền xem tạm (R1) – status revoked; đã thu hồi hoặc hết hạn → 409 (E16). Hành động revoke'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 'Đã thu hồi', headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /evidence-pack:
+    post:
+      tags: [M15 Nhật ký]
+      summary: 'Gói bằng chứng (R1, R3, kiểm toán viên trong phạm vi) – 202 job evidence_pack.build → { objectType: evidence_pack, objectId } (E17)'
+      description: 'Đúng một trong documentId, recordId; thiếu hoặc cả hai → 400.'
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                documentId: { $ref: '#/components/schemas/Id' }
+                recordId: { $ref: '#/components/schemas/Id' }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /evidence-pack/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M15 Nhật ký]
+      summary: 'Thông tin gói bằng chứng (người tạo, R1, R3); hết hạn 7 ngày → 404 (E17)'
+      responses:
+        '200': { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/EvidencePackDetail' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /evidence-pack/{id}/download:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [M15 Nhật ký]
+      summary: 'Tải ZIP (người tạo, R1, R3); hết hạn → 404 (E17)'
+      responses:
+        '200':
+          description: 'File ZIP: manifest.json, PDF, approvals.json, audit-logs.csv, anchor.json'
+          headers:
+            Content-Disposition: { description: 'attachment; filename="…zip"', schema: { type: string } }
+          content:
+            application/zip: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ───────────────────────── Việc nền ─────────────────────────
   /jobs:
@@ -1435,6 +1780,15 @@ components:
     ApprovalOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalDetail' } } } }
     ExternalShareOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/ExternalShareDetail' } } } }
     ExternalShareOk201: { description: 'Đã tạo', content: { application/json: { schema: { $ref: '#/components/schemas/ExternalShareDetail' } } } }
+    HandoverOk: { description: 'OK', content: { application/json: { schema: { $ref: '#/components/schemas/HandoverDetail' } } } }
+    HandoverAccepted:
+      description: 'Đã tạo biên bản (status listing), việc liệt kê chạy nền'
+      x-gia-dinh: 'Hợp đồng chỉ ghi 202 job; thêm handoverId để FE mở biên bản ngay'
+      headers:
+        X-Audit-Id: { $ref: '#/components/headers/AuditId' }
+      content:
+        application/json:
+          schema: { type: object, required: [jobId, handoverId], properties: { jobId: { $ref: '#/components/schemas/Id' }, handoverId: { $ref: '#/components/schemas/Id' } } }
     BadRequest: { description: 'Dữ liệu sai (VALIDATION)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Unauthorized: { description: 'Chưa đăng nhập', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Forbidden: { description: 'Không có quyền (FORBIDDEN)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
@@ -1475,6 +1829,19 @@ components:
     CodeType: { type: string, enum: [department, function, channel, project, division], x-gia-dinh: 'Hợp đồng không liệt kê loại mã' }
     CodeStatus: { type: string, enum: [pending, approved, rejected, retired], x-gia-dinh: 'Hợp đồng chỉ nói pending' }
     HoldReasonType: { type: string, enum: [dispute, inspection, warranty, receivable, contract_open, board_request], description: 'Tranh chấp · Thanh tra, kiểm toán · Bảo hành · Công nợ · Hợp đồng chưa thanh lý · Ban Điều hành yêu cầu (BR-22, D5)' }
+    HandoverStatus: { type: string, enum: [listing, open, received, verified, executing, done, cancelled], description: 'Đang liệt kê · Chờ người nhận · Người nhận đã nhận · HCNS đã kiểm tra · Đang chuyển quyền · Xong · Đã huỷ (E7)' }
+    HandoverItemKind: { type: string, enum: [document, record, approval_to_decide, approval_submitted, external_share, delegation, my_drive_file, group_membership] }
+    HandoverItemAction:
+      type: string
+      enum: [reassign, revoke, end, transfer, remove, keep]
+      description: |
+        Đổi người · Gỡ · Kết thúc · Chuyển sở hữu Google · Gỡ khỏi nhóm · Để nguyên (E5).
+        Hợp kind: document, record, approval_to_decide, approval_submitted → reassign, keep;
+        external_share → reassign (mặc định), revoke; delegation → end (mặc định), keep;
+        my_drive_file → transfer; group_membership → remove, keep.
+      x-gia-dinh: 'Hợp đồng chỉ ghi action mặc định; các action thay thế (keep, revoke) do file này chọn'
+    HandoverItemStatus: { type: string, enum: [pending, done, skipped, failed] }
+    AuditorAccessStatus: { type: string, enum: [active, expired, revoked] }
     ErrorCode: { type: string, enum: [VALIDATION, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, DUPLICATE, STATE_INVALID, RULE_VIOLATION, LOCKED, PAYLOAD_TOO_LARGE, RATE_LIMITED, DRIVE_ERROR, MAINTENANCE, INTERNAL] }
 
     # ── Khung chung ──
@@ -1657,6 +2024,16 @@ components:
             approvalDueDays: { type: integer, example: 3 }
             minorUnlockDays: { type: integer, example: 3 }
             uploadMaxMb: { type: integer, example: 100 }
+            auditorMaxDays: { type: integer, example: 30, description: 'Hạn tối đa quyền xem tạm (E21, từ 1.5.0)' }
+            evidencePackDays: { type: integer, example: 7, description: 'Số ngày giữ gói bằng chứng (E21, từ 1.5.0)' }
+        auditorAccess:
+          type: object
+          description: 'Có khi tôi đang có quyền xem tạm của kiểm toán viên (E16)'
+          required: [id, departmentIds, expiresAt]
+          properties:
+            id: { $ref: '#/components/schemas/Id' }
+            departmentIds: { type: array, items: { $ref: '#/components/schemas/Id' } }
+            expiresAt: { $ref: '#/components/schemas/DateTime' }
         csrfToken: { type: string }
         sessionExpiresAt: { $ref: '#/components/schemas/DateTime' }
     User:
@@ -2112,13 +2489,210 @@ components:
         - $ref: '#/components/schemas/PageMeta'
         - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/ExternalShare' } } } }
 
+    # ── M10 (giai đoạn 2, hợp đồng mục 10.2, 10.3) ──
+    HandoverActions:
+      type: object
+      required: [allowedActions]
+      properties:
+        allowedActions: { type: array, uniqueItems: true, items: { type: string, enum: [update, update-items, refresh, confirm-receiver, verify, execute, export, cancel] } }
+    HandoverItem:
+      type: object
+      required: [id, kind, name, action, status]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        kind: { $ref: '#/components/schemas/HandoverItemKind' }
+        objectType: { type: string, enum: [document, record, approval, external_share, delegation], description: 'Có với mọi kind trừ my_drive_file, group_membership' }
+        objectId: { $ref: '#/components/schemas/Id' }
+        fileId: { type: string, description: 'Id Google của file (my_drive_file) hoặc file gắn với đối tượng' }
+        groupEmail: { type: string, format: email, description: 'Chỉ group_membership', x-gia-dinh: 'Hợp đồng không ghi trường cho nhóm Google' }
+        name: { type: string, description: 'Mã + tên tài liệu, số hồ sơ, tên file, email nhóm… để hiện trên biên bản' }
+        detail: { type: string, description: 'Trạng thái, vai trò của người nghỉ trên đối tượng, ngày sửa…' }
+        action: { $ref: '#/components/schemas/HandoverItemAction' }
+        toUserId: { $ref: '#/components/schemas/Id', description: 'Người nhận dòng này khi action = reassign; mặc định receiverId' }
+        status: { $ref: '#/components/schemas/HandoverItemStatus' }
+        error: { type: string }
+        note: { type: string }
+    Handover:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/HandoverActions'
+        - type: object
+          required: [userId, lastWorkingDay, receiverId, status, isAuto, counts]
+          properties:
+            userId: { $ref: '#/components/schemas/Id', description: 'Người nghỉ việc' }
+            departmentId: { $ref: '#/components/schemas/Id' }
+            lastWorkingDay: { $ref: '#/components/schemas/Date' }
+            receiverId: { $ref: '#/components/schemas/Id', description: 'Mặc định trưởng phòng; người nghỉ là trưởng phòng → GĐ khối (E3)' }
+            status: { $ref: '#/components/schemas/HandoverStatus' }
+            isAuto: { type: boolean, description: 'true khi tạo từ PATCH /users/{id} lastWorkingDay (E4)' }
+            counts:
+              type: object
+              description: 'Đếm dòng theo trạng thái – để danh sách hiện tiến độ mà không cần items'
+              x-gia-dinh: 'Hợp đồng không ghi; thêm để danh sách rút gọn vẫn hiện tiến độ'
+              required: [total, pending, done, skipped, failed]
+              properties:
+                total: { type: integer, minimum: 0 }
+                pending: { type: integer, minimum: 0 }
+                done: { type: integer, minimum: 0 }
+                skipped: { type: integer, minimum: 0 }
+                failed: { type: integer, minimum: 0 }
+            receipt:
+              type: object
+              required: [at, by]
+              properties: { at: { $ref: '#/components/schemas/DateTime' }, by: { $ref: '#/components/schemas/Id' }, note: { type: string } }
+            verification:
+              type: object
+              required: [at, by, isLate]
+              properties:
+                at: { $ref: '#/components/schemas/DateTime' }
+                by: { $ref: '#/components/schemas/Id' }
+                note: { type: string }
+                isLate: { type: boolean, description: 'Kiểm tra sau ngày làm việc cuối (BR-25, E9)' }
+                lateReason: { type: string }
+            execution:
+              type: object
+              properties:
+                startedAt: { $ref: '#/components/schemas/DateTime' }
+                finishedAt: { $ref: '#/components/schemas/DateTime' }
+                by: { $ref: '#/components/schemas/Id' }
+                jobId: { $ref: '#/components/schemas/Id' }
+            listJobId: { $ref: '#/components/schemas/Id', description: 'Việc handover.list gần nhất' }
+            exportFileId: { type: string, description: 'File BM-VCPV-08 xuất gần nhất (E11)' }
+            cancelledAt: { $ref: '#/components/schemas/DateTime' }
+            cancelledBy: { $ref: '#/components/schemas/Id' }
+            cancelReason: { type: string }
+            note: { type: string }
+            items: { type: array, description: 'Chỉ có ở chi tiết; danh sách không trả items', items: { $ref: '#/components/schemas/HandoverItem' } }
+    HandoverDetail:
+      description: 'Handover kèm items và people (chi tiết một đối tượng, D17)'
+      allOf:
+        - $ref: '#/components/schemas/Handover'
+        - $ref: '#/components/schemas/WithPeople'
+        - { type: object, required: [items] }
+    HandoverPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Handover' } } } }
+
+    # ── M15 (giai đoạn 2, hợp đồng mục 10.2, 10.4) ──
+    AuditLog:
+      type: object
+      description: 'Một dòng audit_logs – chỉ thêm, không sửa xoá; hash = SHA-256(prevHash + nội dung dòng)'
+      required: [id, seq, at, action, result, prevHash, hash, isRedacted]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        seq: { type: integer, minimum: 1, description: 'Số thứ tự trong chuỗi của công ty' }
+        at: { $ref: '#/components/schemas/DateTime' }
+        actorId: { $ref: '#/components/schemas/Id', description: 'Trống với việc nền, Google' }
+        actorEmail: { type: string }
+        action: { type: string, description: 'Ví dụ user.update, record.finalize, handover.execute, auditor.view' }
+        objectType: { type: string }
+        objectId: { type: string }
+        departmentId: { $ref: '#/components/schemas/Id', description: 'Phòng của đối tượng (từ v1.5, E14)' }
+        before: { description: 'Giá trị trước; không có khi isRedacted' }
+        after: { description: 'Giá trị sau; không có khi isRedacted' }
+        result: { type: string, enum: [ok, denied] }
+        requestId: { type: string }
+        ip: { type: string }
+        device: { type: string }
+        prevHash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        isRedacted: { type: boolean, description: 'true = đối tượng ở drive người gọi không được xem, đã bỏ before, after (E14)' }
+    AuditLogPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/AuditLog' } } } }
+    AuditAnchor:
+      type: object
+      required: [lastSeq, verification]
+      properties:
+        lastSeq: { type: integer, minimum: 0, description: '0 khi chưa có dòng nào' }
+        lastHash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        lastAt: { $ref: '#/components/schemas/DateTime' }
+        verification:
+          type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [ok, broken, never], description: 'never = chưa kiểm lần nào' }
+            checkedAt: { $ref: '#/components/schemas/DateTime' }
+            count: { type: integer, minimum: 0, description: 'Số dòng đã kiểm' }
+            brokenAtSeq: { type: integer, minimum: 1, description: 'Dòng đầu tiên bị lệch khi status = broken' }
+            jobId: { $ref: '#/components/schemas/Id' }
+        latestAnchor:
+          type: object
+          description: 'Lần neo gần nhất (07:00 thứ Hai): email cho R1 + dòng trong file Sheets khoá ở drive 01 BĐH'
+          required: [at, seq, hash]
+          properties:
+            at: { $ref: '#/components/schemas/DateTime' }
+            seq: { type: integer, minimum: 1 }
+            hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+            sentTo: { type: array, items: { type: string, format: email } }
+            fileId: { type: string, description: 'File Sheets "Mỏ neo nhật ký VCdocs"' }
+    AuditorAccessActions:
+      type: object
+      required: [allowedActions]
+      properties:
+        allowedActions: { type: array, uniqueItems: true, items: { type: string, enum: [revoke] }, x-gia-dinh: 'DELETE không có đoạn cuối đường dẫn; đặt tên hành động revoke' }
+    AuditorAccess:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/AuditorAccessActions'
+        - type: object
+          required: [email, userId, departmentIds, expiresAt, grantedBy, status]
+          properties:
+            email: { type: string, format: email }
+            userId: { $ref: '#/components/schemas/Id' }
+            departmentIds: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Id' } }
+            expiresAt: { $ref: '#/components/schemas/DateTime' }
+            reason: { type: string }
+            grantedBy: { $ref: '#/components/schemas/Id' }
+            status: { $ref: '#/components/schemas/AuditorAccessStatus' }
+            revokedAt: { $ref: '#/components/schemas/DateTime' }
+            revokedBy: { $ref: '#/components/schemas/Id' }
+            lastUsedAt: { $ref: '#/components/schemas/DateTime' }
+    AuditorAccessDetail:
+      description: 'AuditorAccess kèm people (chi tiết một đối tượng, D17)'
+      allOf:
+        - $ref: '#/components/schemas/AuditorAccess'
+        - $ref: '#/components/schemas/WithPeople'
+    AuditorAccessPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/AuditorAccess' } } } }
+    EvidencePack:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [targetType, targetId, files, sha256, sizeBytes, expiresAt]
+          properties:
+            targetType: { type: string, enum: [document, record] }
+            targetId: { $ref: '#/components/schemas/Id' }
+            files:
+              type: array
+              description: 'Nội dung ZIP, như manifest.json'
+              items:
+                type: object
+                required: [path, sha256, sizeBytes]
+                properties:
+                  path: { type: string, example: pdf/QT-MKT-01 v2.pdf }
+                  sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+                  sizeBytes: { type: integer, minimum: 0 }
+            sha256: { type: string, pattern: '^[a-f0-9]{64}$', description: 'Mã băm của cả file ZIP' }
+            sizeBytes: { type: integer, minimum: 0 }
+            expiresAt: { $ref: '#/components/schemas/DateTime', description: 'Xoá khỏi máy chủ sau 7 ngày' }
+    EvidencePackDetail:
+      description: 'EvidencePack kèm people (chi tiết một đối tượng, D17)'
+      allOf:
+        - $ref: '#/components/schemas/EvidencePack'
+        - $ref: '#/components/schemas/WithPeople'
+
     # ── M14 ──
     Notification:
       type: object
       required: [id, type, title, createdAt, isRead]
       properties:
         id: { $ref: '#/components/schemas/Id' }
-        type: { type: string, description: 'Ví dụ approval_pending, approval_decided, document_issued, share_expiring, job_done, job_failed' }
+        type: { type: string, description: 'Ví dụ approval_pending, approval_decided, document_issued, share_expiring, job_done, job_failed; giai đoạn 2 (E19): handover_needed, handover_assigned, handover_verify_due, handover_ready, handover_done, handover_overdue, auditor_access_granted, audit_chain_broken' }
         title: { type: string }
         body: { type: string }
         link: { type: string, description: 'Đường dẫn trong giao diện' }
@@ -2148,7 +2722,7 @@ components:
         - type: object
           required: [type, status, progress, steps, requestedBy]
           properties:
-            type: { type: string, enum: [document.withdraw, google.sync, codes.export, folder.create, folder.close_project, folder.ensure_periods, document.create_draft, document.issue, documents.catalog_export, external_document.import, record_types.catalog_export, record.create, record.upload, record.claim, record.finalize, record.scan, share.revoke_all] }
+            type: { type: string, enum: [handover.list, handover.execute, handover.export, audit.verify, audit.anchor, evidence_pack.build, document.withdraw, google.sync, codes.export, folder.create, folder.close_project, folder.ensure_periods, document.create_draft, document.issue, documents.catalog_export, external_document.import, record_types.catalog_export, record.create, record.upload, record.claim, record.finalize, record.scan, share.revoke_all] }
             status: { $ref: '#/components/schemas/JobStatus' }
             progress: { type: integer, minimum: 0, maximum: 100 }
             steps:
@@ -2161,12 +2735,12 @@ components:
                   status: { $ref: '#/components/schemas/JobStatus' }
                   error: { type: string }
             result:
-              description: 'Không có với google.sync, folder.ensure_periods, share.revoke_all (D16). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file'
+              description: 'Không có với google.sync, folder.ensure_periods, share.revoke_all (D16), audit.verify, audit.anchor, handover.list (E18). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file'
               oneOf:
                 - type: object
                   required: [objectType, objectId]
                   properties:
-                    objectType: { type: string, enum: [document, record, folder, approval, external_share, code, record_type] }
+                    objectType: { type: string, enum: [document, record, folder, approval, external_share, code, record_type, handover, evidence_pack] }
                     objectId: { $ref: '#/components/schemas/Id' }
                 - type: object
                   required: [fileId]

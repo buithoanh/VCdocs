@@ -2,7 +2,8 @@
 
 - `openapi.yaml` là gốc, viết tay theo tài liệu "Hợp đồng API VCdocs v1" trên
   Claude Docs (https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT). Phạm vi hiện
-  tại: giai đoạn 1 (M01–M09, M14, /jobs).
+  tại: giai đoạn 1 (M01–M09, M14, /jobs) và giai đoạn 2 đợt 1 (M10 Bàn giao,
+  M15 Nhật ký – hợp đồng mục 10). Phân giai đoạn mọi điểm cuối: hợp đồng mục 10.1.
 - Chỗ hợp đồng chưa ghi rõ được đánh dấu `x-gia-dinh` (giả định).
 - Chỉ phiên được giao việc cập nhật hợp đồng mới sửa thư mục này. Phiên FE/BE
   ghi đề nghị vào `DE_NGHI_SUA.md`.
