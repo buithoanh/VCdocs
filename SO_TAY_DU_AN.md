@@ -44,6 +44,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Hạn chót 2027-01-18:** nâng cấp tài khoản thanh toán Google Cloud (đang dùng thử: ₫7.791.151 tín dụng, 90 ngày từ 2026-10-20) trước ngày này, nên làm đầu tháng 1/2027 — hết hạn mà chưa nâng cấp thì Google tắt máy ảo `vcdocs-prod`, quá hạn ân hạn có thể xoá cả đĩa dữ liệu. Nâng cấp vẫn giữ tín dụng còn lại. Kèm: đặt cảnh báo ngân sách (Billing → Budgets & alerts, đề xuất 1,5 triệu đồng/tháng)
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
