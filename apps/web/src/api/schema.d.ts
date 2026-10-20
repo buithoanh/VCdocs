@@ -64,7 +64,7 @@ export interface paths {
             responses: {
                 /**
                  * @description Thành công: đặt cookie phiên, về trang đầu (hoặc returnTo).
-                 *     Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state.
+                 *     Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state · setup (D22: đúng tên miền nhưng CSDL chưa có công ty – hệ thống chưa khởi tạo).
                  */
                 302: {
                     headers: {
@@ -1887,7 +1887,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trình huỷ bỏ (R4) – tạo Approval document_withdrawal (BR-08) */
+        /** Trình huỷ bỏ (R4) – tạo Approval document_withdrawal (BR-08). HD, BM cấp phòng do trưởng phòng trình thì GĐ khối phụ trách duyệt (D21, BR-05) */
         post: {
             parameters: {
                 query?: never;

@@ -49,7 +49,7 @@ D20 (gốc drive chỉ cho thư mục đánh số; year, month, entity thiếu p
 
 | # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
 |---|---|---|---|---|
-| N5 | `GET /auth/google/callback` (lỗi D13) | Tài khoản đúng tên miền nhưng CSDL chưa có bản ghi công ty (máy chủ thật mới cài, chưa khởi tạo) thì BE trả `loi=domain`, người dùng đọc thành "chỉ tài khoản @vcprosperous.com được đăng nhập" – sai và khó dò | Thêm giá trị `loi=setup`: "Hệ thống chưa được khởi tạo, liên hệ quản trị". FE thêm câu tương ứng ở trang /dang-nhap | Trả `loi=setup` và ghi log lỗi kèm lệnh `khoi-tao`; FE hiện chưa có câu cho `setup` |
+| N5 | `GET /auth/google/callback` (lỗi D13) | Tài khoản đúng tên miền nhưng CSDL chưa có bản ghi công ty (máy chủ thật mới cài, chưa khởi tạo) thì BE trả `loi=domain`, người dùng đọc thành "chỉ tài khoản @vcprosperous.com được đăng nhập" – sai và khó dò | Thêm giá trị `loi=setup`: "Hệ thống chưa được khởi tạo, liên hệ quản trị". FE thêm câu tương ứng ở trang /dang-nhap | Trả `loi=setup` và ghi log lỗi kèm lệnh `khoi-tao`. **Đã chốt 2026-10-20 → D22, hợp đồng v1.4 (rev 22), openapi 1.4.0-gd1**; FE đã có câu báo |
 
 ## Đề nghị mới (sau hợp đồng 1.1) – lưu lại để đối chiếu
 

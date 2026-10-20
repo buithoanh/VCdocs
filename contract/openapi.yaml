@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 1.3.0-gd1
+  version: 1.4.0-gd1
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
@@ -94,7 +94,7 @@ paths:
             Location: { schema: { type: string } }
           description: |
             Thành công: đặt cookie phiên, về trang đầu (hoặc returnTo).
-            Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state.
+            Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state · setup (D22: đúng tên miền nhưng CSDL chưa có công ty – hệ thống chưa khởi tạo).
   /auth/logout:
     post:
       tags: [M01 Đăng nhập, người dùng]

@@ -18,9 +18,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - **Mục tiêu:** Phần mềm quản lý tài liệu – hồ sơ VCdocs cho VCPV. Giao diện Next.js, máy chủ NestJS, MongoDB, tích hợp Google Drive.
 - **Tài liệu gốc (Claude Docs):**
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
-  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 16: đủ mục 1–8 + M16; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất])
+  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 22: đủ mục 1–9; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.3 (rev 21). Build qua, BE 110 test, FE 69 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
+- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`.
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
@@ -35,6 +35,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 | 2026-10-19 | Phiên FE/BE không sửa `contract/`; thấy cần sửa thì ghi `contract/DE_NGHI_SUA.md`. `contract/NGUON.md` ghi bản hợp đồng (rev) đã đưa vào OpenAPI | Giữ một gốc chung |
 | 2026-10-19 | Tác vụ định kỳ `vcdocs-kiem-tra-hop-dong-api` (mỗi 30 phút, chế độ Auto) đọc toàn bộ nội dung hợp đồng; rev lớn hơn `contract/NGUON.md` và ảnh hưởng API thì sửa `contract/openapi.yaml` trên `giai-doan-1`, commit, báo điện thoại. Tên có `[Đã chốt]` thì chỉ báo | Code theo hợp đồng đến đâu, cập nhật đến đó |
 | 2026-10-19 | Chưa dùng tài khoản Google thật: BE giả lập Google (đăng nhập OAuth, service account, shared drive) bằng lớp adapter có bản mock, cấu hình chọn mock hay thật. Không chặn việc mở phiên BE | Chủ dự án trả lời câu hỏi mở: "Cứ giả lập đi" |
+| 2026-10-20 | Đúng tên miền nhưng CSDL chưa có công ty → callback trả `/dang-nhap?loi=setup` (D22, hợp đồng v1.4, đề nghị N5) | `loi=domain` báo sai nguyên nhân, khó dò khi cài máy mới |
 | 2026-10-20 | Trưởng phòng trình huỷ bỏ HD/BM cấp phòng thì GĐ khối phụ trách duyệt (D21, hợp đồng v1.3) | Trưởng phòng vừa trình vừa duyệt → vướng BR-05, không huỷ được |
 | 2026-10-19 | Đổi tên dự án từ VCknowledge sang VCdocs | Theo yêu cầu chủ dự án |
 | 2026-10-19 | Dùng `SO_TAY_DU_AN.md` làm kênh trao đổi giữa các phiên | Giữ ngữ cảnh chung, tránh làm lại |
@@ -46,7 +47,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
-- [ ] Ghép `claude/khoi-tao-cong-ty` (lệnh khởi tạo công ty, `loi=setup`); chốt đề nghị N5; FE thêm câu báo cho `setup`
+- [ ] Push `giai-doan-1` (đã ghép khởi tạo công ty + D22, chờ chủ dự án cho phép)
+- [ ] Máy thật: chạy `pnpm --filter api run khoi-tao -- --ten "…"` trên CSDL mới thay vì thêm tay bản ghi công ty
 - [ ] Máy chủ và hộp thư vcdocs@ (tên miền vcprosperous.com đã có; Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
@@ -64,6 +66,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Ghép khởi tạo công ty, hợp đồng v1.4 (D22)
+- Đã làm: chủ dự án chốt N5 → D22 trong hợp đồng mục 9.4 + lịch sử phiên bản v1.4 (Claude Docs rev 22); `contract/openapi.yaml` 1.4.0-gd1 (mô tả callback thêm `setup`), `contract/NGUON.md`. FE: câu báo `loi=setup` ở /dang-nhap + 3 test. Ghép `claude/khoi-tao-cong-ty` (fca348e) vào `giai-doan-1` (gỡ xung đột sổ tay). Build qua, BE 116/116 (98/98 điểm cuối), FE 72/72. Chưa push.
+- Còn dở: push `giai-doan-1` khi chủ dự án cho phép.
 
 ### 2026-10-20 · BE: lệnh khởi tạo công ty (nhánh `claude/khoi-tao-cong-ty`, tách từ `giai-doan-1`)
 - Đã làm: lệnh `pnpm --filter api run khoi-tao -- --ten "…" --mien vcprosperous.com` (thiếu `--mien` lấy `ALLOWED_DOMAIN`; chạy lại không tạo trùng, không ghi đè; bản build `node dist/khoi-tao.js`). Callback thiếu công ty → `loi=setup` + log lỗi kèm lệnh khởi tạo, không còn `loi=domain`. `setup` chưa có trong hợp đồng → đề nghị N5. 6 test mới, BE 116/116, build qua. Commit, chưa push.

@@ -9,6 +9,7 @@ const ERRORS: Record<string, string> = {
   locked: 'Tài khoản đang bị khoá. Vui lòng liên hệ Quản trị hệ thống.',
   expired: 'Phiên đăng nhập đã hết, vui lòng đăng nhập lại.',
   state: 'Lượt đăng nhập đã quá hạn hoặc bị gián đoạn, vui lòng bấm đăng nhập lại.',
+  setup: 'Hệ thống chưa được khởi tạo. Vui lòng liên hệ Quản trị hệ thống.',
 };
 
 const IS_MOCK = process.env.NEXT_PUBLIC_MOCK === '1';
