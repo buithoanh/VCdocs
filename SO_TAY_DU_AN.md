@@ -20,7 +20,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 24, v1.5: đủ mục 1–10, mục 10 = giai đoạn 2 đợt 1 M10 + M15 và bảng phân giai đoạn 10.1; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
+- **Trạng thái hiện tại:** Nhánh `giai-doan-2` (local, chưa push) đã ghép FE + BE giai đoạn 2 (M10 Bàn giao, M15 Nhật ký, hợp đồng v1.5): build qua, BE 156 test (118/118 điểm cuối), FE 98 test; chưa chạy thật. Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Giai đoạn 2:** nhánh `giai-doan-2` (cắt từ `giai-doan-1`) có hợp đồng v1.5, `contract/openapi.yaml` 1.5.0-gd2 (M10 Bàn giao, M15 Nhật ký, 118 điểm cuối). Chưa code tính năng; chờ mở 2 phiên FE/BE từ nhánh này.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
@@ -46,10 +46,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
-- [ ] Ghép FE giai đoạn 2 (nhánh `claude/strange-pare-e56c3f`) với BE giai đoạn 2, chạy thật M10, M15; chủ dự án xem đề nghị FE #16–#18 (#16 sửa schema `HandoverDetail`)
-
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
-- [ ] Ghép BE giai đoạn 2 (nhánh `claude/silly-perlman-f78be6`, M10 + M15 xong) và FE vào `giai-doan-2`, chạy thật
+- [ ] Chạy thật M10, M15 trên `giai-doan-2` (đã ghép FE + BE, Google giả); chủ dự án xem đề nghị FE #16–#18 (#16 sửa schema `HandoverDetail`)
 - [ ] IT thêm 2 quyền uỷ quyền toàn tên miền cho `vcdocs-backend` (`admin.datatransfer`, `admin.directory.group.member`) và bật Admin SDK Data Transfer API trước khi chạy thật bàn giao (BE đã thêm vào `real-google.ts`)
 - [ ] Soạn BM-VCPV-08 (Google Docs) có chỗ giữ BE điền khi xuất biên bản bàn giao – danh sách ở `apps/api/README.md`
 - [ ] Chủ dự án rà đề nghị N6–N14 (giai đoạn 2) trong `apps/api/DE_NGHI_SUA_HOP_DONG.md`
@@ -77,6 +75,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Ghép giai đoạn 2 (M10, M15) vào `giai-doan-2`
+- Đã làm: ghép BE `claude/silly-perlman-f78be6` (9239f39) và FE `claude/strange-pare-e56c3f` (6be018d) vào `giai-doan-2` (gỡ xung đột sổ tay). Build qua, BE 156/156 (118/118 điểm cuối), FE 98/98. Chưa push.
+- Còn dở: chạy thật M10, M15 (Google giả); đề nghị BE N6–N14, FE #16–#18.
 
 ### 2026-10-20 · BE giai đoạn 2: M10 Bàn giao, M15 Nhật ký (nhánh `claude/silly-perlman-f78be6`)
 - Đã làm: gộp `giai-doan-2` (0ade10b, openapi 1.5.0-gd2). M10: 11 điểm cuối /handovers, việc nền `handover.list` (8 loại dòng), `handover.execute` (đổi người trong VCdocs, Data Transfer Drive của tôi, gỡ nhóm Google; lỗi → về verified, gọi lại chạy dòng lỗi), `handover.export` (BM-VCPV-08 → thư mục tháng drive HCNS); PATCH /users lastWorkingDay tự lập biên bản isAuto (E4); việc 00:30 chuyển `left` + huỷ phiên + báo quá hạn; nhắc kiểm tra trước 2 ngày làm việc. M15: 9 điểm cuối; audit_logs ghi `departmentId` (E14), phạm vi xem R2/R4/kiểm toán viên, ẩn before/after drive Mật; `audit.verify` 01:00, `audit.anchor` 07:00 thứ Hai (email R1 + file Sheets khoá ở 01 BĐH); quyền xem tạm kiểm toán viên (BR-15, ≤ 30 ngày, `auditor.view`, /me.auditorAccess); gói bằng chứng ZIP (tự viết bộ ghi ZIP, không thêm thư viện) lưu kho riêng 7 ngày. Google giả + thật: `removeGroupMember`, `dataTransfer`, `listOwnedFiles`, `appendRows`. Tài liệu ban hành từ nay lưu PDF từng phiên bản vào kho riêng. Dữ liệu mẫu thêm BM-VCPV-08. Build qua, 156/156 test, độ phủ 118/118. Commit, không push.
