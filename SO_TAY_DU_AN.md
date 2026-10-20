@@ -45,8 +45,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
-- [ ] Google thật, còn: shared drive thử (thêm `vcdocs-backend@vcdocs.iam.gserviceaccount.com` làm Quản lý), nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
-- [ ] BE: chế độ thật chưa có bước khởi tạo công ty — CSDL trống thì đăng nhập báo nhầm lỗi "chỉ tài khoản @vcprosperous.com" (`fail('domain')` khi thiếu Company). Cần lệnh khởi tạo công ty và mã lỗi riêng
+- [ ] Google thật, còn: thêm `vcdocs-backend@vcdocs.iam.gserviceaccount.com` làm Quản lý cho 10 shared drive còn lại (chủ dự án chọn cả 11; đã có `00 VCPV Chung`), nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
+- [ ] Ghép `claude/khoi-tao-cong-ty` (lệnh khởi tạo công ty, `loi=setup`); chốt đề nghị N5; FE thêm câu báo cho `setup`
 - [ ] Máy chủ và hộp thư vcdocs@ (tên miền vcprosperous.com đã có; Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
@@ -67,7 +67,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-20 · PR lên main và chuẩn bị Google thật (lái Chrome)
 - Đã làm: mở PR #2 `giai-doan-1` → `main`; chủ dự án merge cả PR #1 và #2. Hướng dẫn chủ dự án (qua Claude in Chrome) tạo project `vcdocs`, bật API, tạo service account `vcdocs-backend` và khoá JSON (tắt chính sách chặn tạo khoá riêng cho project), thêm domain-wide delegation 8 quyền — đã kiểm tra đủ. Ảnh hướng dẫn lưu `docs/huong-dan/anh/`.
 - Tạo OAuth client, `.env` chế độ thật. Chạy thật: đăng nhập Google thật thành công (sau khi thêm tay bản ghi công ty vào CSDL `vcdocs_that`); Directory đọc được 48 người, 1 nhóm; Drive chưa có shared drive nào cho service account.
-- Còn dở: shared drive thử, nhóm C1, sơ đồ tổ chức, BE khởi tạo công ty.
+- Drive thật (chỉ đọc) trên `00 VCPV Chung`: đọc được 10 thành viên, 18 thư mục, 61 tệp (52 Docs, 9 Sheets). Chưa ghi gì lên drive.
+- Phiên phụ làm BE khởi tạo công ty: commit fca348e trên `claude/khoi-tao-cong-ty`, chưa push, chưa ghép; FE chưa có câu báo `loi=setup`; đề nghị N5.
+- Còn dở: 10 drive còn lại, nhóm C1, sơ đồ tổ chức, ghép nhánh khởi tạo công ty.
 
 ### 2026-10-20 · Hợp đồng v1.3 (D21), ghép lần 3
 - Đã làm: chủ dự án chốt D21 → hợp đồng mục 9.4 (rev 21), `contract/openapi.yaml` 1.3.0-gd1. BE sửa D21 và lỗi Google giả mất người dùng khi khởi động lại; ghép vào `giai-doan-1`. Build qua, BE 110/110, FE 69/69. Chạy thật: khởi động trên CSDL cũ vẫn đăng nhập được; HD-MKT-01 trưởng phòng trình huỷ bỏ → GĐ khối KD duyệt → việc nền xong → withdrawn; khởi động lại lần 2 vẫn đăng nhập được.
