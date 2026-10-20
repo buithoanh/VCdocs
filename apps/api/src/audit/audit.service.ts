@@ -11,6 +11,8 @@ export interface AuditEntry {
   before?: any;
   after?: any;
   result?: 'ok' | 'denied';
+  /** Phòng của đối tượng (E14); bỏ trống thì tự tra theo objectType + objectId */
+  departmentId?: string;
 }
 
 export interface AuditActor {
@@ -46,6 +48,10 @@ function scrub(v: any, depth = 0): any {
   return v;
 }
 
+function idOf(v: any): string | undefined {
+  return v ? String(v) : undefined;
+}
+
 /** JSON có thứ tự khoá cố định để băm ổn định */
 export function canonical(v: any): string {
   if (v === undefined) return 'null';
@@ -60,7 +66,16 @@ export function canonical(v: any): string {
 
 export function auditHash(prevHash: string, row: any): string {
   const { hash: _h, _id, __v, ...rest } = row;
-  return sha256(prevHash + canonical({ ...rest, at: new Date(rest.at).toISOString(), companyId: String(rest.companyId), actorId: rest.actorId ? String(rest.actorId) : undefined }));
+  return sha256(
+    prevHash +
+      canonical({
+        ...rest,
+        at: new Date(rest.at).toISOString(),
+        companyId: String(rest.companyId),
+        actorId: rest.actorId ? String(rest.actorId) : undefined,
+        departmentId: rest.departmentId ? String(rest.departmentId) : undefined,
+      }),
+  );
 }
 
 /**
@@ -93,6 +108,7 @@ export class AuditService {
   async write(actor: AuditActor, e: AuditEntry): Promise<string> {
     const M = this.db.m.AuditLog;
     const companyId = new Types.ObjectId(actor.companyId);
+    const departmentId = e.departmentId ?? (await this.departmentOf(actor.companyId, e.objectType, e.objectId));
     for (let attempt = 0; attempt < 20; attempt++) {
       const last = await M.findOne({ companyId }, { seq: 1, hash: 1 }).sort({ seq: -1 }).lean<any>();
       const prevHash = last?.hash ?? GENESIS;
@@ -106,6 +122,7 @@ export class AuditService {
         action: e.action,
         objectType: e.objectType,
         objectId: e.objectId,
+        departmentId: departmentId && Types.ObjectId.isValid(departmentId) ? new Types.ObjectId(departmentId) : undefined,
         before: scrub(e.before),
         after: scrub(e.after),
         result: e.result ?? 'ok',
@@ -126,6 +143,50 @@ export class AuditService {
     }
     this.log.error('Không ghi được audit_logs sau nhiều lần thử');
     throw new Error('audit_logs bận');
+  }
+
+  /** Phòng của đối tượng lúc ghi nhật ký (E14); không xác định được thì bỏ trống */
+  async departmentOf(companyId: string, objectType?: string, objectId?: string): Promise<string | undefined> {
+    if (!objectType || !objectId || !Types.ObjectId.isValid(objectId)) return undefined;
+    const cid = new Types.ObjectId(companyId);
+    const _id = new Types.ObjectId(objectId);
+    const m = this.db.m;
+    const viaDrive = async (driveId?: string) => {
+      if (!driveId) return undefined;
+      const d = await m.Department.findOne({ companyId: cid, driveId }, { _id: 1 }).lean<any>();
+      return d ? String(d._id) : undefined;
+    };
+    try {
+      switch (objectType) {
+        case 'document':
+          return idOf((await m.Document.findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
+        case 'record': {
+          const r = await m.Record.findOne({ companyId: cid, _id }, { departmentId: 1, driveId: 1 }).lean<any>();
+          return idOf(r?.departmentId) ?? (await viaDrive(r?.driveId));
+        }
+        case 'approval':
+          return viaDrive((await m.Approval.findOne({ companyId: cid, _id }, { driveId: 1 }).lean<any>())?.driveId);
+        case 'external_share': {
+          const s = await m.ExternalShare.findOne({ companyId: cid, _id }, { departmentId: 1, driveId: 1 }).lean<any>();
+          return idOf(s?.departmentId) ?? (await viaDrive(s?.driveId));
+        }
+        case 'folder':
+          return viaDrive((await m.Folder.findOne({ companyId: cid, _id }, { driveId: 1 }).lean<any>())?.driveId);
+        case 'record_type':
+        case 'code':
+          return idOf((await (objectType === 'code' ? m.Code : m.RecordType).findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
+        case 'user':
+          return idOf((await m.User.findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
+        case 'handover':
+          return idOf((await m.Handover.findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
+        case 'department':
+          return objectId;
+        default:
+          return undefined;
+      }
+    } catch {
+      return undefined;
+    }
   }
 
   /** Kiểm tra lại toàn chuỗi; trả seq đầu tiên bị lệch (nếu có) */

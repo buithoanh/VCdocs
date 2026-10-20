@@ -348,7 +348,8 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
 
   it('danh mục: lọc, sắp xếp, phân trang; tạo file nháp loại thiếu BM khung → 422', async () => {
     const r = await nv.get('/documents?type=BM&level=VCPV&sort=code&limit=2&page=1');
-    expect(r.body).toMatchObject({ page: 1, limit: 2, total: 3 });
+    // BM-VCPV-02, 03, 04 (khung) và 08 (biên bản bàn giao, giai đoạn 2)
+    expect(r.body).toMatchObject({ page: 1, limit: 2, total: 4 });
     expect(r.body.items.map((d: any) => d.code)).toEqual(['BM-VCPV-02', 'BM-VCPV-03']);
     const due = await nv.get('/documents?reviewDueBefore=2027-10-30&status=effective');
     expect(due.body.items.every((d: any) => d.reviewDue <= '2027-10-30')).toBe(true);

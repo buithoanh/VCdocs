@@ -86,6 +86,14 @@ export const BM_KHUNG = `Mã: {{MA}} | Phiên bản: {{PHIEN_BAN}} | Trạng th�
 Người soạn: {{NGUOI_SOAN}} | Ngày hiệu lực: {{NGAY_HIEU_LUC}} | Phiếu duyệt: {{LINK_DUYET}}
 Nội dung …`;
 
+export const BM_BAN_GIAO = `BIÊN BẢN BÀN GIAO CÔNG VIỆC
+Người nghỉ việc: {{NGUOI_NGHI}} ({{EMAIL_NGUOI_NGHI}}) – Phòng: {{PHONG}}
+Ngày làm việc cuối: {{NGAY_LAM_VIEC_CUOI}} | Người nhận: {{NGUOI_NHAN}} | Nhận ngày: {{NGAY_NHAN}}
+HCNS kiểm tra: {{HCNS_KIEM_TRA}} ngày {{NGAY_KIEM_TRA}} | Trạng thái: {{TRANG_THAI}}
+Danh sách bàn giao:
+{{DANH_SACH}}
+Xuất ngày {{NGAY_XUAT}}`;
+
 /** Danh bạ Google giả: người dùng mẫu và nhóm theo quy ước */
 export function addDemoDirectory(fake: FakeGoogle) {
   const groupMembers = new Map<string, string[]>();
@@ -239,6 +247,36 @@ export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
     const code = `BM-VCPV-${n}`;
     const f = await fake.drive.createEmptyDoc({ parentGoogleId: bmFolder.googleId, name: `${code} v1 ${title}`, mimeType: GDOC_MIME });
     fake.world.files[f.fileId].text = BM_KHUNG;
+    await fake.drive.setLock(f.fileId, { locked: true, reason: 'Biểu mẫu gốc' });
+    const rev = await fake.drive.latestRevision(f.fileId);
+    const doc = await m.Document.create({
+      companyId: cid,
+      code,
+      type: 'BM',
+      level: 'VCPV',
+      title,
+      departmentId: new Types.ObjectId(chung.id),
+      status: 'effective',
+      securityLevel: 'internal',
+      driveId: chung.driveId,
+      drafterId: new Types.ObjectId(ids.users.hcns),
+      approverId: new Types.ObjectId(ids.users['gdk.vhnb']),
+      folderId: bmFolder._id,
+      fileId: f.fileId,
+      current: { number: 1, fileId: f.fileId, revisionId: rev.revisionId, effectiveFrom: '2026-10-01', issuedBy: new Types.ObjectId(ids.users.hcns) },
+      versions: [{ number: 1, kind: 'major', changeNote: 'Ban hành lần đầu', effectiveFrom: '2026-10-01', revisionId: rev.revisionId }],
+      lock: { isLocked: true, lockedAt: new Date() },
+      reviewDue: '2027-10-01',
+      searchText: normalizeText(`${code} ${title}`),
+    });
+    ids.templates[code] = String(doc._id);
+  }
+  // BM-VCPV-08 Biên bản bàn giao (M10, E11) – chỗ giữ do máy chủ điền khi xuất
+  {
+    const code = 'BM-VCPV-08';
+    const title = 'Biên bản bàn giao công việc khi nghỉ việc';
+    const f = await fake.drive.createEmptyDoc({ parentGoogleId: bmFolder.googleId, name: `${code} v1 ${title}`, mimeType: GDOC_MIME });
+    fake.world.files[f.fileId].text = BM_BAN_GIAO;
     await fake.drive.setLock(f.fileId, { locked: true, reason: 'Biểu mẫu gốc' });
     const rev = await fake.drive.latestRevision(f.fileId);
     const doc = await m.Document.create({

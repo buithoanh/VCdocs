@@ -1,7 +1,8 @@
 # @vcdocs/api – máy chủ nghiệp vụ VCdocs
 
-NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`, đúng theo
-`contract/openapi.yaml` (1.3.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
+NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`; giai đoạn 2
+đợt 1: M10 Bàn giao, M15 Nhật ký – đúng theo `contract/openapi.yaml` (1.5.0-gd2,
+118 điểm cuối) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
 file, MongoDB giữ sổ sách.
 
 ## Chạy local
@@ -101,7 +102,7 @@ src/
   jobs/                  hàng đợi việc chạy lâu trên MongoDB + GET /jobs
   google/                interface Drive/Docs/Sheets/Admin SDK/Gmail; bản giả + bản thật googleapis;
                          kho riêng (vault); đóng dấu PDF chốt + QR
-  modules/m01…m14        mỗi phân hệ một module
+  modules/m01…m15        mỗi phân hệ một module (m10 bàn giao, m15 nhật ký, gói bằng chứng ZIP)
   seed/                  dữ liệu mẫu cho local và test
 ```
 
@@ -144,16 +145,32 @@ chủ đã build: `node dist/khoi-tao.js --ten "…"`.
   account + shared drive test: đặt `GOOGLE_MODE=real` và các biến `GOOGLE_*`, chạy
   `POST /sync/google` để đồng bộ nhân sự, nhóm, quyền drive.
 - **Kho riêng PDF chốt**: thư mục trên máy chủ (`VAULT_DIR`); MinIO/S3 làm sau.
-- **Bàn giao (M10)** thuộc giai đoạn 2: ghi ngày nghỉ việc mới chỉ đổi trạng thái
-  `leaving` và nhắc HCNS.
+- **Google thật cho M10, M15** (chưa chạy với tài khoản thật): bàn giao cần thêm 2
+  quyền vào uỷ quyền toàn miền của tài khoản máy ghi (admin.google.com → Bảo mật →
+  Kiểm soát truy cập và dữ liệu → Kiểm soát API → Uỷ quyền trên toàn miền → sửa
+  Client ID của `vcdocs-backend`), nâng từ 8 lên 10 quyền:
+  `https://www.googleapis.com/auth/admin.directory.group.member` (gỡ khỏi nhóm) và
+  `https://www.googleapis.com/auth/admin.datatransfer` (chuyển Drive của tôi). Bật thêm
+  **Admin SDK Data Transfer API** trong project `vcdocs`. Đọc Drive của tôi từng người
+  dùng quyền `drive` đã có (mượn quyền chính người đó). Mỏ neo nhật ký ghi file Sheets
+  ở drive 01 BĐH, gửi thư từ `MAIL_FROM`.
+- **BM-VCPV-08** (xuất biên bản bàn giao) phải là Google Docs đang hiệu lực trong
+  VCdocs, có chỗ giữ `{{NGUOI_NGHI}}`, `{{EMAIL_NGUOI_NGHI}}`, `{{PHONG}}`,
+  `{{NGAY_LAM_VIEC_CUOI}}`, `{{NGUOI_NHAN}}`, `{{NGAY_NHAN}}`, `{{HCNS_KIEM_TRA}}`,
+  `{{NGAY_KIEM_TRA}}`, `{{TRANG_THAI}}`, `{{DANH_SACH}}`, `{{NGAY_XUAT}}`; chưa có → xuất
+  trả 422.
+- Gói bằng chứng lưu ở kho riêng (`VAULT_DIR/evidence/…`), xoá sau `EVIDENCE_PACK_DAYS`
+  (7) ngày. Tài liệu ban hành trước bản này chưa có PDF trong kho riêng: gói lấy PDF
+  hiện hành trên Drive.
 - Hàng đợi việc, việc định kỳ, giới hạn tần suất, file tải lên tạm chạy trong
   một tiến trình; chạy nhiều máy cần chuyển sang Redis/BullMQ và kho chung.
 - Chưa dùng giao dịch MongoDB (cần replica set); thứ tự ghi đã sắp để không nửa
   vời (Drive xong mới ghi sổ).
 - Tìm kiếm dùng biểu thức trên trường chữ không dấu; khi tới 100.000 hồ sơ nên
   thêm chỉ mục văn bản hoặc Atlas Search để giữ ≤ 2 giây.
-- Neo nhật ký hằng tuần, `GET /audit-logs` thuộc M15 (giai đoạn 3); hiện có
-  `AuditService.verifyChain` để kiểm chuỗi.
+- Việc định kỳ theo giờ Việt Nam (kiểm 5 phút một lần, chạy trong tiến trình API):
+  00:30 chuyển người qua ngày làm việc cuối sang `left`; 01:00 `audit.verify`;
+  07:00 thứ Hai `audit.anchor`. Mỗi ngày một việc mỗi công ty (tra việc đã tạo).
 - `/dev/fake-google` chỉ có khi `GOOGLE_MODE=fake`, không thuộc hợp đồng.
 
 Chỗ hợp đồng thiếu/sai và giả định BE đã chọn: `DE_NGHI_SUA_HOP_DONG.md`.

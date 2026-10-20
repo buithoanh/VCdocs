@@ -63,6 +63,9 @@ export interface Client {
   get(url: string): Promise<request.Response>;
   post(url: string, body?: any, opts?: { idem?: string; noCsrf?: boolean; headers?: Record<string, string> }): Promise<request.Response>;
   patch(url: string, body?: any): Promise<request.Response>;
+  del(url: string): Promise<request.Response>;
+  /** GET tải file nhị phân: body là Buffer (lỗi JSON thì body là object lỗi) */
+  download(url: string): Promise<request.Response>;
   upload(url: string, fields: Record<string, string>, file?: { name: string; type: string; content: Buffer }, opts?: { idem?: string }): Promise<request.Response>;
 }
 
@@ -132,6 +135,21 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
         return wrap('POST', url, body === undefined ? r : r.send(body));
       },
       patch: (url, body) => wrap('PATCH', url, agent.patch(`${PREFIX}${url}`).set('X-CSRF-Token', csrf).send(body)),
+      del: (url) => wrap('DELETE', url, agent.delete(`${PREFIX}${url}`).set('X-CSRF-Token', csrf).set('X-Request-Id', randomToken(6))),
+      download: async (url) => {
+        const res = await agent
+          .get(`${PREFIX}${url}`)
+          .set('X-Request-Id', randomToken(6))
+          .buffer(true)
+          .parse((r, cb) => {
+            const chunks: Buffer[] = [];
+            r.on('data', (c: Buffer) => chunks.push(c));
+            r.on('end', () => cb(null, Buffer.concat(chunks)));
+          });
+        if ((res.headers['content-type'] || '').includes('application/json')) (res as any).body = JSON.parse(res.body.toString('utf8'));
+        expectContract('GET', `${PREFIX}${url}`, res);
+        return res;
+      },
       upload: (url, fields, file, opts = {}) => {
         let r = agent.post(`${PREFIX}${url}`).set('X-CSRF-Token', csrf);
         if (opts.idem || needsIdem('POST', url)) r = r.set('Idempotency-Key', opts.idem ?? randomToken(12));

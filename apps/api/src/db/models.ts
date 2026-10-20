@@ -91,6 +91,8 @@ const AuditLog = new Schema(
     action: { type: String, required: true },
     objectType: String,
     objectId: String,
+    /** Phòng của đối tượng lúc ghi (E14, từ v1.5); dòng cũ không có */
+    departmentId: OID,
     before: Mixed,
     after: Mixed,
     result: { type: String, enum: ['ok', 'denied'], default: 'ok' },
@@ -104,6 +106,7 @@ const AuditLog = new Schema(
 );
 AuditLog.index({ companyId: 1, seq: 1 }, { unique: true });
 AuditLog.index({ companyId: 1, objectType: 1, objectId: 1 });
+AuditLog.index({ companyId: 1, departmentId: 1, seq: -1 });
 // Nhật ký chỉ thêm: chặn sửa, xoá ở tầng mô hình
 for (const op of ['updateOne', 'updateMany', 'findOneAndUpdate', 'deleteOne', 'deleteMany', 'findOneAndDelete', 'replaceOne']) {
   AuditLog.pre(op as any, function () {
@@ -361,6 +364,89 @@ const ExternalShare = mk({
 });
 ExternalShare.index({ companyId: 1, status: 1, expiresAt: 1 });
 
+// ── M10 ──
+const HandoverItem = new Schema(
+  {
+    kind: { type: String, required: true },
+    objectType: String,
+    objectId: OID,
+    fileId: String,
+    groupEmail: String,
+    /** Khoá so khớp khi liệt kê lại (kind + id đối tượng / file / nhóm) */
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    detail: String,
+    action: { type: String, required: true },
+    toUserId: OID,
+    status: { type: String, required: true, default: 'pending' },
+    error: String,
+    note: String,
+  },
+  { _id: true },
+);
+const Handover = mk({
+  userId: { type: OID, required: true },
+  departmentId: OID,
+  lastWorkingDay: { type: String, required: true },
+  receiverId: { type: OID, required: true },
+  status: { type: String, required: true },
+  isAuto: { type: Boolean, default: false },
+  items: { type: [HandoverItem], default: [] },
+  receipt: Mixed,
+  verification: Mixed,
+  execution: Mixed,
+  listJobId: OID,
+  exportFileId: String,
+  cancelledAt: Date,
+  cancelledBy: OID,
+  cancelReason: String,
+  note: String,
+  /** Đã nhắc HCNS kiểm tra (handover_verify_due) / đã báo quá hạn (handover_overdue) */
+  verifyDueNotifiedAt: Date,
+  overdueNotifiedAt: Date,
+});
+Handover.index({ companyId: 1, userId: 1, status: 1 });
+Handover.index({ companyId: 1, receiverId: 1, status: 1 });
+
+// ── M15 ──
+const AuditorAccess = mk({
+  email: { type: String, required: true, lowercase: true },
+  userId: { type: OID, required: true },
+  departmentIds: { type: [OID], required: true },
+  expiresAt: { type: Date, required: true },
+  reason: String,
+  grantedBy: { type: OID, required: true },
+  status: { type: String, required: true, default: 'active' },
+  revokedAt: Date,
+  revokedBy: OID,
+  lastUsedAt: Date,
+});
+AuditorAccess.index({ companyId: 1, userId: 1, status: 1 });
+
+/** Kết quả kiểm chuỗi và lần neo gần nhất của công ty (một dòng mỗi công ty) */
+const AuditState = new Schema(
+  {
+    companyId: { type: OID, required: true, unique: true },
+    verification: Mixed,
+    latestAnchor: Mixed,
+    /** File Sheets "Mỏ neo nhật ký VCdocs" ở drive 01 BĐH */
+    anchorFileId: String,
+  },
+  opts,
+);
+
+const EvidencePack = mk({
+  targetType: { type: String, required: true },
+  targetId: { type: OID, required: true },
+  files: { type: [{ _id: false, path: String, sha256: String, sizeBytes: Number }], default: [] },
+  sha256: { type: String, required: true },
+  sizeBytes: { type: Number, required: true },
+  expiresAt: { type: Date, required: true },
+  storageKey: { type: String, required: true },
+  fileName: String,
+  purgedAt: Date,
+});
+
 export const MODEL_DEFS = {
   Company: { schema: Company, collection: 'companies' },
   User: { schema: User, collection: 'users' },
@@ -383,6 +469,10 @@ export const MODEL_DEFS = {
   RecordType: { schema: RecordType, collection: 'record_types' },
   Record: { schema: RecordM, collection: 'records' },
   ExternalShare: { schema: ExternalShare, collection: 'external_shares' },
+  Handover: { schema: Handover, collection: 'handovers' },
+  AuditorAccess: { schema: AuditorAccess, collection: 'auditor_access' },
+  AuditState: { schema: AuditState, collection: 'audit_state' },
+  EvidencePack: { schema: EvidencePack, collection: 'evidence_packs' },
 } as const;
 
 export type ModelName = keyof typeof MODEL_DEFS;

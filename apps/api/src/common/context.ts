@@ -28,6 +28,18 @@ export interface RequestCtx {
   query: Record<string, any>;
   /** Id các dòng audit_logs ghi trong yêu cầu này */
   auditIds: string[];
+  /** Quyền xem tạm của kiểm toán viên đang hiệu lực (E16) */
+  auditor?: AuditorScope;
+}
+
+export interface AuditorScope {
+  accessIds: string[];
+  departmentIds: string[];
+  driveIds: string[];
+  /** Hạn xa nhất trong các quyền đang có */
+  expiresAt: Date;
+  /** Quyền có hạn xa nhất (hiện ở /me) */
+  primaryId: string;
 }
 
 /** Ngữ cảnh đã đăng nhập (dùng trong dịch vụ). */

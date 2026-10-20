@@ -25,6 +25,13 @@ export const PERSON_KEYS = new Set([
   'approvedBy',
   'by',
   'reviewerIds',
+  // giai đoạn 2: M10, M15
+  'userId',
+  'receiverId',
+  'toUserId',
+  'cancelledBy',
+  'grantedBy',
+  'actorId',
 ]);
 
 function collect(v: any, out: Set<string>, depth = 0) {

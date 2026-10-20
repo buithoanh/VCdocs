@@ -34,6 +34,19 @@ const ADMIN_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.group.member.readonly',
   'https://www.googleapis.com/auth/admin.reports.audit.readonly',
 ];
+/**
+ * Bàn giao (hợp đồng v1.5, E10): gỡ khỏi nhóm Google và Data Transfer Drive của tôi.
+ * Hai quyền này phải thêm ở admin.google.com → Bảo mật → Uỷ quyền toàn miền
+ * (Client ID của tài khoản máy ghi), nâng từ 8 lên 10 quyền.
+ */
+const ADMIN_WRITE_SCOPES = [
+  'https://www.googleapis.com/auth/admin.directory.group.member',
+  'https://www.googleapis.com/auth/admin.datatransfer',
+];
+/** Đọc Drive của tôi của từng người: mượn quyền chính người đó, chỉ lấy tên, loại, ngày */
+const MY_DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive'];
+/** Mã ứng dụng "Drive and Docs" trong Data Transfer khi không tra được bằng applications.list */
+const DRIVE_TRANSFER_APP_FALLBACK = '55656082996';
 const FILE_FIELDS =
   'id,name,mimeType,driveId,parents,description,createdTime,modifiedTime,webViewLink,trashed,md5Checksum,size,contentRestrictions,downloadRestrictions,lastModifyingUser(emailAddress)';
 
@@ -89,12 +102,27 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
   const writeAuth = new auth.JWT({ email: writeKey.client_email, key: writeKey.private_key, scopes: WRITE_SCOPES });
   const mailAuth = new auth.JWT({ email: writeKey.client_email, key: writeKey.private_key, scopes: WRITE_SCOPES, subject: cfg.google.mailFrom });
   const adminAuth = new auth.JWT({ email: readKeyJson.client_email, key: readKeyJson.private_key, scopes: ADMIN_SCOPES, subject: cfg.google.adminSubject });
+  const adminWriteAuth = new auth.JWT({ email: writeKey.client_email, key: writeKey.private_key, scopes: ADMIN_WRITE_SCOPES, subject: cfg.google.adminSubject });
   const oauth = new auth.OAuth2(cfg.google.clientId, cfg.google.clientSecret);
   const d = driveApi({ version: 'v3', auth: writeAuth as any });
   const dc = docsApi({ version: 'v1', auth: writeAuth as any });
   const sh = sheetsApi({ version: 'v4', auth: writeAuth as any });
   const dir = adminApi({ version: 'directory_v1', auth: adminAuth as any });
   const rep = adminApi({ version: 'reports_v1', auth: adminAuth as any });
+  const dirWrite = adminApi({ version: 'directory_v1', auth: adminWriteAuth as any });
+  const dt = adminApi({ version: 'datatransfer_v1', auth: adminWriteAuth as any });
+  let driveAppId: string | undefined;
+  async function driveTransferAppId(): Promise<string> {
+    if (driveAppId) return driveAppId;
+    try {
+      const r = await dt.applications.list({ maxResults: 100 });
+      driveAppId = (r.data.applications ?? []).find((a) => /drive/i.test(a.name ?? ''))?.id ?? DRIVE_TRANSFER_APP_FALLBACK;
+    } catch {
+      driveAppId = DRIVE_TRANSFER_APP_FALLBACK;
+    }
+    return driveAppId;
+  }
+  const transferStatus = (code?: string | null) => (code === 'completed' ? 'completed' : code === 'failed' ? 'failed' : 'inProgress') as 'completed' | 'failed' | 'inProgress';
   const gm = gmailApi({ version: 'v1', auth: mailAuth as any });
   const all = { supportsAllDrives: true };
 
@@ -176,6 +204,37 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
             return { items: (r.data.groups ?? []).map((x) => x.email!), next: r.data.nextPageToken };
           }),
         ),
+      removeGroupMember: (groupEmail, email) =>
+        g('directory.members.delete', async () => {
+          try {
+            await dirWrite.members.delete({ groupKey: groupEmail, memberKey: email });
+          } catch (e: any) {
+            // Đã không còn trong nhóm → coi như xong
+            if ((e?.code ?? e?.response?.status) === 404) return;
+            throw e;
+          }
+        }),
+    },
+    dataTransfer: {
+      transferDrive: (p) =>
+        g('datatransfer.transfers.insert', async () => {
+          // Data Transfer cần id người dùng của Directory, không nhận email
+          const [from, to] = await Promise.all([dir.users.get({ userKey: p.fromEmail }), dir.users.get({ userKey: p.toEmail })]);
+          const applicationId = await driveTransferAppId();
+          const r = await dt.transfers.insert({
+            requestBody: {
+              oldOwnerUserId: from.data.id!,
+              newOwnerUserId: to.data.id!,
+              applicationDataTransfers: [{ applicationId, applicationTransferParams: [{ key: 'PRIVACY_LEVEL', value: ['PRIVATE', 'SHARED'] }] }],
+            },
+          });
+          return { transferId: r.data.id!, status: transferStatus(r.data.overallTransferStatusCode) };
+        }),
+      getTransfer: (transferId) =>
+        g('datatransfer.transfers.get', async () => {
+          const r = await dt.transfers.get({ dataTransferId: transferId });
+          return { status: transferStatus(r.data.overallTransferStatusCode) };
+        }),
     },
     drive: {
       listDrives: () =>
@@ -325,6 +384,25 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
           const r = await d.permissions.list({ fileId, ...all, fields: 'permissions(id,type,emailAddress,domain,role,expirationTime)' });
           return (r.data.permissions ?? []).map((p) => ({ permissionId: p.id!, type: p.type as any, emailAddress: p.emailAddress ?? undefined, domain: p.domain ?? undefined, role: p.role as any, expirationTime: p.expirationTime ?? undefined }));
         }),
+      listOwnedFiles: (email, max) =>
+        g('files.list(owner)', async () => {
+          const userAuth = new auth.JWT({ email: writeKey.client_email, key: writeKey.private_key, scopes: MY_DRIVE_SCOPES, subject: email });
+          const ud = driveApi({ version: 'v3', auth: userAuth as any });
+          const out: DriveFileMeta[] = [];
+          let pageToken: string | undefined;
+          do {
+            const r = await ud.files.list({
+              corpora: 'user',
+              q: `'me' in owners and trashed = false and mimeType != '${FOLDER_MIME}'`,
+              pageSize: Math.min(1000, max),
+              pageToken,
+              fields: 'nextPageToken,files(id,name,mimeType,createdTime,modifiedTime)',
+            });
+            for (const f of r.data.files ?? []) out.push({ fileId: f.id!, name: f.name!, mimeType: f.mimeType!, parents: [], createdTime: f.createdTime!, modifiedTime: f.modifiedTime ?? undefined });
+            pageToken = r.data.nextPageToken ?? undefined;
+          } while (pageToken && out.length < max);
+          return out.slice(0, max);
+        }),
     },
     docs: {
       replacePlaceholders: (fileId, values) =>
@@ -395,6 +473,10 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
             },
           });
           return id;
+        }),
+      appendRows: (fileId, rows) =>
+        g('sheets.values.append', async () => {
+          await sh.spreadsheets.values.append({ spreadsheetId: fileId, range: 'A1', valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS', requestBody: { values: rows } });
         }),
     },
     gmail: {

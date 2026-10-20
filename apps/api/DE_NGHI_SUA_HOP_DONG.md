@@ -45,6 +45,24 @@ Chủ dự án đồng ý cả N1–N4; BE đã sửa:
 Cùng đợt: D19 (GET /blocks, /departments, /divisions, /delegations kèm `people`),
 D20 (gốc drive chỉ cho thư mục đánh số; year, month, entity thiếu parentId → 422 BR-11).
 
+## Đề nghị mới (sau hợp đồng 1.5.0-gd2, giai đoạn 2 M10, M15, 2026-10-20) – chờ chủ dự án
+
+| # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
+|---|---|---|---|---|
+| N6 | `PATCH /users/{id}` | Mô tả 1.5.0 ghi "biên bản executing, done → 409" nhưng phản hồi chưa khai báo 409 | Thêm `'409': Conflict` | Trả 409 STATE_INVALID (mã chung, test đã ghi nhận) |
+| N7 | `POST /handovers/{id}/export` (E11) | Chưa ghi khi BM-VCPV-08 chưa có bản hiệu lực; BM-VCPV-08 phải có chỗ giữ nào | Ghi rõ: chưa có → 422 (không mã BR); thêm danh sách chỗ giữ vào hợp đồng mục 6 như BM khung | 422 RULE_VIOLATION "Chưa có biểu mẫu BM-VCPV-08 đang hiệu lực". Chỗ giữ: `{{NGUOI_NGHI}}`, `{{EMAIL_NGUOI_NGHI}}`, `{{PHONG}}`, `{{NGAY_LAM_VIEC_CUOI}}`, `{{NGUOI_NHAN}}`, `{{NGAY_NHAN}}`, `{{HCNS_KIEM_TRA}}`, `{{NGAY_KIEM_TRA}}`, `{{TRANG_THAI}}`, `{{DANH_SACH}}` (mỗi dòng biên bản một dòng), `{{NGAY_XUAT}}`. File đặt ở thư mục tháng của `01 Kế hoạch – Báo cáo` drive HCNS |
+| N8 | `HandoverItem.toUserId` | Hợp đồng: "bỏ trống = người nhận của biên bản" – FE phải tự suy ra | Ghi: BE luôn trả `toUserId` đang áp dụng với dòng `reassign`, không trả với action khác | Như đề nghị |
+| N9 | `HandoverActions.execute` | Trước ngày làm việc cuối gọi execute → 422 BR-25; FE không biết trước | Giữ `execute` trong allowedActions (đủ quyền, đúng trạng thái); FE so `lastWorkingDay` với hôm nay để hiện câu nhắc | Như đề nghị |
+| N10 | Biên bản liệt kê (E5) | "registered → revising" chưa rõ có gồm `effective` | Chỉ tài liệu đang dở: registered, coded, drafting, feedback, submitted, approved, revising (không gồm effective, withdrawn – tài liệu hiệu lực đổi người soạn khi sửa đổi) | Như đề nghị. Phiếu `approval_to_decide` gồm cả phiếu người đó là người kiểm tra chưa kiểm; Drive của tôi liệt kê tối đa 1.000 file |
+| N11 | `auditor.view` (E16) | "Mọi lượt gọi của kiểm toán viên" – kiểm toán viên cũng là nhân viên dùng VCdocs hằng ngày | Chỉ ghi khi gọi các điểm cuối trong phạm vi kiểm toán: /documents, /records, /approvals, /audit-logs, /evidence-pack (kể cả GET) | Như đề nghị. Phiếu của phòng được cấp hiện ở `GET /approvals?box=all` (mặc định `inbox` chỉ phiếu chờ mình) |
+| N12 | `GET /audit-logs` (E14) | Ẩn before/after: "drive người gọi không được xem (drive Mật)" | Chỉ ẩn với drive Mật người gọi không là thành viên; drive phòng ban không ẩn với R1, R3, R9 | Như đề nghị |
+| N13 | Gói bằng chứng tài liệu (E17) | Trước 1.5.0 BE không giữ PDF từng phiên bản tài liệu ở kho riêng (chỉ hồ sơ chốt) | Ghi: tài liệu ban hành từ 1.5.0 có PDF mọi phiên bản; bản cũ chỉ có PDF hiện hành (lấy trên Drive) | Từ bản này mỗi lần ban hành lưu PDF vào kho riêng |
+| N14 | `GET /handovers` | Sai `status`, `sort` → 400 chưa khai báo | Thêm `'400': BadRequest` | Trả 400 VALIDATION (mã chung) |
+
+Quyền Google mới (E10) để chủ dự án thêm ở admin.google.com (uỷ quyền toàn miền của
+Client ID `vcdocs-backend`, 8 → 10 quyền): `admin.directory.group.member`,
+`admin.datatransfer`; bật Admin SDK Data Transfer API. Chi tiết `README.md`.
+
 ## Đề nghị mới (sau hợp đồng 1.3.0-gd1, 2026-10-20) – chờ chủ dự án
 
 | # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
