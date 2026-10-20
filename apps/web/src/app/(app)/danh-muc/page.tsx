@@ -153,7 +153,7 @@ function DepartmentForm({ initial, onClose }: { initial: Partial<Department>; on
     groupEmails: (initial.groupEmails ?? []).join(', '),
   });
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
-  const valid = f.code.trim() && /^\d{2}$/.test(f.number.trim()) && f.name.trim() && f.driveId.trim() && f.securityLevel;
+  const valid = f.code.trim() && /^\d{2}[a-z]?$/.test(f.number.trim()) && f.name.trim() && f.driveId.trim() && f.securityLevel;
   const save = useAction(
     (_: void, key: string) => {
       const body = {
@@ -187,7 +187,7 @@ function DepartmentForm({ initial, onClose }: { initial: Partial<Department>; on
       }
     >
       <div className="form-row">
-        <TextField label="Số" value={f.number} onChange={set('number')} required placeholder="11" hint="2 chữ số, 00–22" inputMode="numeric" maxLength={2} />
+        <TextField label="Số" value={f.number} onChange={set('number')} required placeholder="11" hint="2 chữ số, 00–22; phòng tách thêm chữ cái, vd 21b" maxLength={3} />
         <TextField label="Mã phòng" value={f.code} onChange={set('code')} required placeholder="MKT" />
       </div>
       <TextField label="Tên phòng" value={f.name} onChange={set('name')} required placeholder="Marketing" />

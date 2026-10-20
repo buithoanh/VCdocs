@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, unwrap } from '@/api/client';
 import type { Job } from '@/api/types';
-import { jobStatusLabel } from '@/lib/labels';
+import { jobStatusLabel, jobSummaryText } from '@/lib/labels';
 import { useToast } from './providers/ToastProvider';
 
 /** Việc 202 trả jobId; theo dõi GET /jobs/{id} tới khi xong hoặc lỗi. */
@@ -89,6 +89,7 @@ export function JobProgress({ jobId, onFinished }: { jobId: string; onFinished?:
         </ol>
       )}
       {job.status === 'failed' && <p className="error-text">{jobErrorText(job)}</p>}
+      {job.status === 'done' && jobSummaryText(job.summary) && <p>{jobSummaryText(job.summary)}</p>}
       {job.status === 'done' && link && (
         link.external ? (
           <a className="btn btn-secondary" href={link.href} target="_blank" rel="noreferrer">
@@ -141,7 +142,7 @@ function TrayItem({ t, onClose }: { t: Tracked; onClose: () => void }) {
     qc.invalidateQueries({ queryKey: ['notifications'] });
     if (job.status === 'done') {
       const link = jobResultLink(job);
-      toast.success(`${t.label}: xong.`, link && !link.external ? link : undefined);
+      toast.success(`${t.label}: xong.${jobSummaryText(job.summary) ? ` ${jobSummaryText(job.summary)}` : ''}`, link && !link.external ? link : undefined);
     } else {
       toast.error(`${t.label}: ${jobErrorText(job)}`);
     }

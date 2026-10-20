@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ApiError, api, idem, unwrap } from '@/api/client';
 import type { Approval } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
+import { useJobs } from '@/components/jobs';
 import { approvalObjectLabel } from '@/lib/labels';
 
 /** Đường dẫn tới đối tượng được trình. */
@@ -37,6 +38,7 @@ export type DecideKind = 'approve' | 'changes_requested' | 'check';
 /** Duyệt / yêu cầu sửa / xác nhận kiểm tra. Yêu cầu sửa bắt buộc ghi nội dung (US-05.2). */
 export function DecideDialog({ approval, kind, onClose, onDone }: { approval: Approval; kind: DecideKind; onClose: () => void; onDone?: (a: Approval) => void }) {
   const qc = useQueryClient();
+  const jobs = useJobs();
   const [invalidated, setInvalidated] = useState(false);
   const titles: Record<DecideKind, string> = { approve: 'Đồng ý', changes_requested: 'Yêu cầu sửa', check: 'Xác nhận đã kiểm tra' };
   return (
@@ -74,7 +76,17 @@ export function DecideDialog({ approval, kind, onClose, onDone }: { approval: Ap
         }
       }}
       invalidate={[['approvals'], ['approval', approval.id], ['document'], ['record']]}
-      onDone={onDone}
+      onDone={(a) => {
+        // D15: quyết định có thể kéo theo việc nền (vd huỷ bỏ tài liệu: đổi tên, chuyển vào 99).
+        if (a.jobId) {
+          jobs.track({
+            jobId: a.jobId,
+            label: approval.objectType === 'document_withdrawal' ? 'Huỷ bỏ tài liệu' : 'Việc sau phê duyệt',
+            invalidate: [['document'], ['documents'], ['approval', approval.id]],
+          });
+        }
+        onDone?.(a);
+      }}
       onClose={onClose}
     />
   );

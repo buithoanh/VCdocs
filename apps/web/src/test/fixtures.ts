@@ -45,7 +45,6 @@ export const departments: S['Department'][] = [
 const rtBase = {
   ...base,
   allowedActions: [] as S['RecordType']['allowedActions'],
-  people: {},
   departmentId: ids.dept,
   namingRule: '[Mã] [Loại] Nội dung – YYYY-MM-DD',
   folderId: ids.folder,
@@ -66,7 +65,7 @@ export const people: S['People'] = {
   [ids.boss]: { id: ids.boss, name: 'Trần Thị B', email: 'truongphong@vcprosperous.com' },
 };
 
-export const approval: S['Approval'] = {
+export const approval: S['ApprovalDetail'] = {
   ...base,
   people,
   id: ids.approval,
@@ -82,7 +81,7 @@ export const approval: S['Approval'] = {
   snapshot: { revisionId: 'r1', viewUrl: 'https://docs.google.com/document/d/x/edit' },
 };
 
-export const doc: S['Document'] = {
+export const doc: S['DocumentDetail'] = {
   ...base,
   people,
   id: ids.doc,
@@ -98,7 +97,7 @@ export const doc: S['Document'] = {
   versions: [],
 };
 
-export function makeJob(status: S['JobStatus'], extra: Partial<S['Job']> = {}): S['Job'] {
+export function makeJob(status: S['JobStatus'], extra: Partial<S['JobDetail']> = {}): S['JobDetail'] {
   return {
     ...base,
     id: ids.job,
@@ -133,10 +132,10 @@ export const codes: S['CodePage'] = {
   page: 1,
   limit: 200,
   total: 1,
-  items: [{ ...base, id: '6712f0c2a1b2c3d4e5f607a1', allowedActions: [], people: {}, code: 'SEO-PTDA', type: 'function', meaning: 'SEO – phát triển dự án', status: 'approved', departmentId: ids.dept }],
+  items: [{ ...base, id: '6712f0c2a1b2c3d4e5f607a1', allowedActions: [], code: 'SEO-PTDA', type: 'function', meaning: 'SEO – phát triển dự án', status: 'approved', departmentId: ids.dept }],
 };
 
-export const record: S['Record'] = {
+export const record: S['RecordDetail'] = {
   ...base,
   people,
   id: ids.record,
