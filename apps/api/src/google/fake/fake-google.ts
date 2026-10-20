@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { GoogleError } from '../../common/errors';
 import type { DriveRole } from '../../common/enums';
@@ -68,6 +69,7 @@ export class FakeGoogle implements GooglePorts {
   }
   private touch() {
     if (!this.opts.stateFile) return;
+    fs.mkdirSync(path.dirname(this.opts.stateFile), { recursive: true });
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => {
       fs.writeFileSync(this.opts.stateFile!, JSON.stringify(this.world));
@@ -75,6 +77,7 @@ export class FakeGoogle implements GooglePorts {
     this.saveTimer.unref?.();
   }
   flush() {
+    if (this.opts.stateFile) fs.mkdirSync(path.dirname(this.opts.stateFile), { recursive: true });
     if (this.opts.stateFile) fs.writeFileSync(this.opts.stateFile, JSON.stringify(this.world));
   }
   isEmpty() {
@@ -145,6 +148,27 @@ export class FakeGoogle implements GooglePorts {
     if (d) d.permissions.push({ ...p, permissionId: this.id('pe') });
     this.touch();
   }
+  /** Dựng lại một file/thư mục với đúng id cũ (khôi phục sau khi khởi động lại) */
+  restoreFile(p: { fileId: string; name: string; mimeType: string; parents: string[]; driveId?: string; text?: string; locked?: boolean }) {
+    if (this.world.files[p.fileId]) return;
+    this.world.files[p.fileId] = {
+      fileId: p.fileId,
+      name: p.name,
+      mimeType: p.mimeType,
+      parents: p.parents,
+      driveId: p.driveId,
+      createdTime: new Date().toISOString(),
+      webViewLink: `https://drive.google.com/fake/${p.fileId}`,
+      revision: 1,
+      text: p.text ?? '',
+      versionRows: [],
+      openComments: 0,
+      permissions: [],
+      ...(p.locked ? { contentRestriction: { readOnly: true, ownerRestricted: true } } : {}),
+    };
+    this.touch();
+  }
+
   /** Ai đó sửa file trực tiếp trên Drive → phiên bản mới */
   editFile(fileId: string, text?: string) {
     const f = this.file(fileId);

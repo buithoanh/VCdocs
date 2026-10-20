@@ -149,6 +149,21 @@ export class DocumentsService {
     return info as ApproverInfo;
   }
 
+  /**
+   * Người duyệt huỷ bỏ: như khi ban hành; HD, BM cấp phòng do chính trưởng phòng
+   * (người duyệt ban hành) trình thì GĐ khối phụ trách phòng duyệt (D21, BR-05).
+   */
+  async resolveWithdrawalApprover(ctx: Ctx, d: any, submitterId = ctx.user.id): Promise<ApproverInfo> {
+    const info = await this.resolveApprover(ctx, d);
+    if (info.approverId === submitterId && d.level === 'DEPT' && (d.type === 'HD' || d.type === 'BM')) {
+      const director = await this.approvals.blockDirector(ctx.companyId, String(d.departmentId));
+      if (director && director !== submitterId) {
+        return { approverId: director, approverRule: `Huỷ bỏ ${d.type} cấp phòng do trưởng phòng trình → Giám đốc khối phụ trách (D21, BR-05)` };
+      }
+    }
+    return info;
+  }
+
   async notifyIssued(companyId: string, d: any, n: number, notifyGroupIds: string[] = []) {
     const cid = this.cid(companyId);
     const filter: any = { companyId: cid, status: { $ne: 'left' } };

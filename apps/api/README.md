@@ -1,7 +1,7 @@
 # @vcdocs/api – máy chủ nghiệp vụ VCdocs
 
 NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`, đúng theo
-`contract/openapi.yaml` (1.2.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
+`contract/openapi.yaml` (1.3.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
 file, MongoDB giữ sổ sách.
 
 ## Chạy local
@@ -32,6 +32,12 @@ Bảng mã MKT). Đăng nhập: mở `http://localhost:4000/api/v1/auth/google` 
 localhost nên FE ở cổng 3000 gọi qua proxy `/api/v1` của Next.js là dùng được.
 
 Khi phát triển: `pnpm --filter @vcdocs/api dev` (tsx watch).
+
+Khởi động lại: trạng thái Google giả (người dùng, nhóm, drive, file) mặc định lưu ở
+`apps/api/.vcdocs-dev/fake-google.json` (đã gitignore), nên chạy lại vẫn đăng nhập
+được. Mất file này mà CSDL đã có dữ liệu thì BE tự dựng lại danh bạ, drive, thư mục
+và file đã đăng ký từ CSDL (nội dung file chỉ còn bản trống). Muốn làm lại từ đầu:
+xoá CSDL `vcdocs` và thư mục `.vcdocs-dev/`.
 
 Người dùng mẫu (đều @vcprosperous.com, không phải người thật): `tgd` (R1),
 `gdk.vhnb`, `gdk.kd` (R2), `hcns` (R3 + R4 drive 00, 22), `tp.mkt` (R4),
@@ -67,7 +73,7 @@ Xem `.env.example` (không chứa khoá thật). Chính:
 | `COOKIE_SECURE` | Cookie Secure (bật ở production HTTPS) | true khi `NODE_ENV=production` |
 | `SESSION_HOURS` | Thời hạn phiên | 8 |
 | `GOOGLE_MODE` | `fake` hoặc `real` | `fake` |
-| `FAKE_GOOGLE_STATE_FILE` | Lưu trạng thái Google giả ra file JSON | (trống = chỉ trong bộ nhớ) |
+| `FAKE_GOOGLE_STATE_FILE` | Lưu trạng thái Google giả ra file JSON; `none` = chỉ trong bộ nhớ | `.vcdocs-dev/fake-google.json` (khi fake, không phải test) |
 | `SEED_DEMO` | Nạp dữ liệu mẫu khi CSDL trống (chỉ với fake) | true khi fake và không phải production |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth đăng nhập (real) | |
 | `GOOGLE_SA_WRITE_KEY`, `GOOGLE_SA_READ_KEY` | JSON tài khoản máy ghi / đọc: chuỗi JSON, base64 hoặc đường dẫn file ngoài repo (real) | |

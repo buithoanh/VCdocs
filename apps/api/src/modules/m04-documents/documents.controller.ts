@@ -98,7 +98,7 @@ export class DocumentsController {
       title: (d) => `Huỷ bỏ ${d.code ?? ''} ${d.title}`.trim(),
       link: (d) => `/tai-lieu/${d._id}`,
       isParticipant: (ctx, d) => this.docs.isParticipant(ctx, d),
-      resolveApprover: (ctx, d) => this.docs.resolveApprover(ctx, d),
+      resolveApprover: (ctx, d) => this.docs.resolveWithdrawalApprover(ctx, d),
       // Duyệt xong trả 200 ngay, việc nền document.withdraw đổi tên, chuyển 99; phiếu ghi jobId (D15)
       onApproved: async (ctx, a, d) => {
         const jobId = await this.jobs.enqueue(ctx, 'document.withdraw', { documentId: String(d._id), replacedById: a.meta?.replacedById });
@@ -461,7 +461,7 @@ export class DocumentsController {
       if (body.replacedById === id) throw Errors.validation('Tài liệu không thay thế chính nó', [{ field: 'replacedById', issue: 'self' }]);
       if (!(await this.docs.load(ctx.companyId, body.replacedById))) throw Errors.notFound('Không tìm thấy tài liệu thay thế');
     }
-    const approver = await this.docs.resolveApprover(ctx, d);
+    const approver = await this.docs.resolveWithdrawalApprover(ctx, d);
     this.approvals.assertSeparation(approver, ctx.user.id);
     const a = await this.approvals.create(ctx, {
       objectType: 'document_withdrawal',

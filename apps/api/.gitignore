@@ -3,3 +3,4 @@
 .uploads/
 .fake-google.json
 dist/
+.vcdocs-dev/
