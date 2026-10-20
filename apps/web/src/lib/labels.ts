@@ -1,3 +1,4 @@
+import { formatNumber } from './format';
 import type {
   ApprovalObjectType,
   Job,
@@ -212,6 +213,7 @@ export function toneOf(status: string | undefined): Tone {
 
 /** Tên việc chạy nền theo enum Job.type (D11). */
 export const jobTypeLabel: Record<Job['type'], string> = {
+  'document.withdraw': 'Huỷ bỏ tài liệu',
   'google.sync': 'Đồng bộ nhân sự Google',
   'codes.export': 'Xuất Bảng mã',
   'folder.create': 'Tạo thư mục',
@@ -250,3 +252,35 @@ export const holdReasonLabel = {
   board_request: 'Ban Điều hành yêu cầu',
 } as const;
 export type HoldReasonType = keyof typeof holdReasonLabel;
+
+/** Job.summary (D16) → một câu ngắn, vd { created: 12, skipped: 1 } → "Đã tạo 12 · bỏ qua 1". */
+const summaryWords: Record<string, string> = {
+  created: 'tạo',
+  updated: 'cập nhật',
+  deleted: 'xoá',
+  removed: 'bỏ',
+  revoked: 'gỡ',
+  skipped: 'bỏ qua',
+  failed: 'lỗi',
+  moved: 'chuyển',
+  renamed: 'đổi tên',
+  notified: 'gửi thông báo',
+  users: 'nhân sự',
+  groups: 'nhóm',
+  members: 'thành viên',
+  folders: 'thư mục',
+  files: 'file',
+  rows: 'dòng',
+  total: 'tổng',
+};
+
+export function jobSummaryText(summary: Record<string, unknown> | undefined | null): string | undefined {
+  if (!summary) return undefined;
+  // Chỉ lấy số liệu có tên quen thuộc; trường kỹ thuật (googleId, name…) không hiện cho người dùng.
+  const parts = Object.entries(summary)
+    .filter(([k, v]) => typeof v === 'number' && k in summaryWords)
+    .map(([k, v]) => `${summaryWords[k]} ${formatNumber(v as number)}`);
+  if (!parts.length) return undefined;
+  const text = parts.join(' · ');
+  return `Đã ${text}.`;
+}

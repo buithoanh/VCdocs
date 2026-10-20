@@ -465,6 +465,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Block"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -585,6 +586,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Department"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -705,6 +707,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Division"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -872,7 +875,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Code"];
+                        "application/json": components["schemas"]["CodeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -921,7 +924,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Code"];
+                        "application/json": components["schemas"]["CodeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -1020,7 +1023,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         driveId: string;
-                        /** @description Thiếu = gốc drive (D8) */
+                        /** @description Thiếu = gốc drive (D8). Gốc drive chỉ cho docs, plan_report, operations, area, project, closed, archive; year, month, entity bắt buộc có parentId, thiếu → 422 BR-11 (D20) */
                         parentId?: components["schemas"]["Id"];
                         kind: components["schemas"]["FolderKind"];
                         code?: string;
@@ -1913,7 +1916,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Approval"];
+                        "application/json": components["schemas"]["ApprovalDetail"];
                     };
                 };
                 403: components["responses"]["Forbidden"];
@@ -2464,6 +2467,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: components["schemas"]["Delegation"][];
+                            people: components["schemas"]["People"];
                         };
                     };
                 };
@@ -2495,7 +2499,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Delegation"];
+                        "application/json": components["schemas"]["DelegationDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2548,7 +2552,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Delegation"];
+                        "application/json": components["schemas"]["DelegationDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2617,7 +2621,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2689,7 +2693,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -2724,7 +2728,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RecordType"];
+                        "application/json": components["schemas"]["RecordTypeDetail"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -2767,7 +2771,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Approval"];
+                        "application/json": components["schemas"]["ApprovalDetail"];
                     };
                 };
                 403: components["responses"]["Forbidden"];
@@ -3969,7 +3973,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Job"];
+                        "application/json": components["schemas"]["JobDetail"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -4058,7 +4062,7 @@ export interface components {
             updatedBy?: components["schemas"]["Id"];
         };
         DocumentActions: {
-            allowedActions: ("assign-code" | "create-draft" | "request-feedback" | "submit" | "issue" | "revise" | "review" | "withdraw" | "relock" | "integrity" | "update-external")[];
+            allowedActions: ("assign-code" | "create-draft" | "request-feedback" | "feedback" | "submit" | "issue" | "revise" | "review" | "withdraw" | "relock" | "integrity" | "update-external")[];
         };
         ApprovalActions: {
             allowedActions: ("check" | "decide" | "cancel" | "remind")[];
@@ -4094,6 +4098,22 @@ export interface components {
         People: {
             [key: string]: components["schemas"]["UserRef"];
         };
+        /** @description Document kèm people (chi tiết một đối tượng, D17) */
+        DocumentDetail: components["schemas"]["Document"] & components["schemas"]["WithPeople"];
+        /** @description Record kèm people (chi tiết một đối tượng, D17) */
+        RecordDetail: components["schemas"]["Record"] & components["schemas"]["WithPeople"];
+        /** @description Approval kèm people (chi tiết một đối tượng, D17) */
+        ApprovalDetail: components["schemas"]["Approval"] & components["schemas"]["WithPeople"];
+        /** @description Code kèm people (chi tiết một đối tượng, D17) */
+        CodeDetail: components["schemas"]["Code"] & components["schemas"]["WithPeople"];
+        /** @description RecordType kèm people (chi tiết một đối tượng, D17) */
+        RecordTypeDetail: components["schemas"]["RecordType"] & components["schemas"]["WithPeople"];
+        /** @description ExternalShare kèm people (chi tiết một đối tượng, D17) */
+        ExternalShareDetail: components["schemas"]["ExternalShare"] & components["schemas"]["WithPeople"];
+        /** @description Delegation kèm people (chi tiết một đối tượng, D17) */
+        DelegationDetail: components["schemas"]["Delegation"] & components["schemas"]["WithPeople"];
+        /** @description Job kèm people (chi tiết một đối tượng, D17) */
+        JobDetail: components["schemas"]["Job"] & components["schemas"]["WithPeople"];
         WithPeople: {
             people: components["schemas"]["People"];
         };
@@ -4238,7 +4258,7 @@ export interface components {
             prefix: string;
             name: string;
         };
-        Code: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & components["schemas"]["CodeActions"] & {
+        Code: components["schemas"]["Base"] & components["schemas"]["CodeActions"] & {
             code: string;
             type: components["schemas"]["CodeType"];
             meaning: string;
@@ -4313,7 +4333,7 @@ export interface components {
             /** @description true = tài liệu Mật, người gọi chỉ thấy mã và tên */
             isRestricted?: boolean;
         };
-        Document: components["schemas"]["WithPeople"] & components["schemas"]["DocumentSummary"] & {
+        Document: components["schemas"]["DocumentSummary"] & {
             versions?: components["schemas"]["DocumentVersion"][];
             lock?: components["schemas"]["Lock"];
             replacesId?: components["schemas"]["Id"];
@@ -4352,7 +4372,7 @@ export interface components {
             device?: string;
             ip?: string;
         };
-        Approval: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & components["schemas"]["ApprovalActions"] & {
+        Approval: components["schemas"]["Base"] & components["schemas"]["ApprovalActions"] & {
             objectType: components["schemas"]["ApprovalObjectType"];
             objectId: components["schemas"]["Id"];
             /** @description Tên hiển thị của đối tượng trình */
@@ -4376,11 +4396,13 @@ export interface components {
             dueAt?: components["schemas"]["DateTime"];
             reminders?: components["schemas"]["DateTime"][];
             invalidatedReason?: string;
+            /** @description Việc nền chạy sau quyết định, vd document.withdraw (D15) */
+            jobId?: components["schemas"]["Id"];
         };
         ApprovalPage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["Approval"][];
         };
-        Delegation: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["DelegationInput"];
+        Delegation: components["schemas"]["Base"] & components["schemas"]["CatalogActions"] & components["schemas"]["DelegationInput"];
         DelegationInput: {
             blockId: components["schemas"]["Id"];
             /** @description Loại hồ sơ được uỷ quyền duyệt (D6) */
@@ -4430,7 +4452,7 @@ export interface components {
             templateId?: string;
             requiresApproval?: boolean;
         };
-        RecordType: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & components["schemas"]["RecordTypeActions"] & components["schemas"]["RecordTypeInput"] & {
+        RecordType: components["schemas"]["Base"] & components["schemas"]["RecordTypeActions"] & components["schemas"]["RecordTypeInput"] & {
             /**
              * @description approved mới lập được hồ sơ (BR-20)
              * @enum {string}
@@ -4471,7 +4493,7 @@ export interface components {
             isApproved?: boolean;
             isClaimed?: boolean;
         };
-        Record: components["schemas"]["WithPeople"] & components["schemas"]["RecordSummary"] & {
+        Record: components["schemas"]["RecordSummary"] & {
             approvalId?: components["schemas"]["Id"];
             finalized?: {
                 at?: components["schemas"]["DateTime"];
@@ -4528,7 +4550,7 @@ export interface components {
         SearchPage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["SearchHit"][];
         };
-        ExternalShare: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & components["schemas"]["ExternalShareActions"] & {
+        ExternalShare: components["schemas"]["Base"] & components["schemas"]["ExternalShareActions"] & {
             fileId: string;
             fileName?: string;
             recordId?: components["schemas"]["Id"];
@@ -4574,9 +4596,9 @@ export interface components {
             /** @enum {string} */
             digest: "instant" | "daily";
         };
-        Job: components["schemas"]["WithPeople"] & components["schemas"]["Base"] & {
+        Job: components["schemas"]["Base"] & {
             /** @enum {string} */
-            type: "google.sync" | "codes.export" | "folder.create" | "folder.close_project" | "folder.ensure_periods" | "document.create_draft" | "document.issue" | "documents.catalog_export" | "external_document.import" | "record_types.catalog_export" | "record.create" | "record.upload" | "record.claim" | "record.finalize" | "record.scan" | "share.revoke_all";
+            type: "document.withdraw" | "google.sync" | "codes.export" | "folder.create" | "folder.close_project" | "folder.ensure_periods" | "document.create_draft" | "document.issue" | "documents.catalog_export" | "external_document.import" | "record_types.catalog_export" | "record.create" | "record.upload" | "record.claim" | "record.finalize" | "record.scan" | "share.revoke_all";
             status: components["schemas"]["JobStatus"];
             progress: number;
             steps: {
@@ -4584,7 +4606,7 @@ export interface components {
                 status: components["schemas"]["JobStatus"];
                 error?: string;
             }[];
-            /** @description Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file */
+            /** @description Không có với google.sync, folder.ensure_periods, share.revoke_all (D16). Kết quả cuối (D11): { objectType, objectId } khi tạo/đổi đối tượng; { fileId } khi xuất file */
             result?: {
                 /** @enum {string} */
                 objectType: "document" | "record" | "folder" | "approval" | "external_share" | "code" | "record_type";
@@ -4592,6 +4614,10 @@ export interface components {
             } | {
                 fileId: string;
                 url?: string;
+            };
+            /** @description Số liệu tóm tắt, vd { created: 12 } (D16) */
+            summary?: {
+                [key: string]: unknown;
             };
             error?: components["schemas"]["Error"];
             startedAt?: components["schemas"]["DateTime"];
@@ -4630,7 +4656,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Document"];
+                "application/json": components["schemas"]["DocumentDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4639,7 +4665,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Document"];
+                "application/json": components["schemas"]["DocumentDetail"];
             };
         };
         /** @description OK */
@@ -4648,7 +4674,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Record"];
+                "application/json": components["schemas"]["RecordDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4657,7 +4683,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Record"];
+                "application/json": components["schemas"]["RecordDetail"];
             };
         };
         /** @description OK */
@@ -4666,7 +4692,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Approval"];
+                "application/json": components["schemas"]["ApprovalDetail"];
             };
         };
         /** @description OK */
@@ -4675,7 +4701,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ExternalShare"];
+                "application/json": components["schemas"]["ExternalShareDetail"];
             };
         };
         /** @description Đã tạo */
@@ -4684,7 +4710,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ExternalShare"];
+                "application/json": components["schemas"]["ExternalShareDetail"];
             };
         };
         /** @description Dữ liệu sai (VALIDATION) */

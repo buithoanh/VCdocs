@@ -66,6 +66,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Đã làm: gộp `giai-doan-1` (432bad4, nhanh tiến); D15 việc nền `document.withdraw` + Approval.jobId, việc nền tự thử lại khi Google lỗi; D16 Job.summary; D17 `people` chỉ ở cấp trang / cấp đối tượng; D18 hành động `feedback`; D19 `people` ở danh mục nền và bảng uỷ quyền; D20 gốc drive không nhận year/month/entity (422 BR-11). 107 test e2e qua, 98/98 điểm cuối, build qua. Không push.
 - Còn dở: không có đề nghị mới.
 
+### 2026-10-20 · Phiên FE: theo hợp đồng v1.2 (`claude/fe-gd1-72b5d9`)
+- Đã làm: gộp `giai-doan-1` (432bad4, đã có cả apps/api); sửa `apps/web` theo D15–D20: phiếu huỷ bỏ tài liệu theo dõi việc `document.withdraw`; câu tóm tắt `Job.summary` (chỉ số liệu); nút "Xem góp ý" theo hành động `feedback`; tên người từ `people` của danh sách khối/phòng/division/uỷ quyền; gốc drive chỉ cho 7 loại thư mục. Chạy thử với BE thật (Google giả, MongoDB tạm): đăng nhập, danh mục phòng, tạo thư mục ở gốc drive, lập hồ sơ đều chạy. Sửa thêm: tên thư mục dự kiến khớp cách BE ghép; ô số phòng nhận "21b". 69 test + build qua. Chưa push.
+- Còn dở: nên ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – xem `apps/web/DE_NGHI_SUA_HOP_DONG.md` #10.
+
 ### 2026-10-20 · Chốt đề nghị, hợp đồng v1.1, ghép FE + BE
 - Đã làm: chủ dự án nhận toàn bộ đề nghị (D1–D14, C1–C17); ghi mục 9 vào hợp đồng Claude Docs (rev 19) và sửa 3 chỗ "OpenAPI sinh từ mã"; `contract/openapi.yaml` 1.1.0-gd1. Hai phiên BE/FE sửa theo v1.1. Ghép `claude/be-gd1-7af2e6` và `claude/fe-gd1-72b5d9` vào `giai-doan-1` (gộp sổ tay, sinh lại `pnpm-lock.yaml`). Build qua, BE 107/107, FE 60/60. Chạy thật Mongo + BE (Google giả) + FE: lỗi tên miền → /dang-nhap?loi=domain; nhân viên MKT lập hồ sơ → HS-2026-000001 đúng tên mẫu C3 → trình → trưởng phòng MKT duyệt → chốt (PDF, mã tra cứu, SHA-256, lưu đến 31/10/2031).
 - Còn dở: 6 đề nghị mới chờ chốt; push + PR; Google thật.

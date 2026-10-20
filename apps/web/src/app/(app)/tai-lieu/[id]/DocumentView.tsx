@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError, api, getLimits, idem, unwrap } from '@/api/client';
+import { api, getLimits, idem, unwrap } from '@/api/client';
 import { useAction, useDepartments } from '@/api/queries';
 import type { Document, RevisionKind } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
@@ -24,6 +24,7 @@ type Dialog = 'feedback' | 'submit' | 'issue' | 'revise' | 'withdraw' | 'review'
 export function DocumentView({ id }: { id: string }) {
   const q = useQuery({ queryKey: ['document', id], queryFn: () => unwrap(api.GET('/documents/{id}', { params: { path: { id } } })) });
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
   const toast = useToast();
   const jobs = useJobs();
   const invalidate = [['document', id], ['documents']];
@@ -66,6 +67,7 @@ export function DocumentView({ id }: { id: string }) {
                   { action: 'assign-code', label: 'Cấp mã', variant: 'primary', onClick: () => assignCode.mutate() },
                   { action: 'create-draft', label: 'Tạo file nháp', variant: 'primary', onClick: () => createDraft.mutate() },
                   { action: 'request-feedback', label: 'Gửi lấy góp ý', onClick: () => setDialog('feedback') },
+                  { action: 'feedback', label: 'Xem góp ý', onClick: () => setShowFeedback(true) },
                   { action: 'submit', label: 'Trình duyệt', variant: 'primary', onClick: () => setDialog('submit') },
                   { action: 'issue', label: 'Ban hành', variant: 'success', onClick: () => setDialog('issue') },
                   { action: 'revise', label: 'Sửa đổi', onClick: () => setDialog('revise') },
@@ -109,7 +111,7 @@ export function DocumentView({ id }: { id: string }) {
             </div>
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}
-          {(d.status === 'drafting' || d.status === 'feedback') && <OpenCommentsCard id={id} />}
+          {showFeedback && hasAction(d, 'feedback') && <OpenCommentsCard id={id} />}
           {hasAction(d, 'integrity') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
           <Card title="Lịch sử phiên bản">
             <DataTable
@@ -144,7 +146,6 @@ function OpenCommentsCard({ id }: { id: string }) {
     queryFn: () => unwrap(api.GET('/documents/{id}/feedback', { params: { path: { id } } })),
     retry: false,
   });
-  if (q.error instanceof ApiError && (q.error.status === 403 || q.error.status === 404)) return null;
   return (
     <Card title="Góp ý trên file" actions={<Button variant="ghost" onClick={() => q.refetch()}>Kiểm tra lại</Button>}>
       <QueryState q={q}>
@@ -290,8 +291,10 @@ function FeedbackDialog({ id, onClose }: { id: string; onClose: () => void }) {
 
 function SubmitDialog({ doc, onClose }: { doc: Document; onClose: () => void }) {
   const router = useRouter();
+  // Chỉ hỏi số nhận xét mở khi có quyền xem góp ý (D18).
   const feedback = useQuery({
     queryKey: ['document-feedback', doc.id],
+    enabled: hasAction(doc, 'feedback'),
     queryFn: () => unwrap(api.GET('/documents/{id}/feedback', { params: { path: { id: doc.id } } })),
     retry: false,
   });
