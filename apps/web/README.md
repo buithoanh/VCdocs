@@ -1,6 +1,6 @@
 # @vcdocs/web – giao diện VCdocs
 
-Next.js (App Router) + TypeScript. Gọi API theo `contract/openapi.yaml` (giai đoạn 1: M01–M09, M14, /jobs).
+Next.js (App Router) + TypeScript. Gọi API theo `contract/openapi.yaml` (giai đoạn 1: M01–M09, M14, /jobs; giai đoạn 2 đợt 1: M10 Bàn giao, M15 Nhật ký).
 
 ## Chạy
 
@@ -103,5 +103,16 @@ trong `next.config.ts`).
 | `/tra-cuu` | M08 tra cứu |
 | `/chia-se`, `/chia-se/moi` | M09 chia sẻ ngoài |
 | `/thong-bao`, `/viec-nen` | M14 thông báo, việc nền |
+| `/ban-giao`, `/ban-giao/[id]` | M10 bàn giao khi nghỉ việc (BM-VCPV-08) |
+| `/nhat-ky`, `/nhat-ky/quyen-xem-tam`, `/nhat-ky/goi-bang-chung/[id]` | M15 nhật ký, mã băm neo, quyền xem tạm kiểm toán viên, gói bằng chứng |
 
-Theo hợp đồng `1.1.0-gd1` (gộp từ `giai-doan-1`). Đề nghị sửa hợp đồng và tình trạng xử lý: `DE_NGHI_SUA_HOP_DONG.md`.
+Giai đoạn 2:
+
+- Chuyển quyền bàn giao không đảo ngược: hỏi hai lần (bước 1 nói rõ việc sẽ làm, bước 2
+  phải đánh dấu đã hiểu). Trước ngày làm việc cuối không bấm được (BR-25); HCNS kiểm tra
+  sau ngày đó phải ghi lý do trễ. Ngày tính theo giờ Việt Nam (`todayVN`).
+- Kiểm toán viên không có vai trò riêng: menu “Nhật ký thao tác” và nút “Lập gói bằng
+  chứng” hiện khi `me.auditorAccess` còn hạn và có phòng của đối tượng.
+- Nút “Xem nhật ký”, “Lập gói bằng chứng” nằm ở trang tài liệu, hồ sơ (`components/AuditTools.tsx`).
+
+Theo hợp đồng `1.5.0-gd2` (gộp từ `giai-doan-2`). Đề nghị sửa hợp đồng và tình trạng xử lý: `DE_NGHI_SUA_HOP_DONG.md`.

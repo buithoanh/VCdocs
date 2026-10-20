@@ -35,8 +35,7 @@ export function jobResultLink(job?: Job): { href: string; text: string; external
   const r = job?.result;
   if (!r) return undefined;
   if ('objectType' in r && r.objectId) {
-    // Partial: loại đối tượng của giai đoạn sau (handover, evidence_pack) chưa có trang thì không hiện link
-    const map: Partial<Record<typeof r.objectType, [string, string]>> = {
+    const map: Record<typeof r.objectType, [string, string]> = {
       record: ['/ho-so/', 'Mở hồ sơ'],
       document: ['/tai-lieu/', 'Mở tài liệu'],
       folder: ['/thu-muc?folder=', 'Mở thư mục'],
@@ -44,8 +43,10 @@ export function jobResultLink(job?: Job): { href: string; text: string; external
       external_share: ['/chia-se?id=', 'Mở sổ chia sẻ'],
       code: ['/bang-ma?id=', 'Mở Bảng mã'],
       record_type: ['/danh-muc-ho-so/', 'Mở loại hồ sơ'],
+      handover: ['/ban-giao/', 'Mở biên bản bàn giao'],
+      evidence_pack: ['/nhat-ky/goi-bang-chung/', 'Mở gói bằng chứng'],
     };
-    const m = map[r.objectType];
+    const m = map[r.objectType] as [string, string] | undefined;
     return m ? { href: `${m[0]}${r.objectId}`, text: m[1] } : undefined;
   }
   if ('fileId' in r && r.fileId) {

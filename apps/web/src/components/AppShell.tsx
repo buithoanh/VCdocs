@@ -31,6 +31,7 @@ export function usePendingApprovals() {
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/';
   if (href === '/phe-duyet') return pathname === '/phe-duyet' || /^\/phe-duyet\/(?!uy-quyen)/.test(pathname);
+  if (href === '/nhat-ky') return pathname === '/nhat-ky' || pathname.startsWith('/nhat-ky/goi-bang-chung');
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -43,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const toast = useToast();
   useEffect(() => setOpen(false), [pathname]);
 
-  const items = navFor(roles);
+  const items = navFor(roles, { auditor: !!me.auditorAccess });
   const groups = (['chinh', 'danh-muc', 'quan-tri'] as NavItem['group'][]).map((g) => ({ g, items: items.filter((i) => i.group === g) }));
 
   async function logout() {

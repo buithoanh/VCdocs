@@ -282,3 +282,9 @@ p { margin: .4rem 0; }
 /* ── Duyệt nhanh trên điện thoại ── */
 .sticky-decide { position: sticky; bottom: 0; background: var(--bg); padding: .75rem 0; display: flex; gap: .5rem; border-top: 1px solid var(--border); }
 .sticky-decide .btn { flex: 1; }
+
+/* ── Giai đoạn 2: bàn giao, nhật ký ── */
+.break { word-break: break-all; }
+.json-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: .75rem 0; }
+.json-box { background: var(--grey-soft); border-radius: 6px; padding: .5rem .6rem; margin: 0; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 1rem; max-height: 240px; overflow-y: auto; }
