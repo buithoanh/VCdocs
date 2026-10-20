@@ -46,6 +46,11 @@ export class DocumentsController {
       steps: ['Điền bảng đầu file', 'Đổi tên, chuyển vào thư mục chính thức', 'Khoá file và lưu bản PDF', 'Cập nhật danh mục', 'Gửi thông báo ban hành'],
       handler: (job) => this.docs.runIssue(job),
     });
+    jobs.register('document.withdraw', {
+      title: 'Huỷ bỏ tài liệu',
+      steps: ['Đổi tên [HẾT HIỆU LỰC] và chuyển vào 99', 'Cập nhật danh mục'],
+      handler: (job) => this.docs.runWithdraw(job),
+    });
     jobs.register('external_document.import', {
       title: 'Nhập tài liệu bên ngoài',
       steps: ['Sao chép vào 00 Tài liệu', 'Ghi sổ VCdocs'],
@@ -94,9 +99,10 @@ export class DocumentsController {
       link: (d) => `/tai-lieu/${d._id}`,
       isParticipant: (ctx, d) => this.docs.isParticipant(ctx, d),
       resolveApprover: (ctx, d) => this.docs.resolveApprover(ctx, d),
-      // Hợp đồng không có loại việc nền document.withdraw → làm ngay khi duyệt (lỗi Drive thì phiếu về chờ)
+      // Duyệt xong trả 200 ngay, việc nền document.withdraw đổi tên, chuyển 99; phiếu ghi jobId (D15)
       onApproved: async (ctx, a, d) => {
-        await this.docs.runWithdraw({ companyId: ctx.companyId, userId: ctx.user.id, requestId: ctx.requestId, payload: { documentId: String(d._id), replacedById: a.meta?.replacedById }, step: (_n, fn) => fn() });
+        const jobId = await this.jobs.enqueue(ctx, 'document.withdraw', { documentId: String(d._id), replacedById: a.meta?.replacedById });
+        await this.db.m.Approval.updateOne({ _id: a._id, companyId: a.companyId }, { $set: { jobId: new Types.ObjectId(jobId) } });
       },
       onChangesRequested: async () => undefined,
       onCancelled: async () => undefined,

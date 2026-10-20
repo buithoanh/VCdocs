@@ -4,8 +4,8 @@ Phiên BE không sửa `contract/`. Chỗ hợp đồng thiếu, sai hoặc khó
 đây; BE đã chọn cách an toàn nhất (ghi ở cột "BE đang làm") và làm tiếp. Chủ dự
 án rà, đồng ý thì phiên cập nhật hợp đồng sửa `contract/openapi.yaml`.
 
-Nguồn đối chiếu: `contract/openapi.yaml` 1.1.0-gd1 (commit bbebac3), hợp đồng
-Claude Docs rev 19 (mục 9 D1–D14), BA rev hiện tại.
+Nguồn đối chiếu: `contract/openapi.yaml` 1.2.0-gd1 (commit 432bad4), hợp đồng
+Claude Docs rev 20 (mục 9 D1–D20), BA rev hiện tại.
 
 ## Tình trạng (2026-10-20)
 
@@ -31,7 +31,21 @@ danh sách và từng phần tử (D10), Job.type + Job.result (D11), /me `block
 `limits` (D12), callback lỗi → 302 `/dang-nhap?loi=` (D13), 429 Retry-After,
 trường lạ bị loại.
 
-## Đề nghị mới (sau hợp đồng 1.1)
+## Đề nghị sau hợp đồng 1.1 – đã xử lý (2026-10-20, hợp đồng 1.2.0-gd1)
+
+Chủ dự án đồng ý cả N1–N4; BE đã sửa:
+
+| Mục | Đã xử lý theo |
+|---|---|
+| N1 | D15: duyệt phiếu huỷ bỏ trả 200 ngay, tạo việc nền `document.withdraw` (Google lỗi tự thử lại tối đa 3 lần); Approval có `jobId`; tài liệu sang withdrawn khi việc xong |
+| N2 | D16: `Job.summary` đã có trong hợp đồng; `result` trống với google.sync, folder.ensure_periods, share.revoke_all |
+| N3 | D17: danh sách chỉ có `people` ở cấp trang; chi tiết một đối tượng có `people` ở cấp đối tượng |
+| N4 | D18: thêm `feedback` vào allowedActions của tài liệu cho người soạn, trưởng phòng soạn |
+
+Cùng đợt: D19 (GET /blocks, /departments, /divisions, /delegations kèm `people`),
+D20 (gốc drive chỉ cho thư mục đánh số; year, month, entity thiếu parentId → 422 BR-11).
+
+## Đề nghị mới (sau hợp đồng 1.1) – lưu lại để đối chiếu
 
 | # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
 |---|---|---|---|---|

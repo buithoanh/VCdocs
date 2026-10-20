@@ -93,6 +93,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
   const db = app.get(Db);
   const fake = app.get(GOOGLE) as FakeGoogle;
   const ids = await seedDemo(db.m, fake);
+  app.get(JobsService).retryDelayMs = 0;
   const server = app.getHttpServer();
 
   const loginEmail = async (email: string): Promise<Client> => {

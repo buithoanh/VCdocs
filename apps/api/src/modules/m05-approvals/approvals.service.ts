@@ -212,7 +212,8 @@ export class ApprovalsService {
       await this.db.m.Approval.updateOne({ _id: a._id, companyId: a.companyId }, { $set: { status: 'pending' }, $unset: { decision: 1 } });
       throw e;
     }
-    await this.audit.record(ctx, { action: `approval.${status}`, objectType: 'approval', objectId: String(a._id), before: { status: 'pending' }, after: { status, decision } });
+    const done = await this.get(ctx.companyId, a._id);
+    await this.audit.record(ctx, { action: `approval.${status}`, objectType: 'approval', objectId: String(a._id), before: { status: 'pending' }, after: { status, decision, jobId: done?.jobId } });
     await this.notifications.notify(ctx.companyId, [String(a.submittedBy)], {
       type: 'approval_decided',
       title: `${a.objectTitle}: ${result === 'approve' ? 'đã được duyệt' : 'cần sửa'}`,

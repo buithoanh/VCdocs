@@ -68,7 +68,8 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
     expect(f.name).toBe('QT-MKT-01 v1 Quy trình viết bài SEO');
     expect(f.text).toContain('Mã: QT-MKT-01 | Phiên bản: v1 (nháp) | Trạng thái: Nháp – chưa hiệu lực');
     expect(f.text).toContain('Người soạn: Nhân viên MKT (mẫu)');
-    expect(d.allowedActions).toEqual(['request-feedback', 'submit']);
+    expect(d.allowedActions).toEqual(['request-feedback', 'feedback', 'submit']);
+    expect((await nvKd.get(`/documents/${docId}`)).body.allowedActions).toEqual([]);
     expect((await nv.post(`/documents/${docId}/create-draft`)).status).toBe(409);
   });
 
@@ -267,8 +268,15 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
     expect(w.status).toBe(201);
     expect(w.body).toMatchObject({ objectType: 'document_withdrawal', objectId: docId, approverId: t.ids.users['gdk.kd'] });
     expect((await tp.post(`/documents/${docId}/withdraw`, { reason: 'lặp' })).status).toBe(409);
-    await gdkKd.post(`/approvals/${w.body.id}/decide`, { result: 'approve' });
+    const dec = await gdkKd.post(`/approvals/${w.body.id}/decide`, { result: 'approve' });
+    expect(dec.status).toBe(200);
+    expect(dec.body.jobId).toMatch(/^[a-f0-9]{24}$/);
+    // Việc nền chưa chạy: tài liệu vẫn hiệu lực; Google lỗi một lần thì tự thử lại (D15)
+    expect((await doc(tp)).status).toBe('effective');
+    t.fake.failNext = 'drive.updateFile';
     await t.drain();
+    const job = (await gdkKd.get(`/jobs/${dec.body.jobId}`)).body;
+    expect(job).toMatchObject({ type: 'document.withdraw', status: 'done', result: { objectType: 'document', objectId: docId } });
     const d = await doc(tp);
     expect(d.status).toBe('withdrawn');
     const f = t.fake.fileState(d.current.fileId);
