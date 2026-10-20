@@ -20,7 +20,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 16: đủ mục 1–8 + M16; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất])
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE giai đoạn 1 theo hợp đồng v1.1 (rev 19). Build qua, BE 107 test, FE 60 test; đã chạy FE với BE thật (Google giả) trọn luồng hồ sơ. Chưa push `giai-doan-1`.
+- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.2 (rev 20). Build qua, BE 107 test, FE 69 test; chạy thật (Google giả) trọn luồng hồ sơ và vòng đời tài liệu. Chưa push.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`.
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
@@ -42,7 +42,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà các chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
-- [ ] Chủ dự án chốt 6 đề nghị mới sau v1.1: BE N1–N4 (`apps/api/DE_NGHI_SUA_HOP_DONG.md`), FE #14–#15 (`apps/web/DE_NGHI_SUA_HOP_DONG.md`)
+- [ ] Chủ dự án quyết: ai duyệt phiếu huỷ bỏ HD/BM cấp phòng khi trưởng phòng trình (hiện vướng BR-05, không huỷ được)
+- [ ] BE sửa: khởi động lại với CSDL đã có dữ liệu thì Google giả mất danh sách người dùng mẫu (không đăng nhập được khi chạy local)
+- [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Push `giai-doan-1`, mở PR `giai-doan-1` → `main`; đóng PR #1 (chỉ có FE, đích main) — máy chưa có `gh`
 - [ ] Tài khoản Google thử nghiệm (service account, shared drive) để chạy bản Google thật; IT tạo nhóm Google theo mẫu C1
 - [ ] Sửa đoạn mở đầu của hợp đồng API: hiện ghi "OpenAPI sinh tự động từ mã NestJS", phải đổi thành "`contract/openapi.yaml` viết tay là gốc"
@@ -61,6 +63,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Hợp đồng v1.2 (D15–D20), ghép lần 2
+- Đã làm: chủ dự án đồng ý N1–N4, #14, #15 → hợp đồng mục 9.4 (rev 20), `contract/openapi.yaml` 1.2.0-gd1. BE, FE sửa theo; ghép lại vào `giai-doan-1`. Build qua, BE 107/107, FE 69/69. Chạy thật qua API + giao diện: HD-MKT-01 đăng ký → cấp mã → nháp → lấy góp ý (hành động `feedback`) → người soạn trình → trưởng phòng duyệt → ban hành; QT-MKT-01 ban hành → trình huỷ bỏ → GĐ khối KD duyệt → việc nền `document.withdraw` xong → withdrawn; trang "Việc đang chạy" hiện "Huỷ bỏ tài liệu".
+- Phát hiện: (1) HD/BM cấp phòng không huỷ bỏ được — trưởng phòng vừa là người trình duy nhất vừa là người duyệt → 422 BR-05. (2) Google giả chỉ giữ người dùng trong bộ nhớ, khởi động lại BE với CSDL cũ thì trang đăng nhập giả trống.
+- Còn dở: chờ chủ dự án quyết (1); giao BE sửa (2); push + PR.
 
 ### 2026-10-20 · BE theo hợp đồng 1.2.0-gd1 (D15–D20, nhánh `claude/be-gd1-7af2e6`)
 - Đã làm: gộp `giai-doan-1` (432bad4, nhanh tiến); D15 việc nền `document.withdraw` + Approval.jobId, việc nền tự thử lại khi Google lỗi; D16 Job.summary; D17 `people` chỉ ở cấp trang / cấp đối tượng; D18 hành động `feedback`; D19 `people` ở danh mục nền và bảng uỷ quyền; D20 gốc drive không nhận year/month/entity (422 BR-11). 107 test e2e qua, 98/98 điểm cuối, build qua. Không push.
