@@ -94,7 +94,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       saReadKey: env.GOOGLE_SA_READ_KEY,
       adminSubject: env.GOOGLE_ADMIN_SUBJECT,
       mailFrom: env.MAIL_FROM || 'vcdocs@vcprosperous.com',
-      fakeStateFile: env.FAKE_GOOGLE_STATE_FILE || undefined,
+      // Chạy local với Google giả: mặc định lưu trạng thái ra .vcdocs-dev/ để khởi động lại vẫn còn
+      fakeStateFile:
+        env.FAKE_GOOGLE_STATE_FILE === 'none'
+          ? undefined
+          : env.FAKE_GOOGLE_STATE_FILE || (googleMode === 'fake' && nodeEnv !== 'test' ? path.resolve(process.cwd(), '.vcdocs-dev', 'fake-google.json') : undefined),
     },
     vaultDir: env.VAULT_DIR || path.resolve(process.cwd(), '.vault'),
     uploadTmpDir: env.UPLOAD_TMP_DIR || path.resolve(process.cwd(), '.uploads'),

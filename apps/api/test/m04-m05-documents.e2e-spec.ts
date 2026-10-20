@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { createTestApp, TestApp, Client } from './support/app';
+import { dateVN } from '../src/common/util';
 
 describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
   let t: TestApp;
@@ -391,6 +392,34 @@ describe('M04 Tài liệu hệ thống + M05 Phê duyệt', () => {
     expect(p.body.relatedIds).toEqual([String(ref._id)]);
     expect((await xem.patch(`/external-documents/${id}`, { isSuperseded: false })).status).toBe(403);
     expect((await nv.patch(`/external-documents/${docId}`, { isSuperseded: true })).status).toBe(404);
+  });
+
+  it.each(['HD', 'BM'])('D21: trưởng phòng trình huỷ bỏ %s cấp phòng → GĐ khối duyệt → document.withdraw → withdrawn', async (type) => {
+    // test trước đã cho BM-VCPV-04 hết hiệu lực; HD cần BM khung này để tạo nháp
+    await t.db.m.Document.updateOne({ companyId: new Types.ObjectId(t.ids.companyId), code: 'BM-VCPV-04' }, { $set: { status: 'effective' } });
+    const r = await tp.post('/documents', { type, level: 'DEPT', title: `${type} cấp phòng cần huỷ`, departmentId: t.ids.depts.MKT.id, drafterId: t.ids.users['nv.mkt'] });
+    const id = r.body.id;
+    await r3.post(`/documents/${id}/assign-code`);
+    await nv.post(`/documents/${id}/create-draft`);
+    await t.drain();
+    expect((await nv.post(`/documents/${id}/submit`, {})).status).toBe(200);
+    const a = (await inboxOf(tp)).find((x: any) => x.objectId === id);
+    await tp.post(`/approvals/${a.id}/decide`, { result: 'approve' });
+    await tp.post(`/documents/${id}/issue`, { effectiveFrom: dateVN() });
+    await t.drain();
+    expect((await doc(tp, id)).status).toBe('effective');
+
+    const prev = await tp.get(`/approvals/preview?objectType=document_withdrawal&objectId=${id}`);
+    expect(prev.body.approver.email).toBe(t.ids.emails['gdk.kd']);
+    expect(prev.body.approverRule).toMatch(/D21/);
+    const w = await tp.post(`/documents/${id}/withdraw`, { reason: 'Không còn dùng' });
+    expect(w.status).toBe(201);
+    expect(w.body.approverId).toBe(t.ids.users['gdk.kd']);
+    const dec = await gdkKd.post(`/approvals/${w.body.id}/decide`, { result: 'approve' });
+    expect(dec.status).toBe(200);
+    await t.drain();
+    expect((await gdkKd.get(`/jobs/${dec.body.jobId}`)).body).toMatchObject({ type: 'document.withdraw', status: 'done' });
+    expect((await doc(tp, id)).status).toBe('withdrawn');
   });
 
   describe('Bảng uỷ quyền khối (R2)', () => {

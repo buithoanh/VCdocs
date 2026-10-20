@@ -82,16 +82,12 @@ export interface DemoIds {
   recordTypes: Record<string, string>;
 }
 
-const BM_KHUNG = `Mã: {{MA}} | Phiên bản: {{PHIEN_BAN}} | Trạng thái: {{TRANG_THAI}}
+export const BM_KHUNG = `Mã: {{MA}} | Phiên bản: {{PHIEN_BAN}} | Trạng thái: {{TRANG_THAI}}
 Người soạn: {{NGUOI_SOAN}} | Ngày hiệu lực: {{NGAY_HIEU_LUC}} | Phiếu duyệt: {{LINK_DUYET}}
 Nội dung …`;
 
-export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
-  const companyRow = await m.Company.create({ name: 'VC Phồn Vinh', domain: DEMO_DOMAIN, settings: {} });
-  const cid = companyRow._id as Types.ObjectId;
-  const ids: DemoIds = { companyId: String(cid), users: {}, emails: {}, depts: {}, folders: {}, blocks: {}, templates: {}, recordTypes: {} };
-
-  // Google giả: người dùng, nhóm, drive, quyền drive qua nhóm
+/** Danh bạ Google giả: người dùng mẫu và nhóm theo quy ước */
+export function addDemoDirectory(fake: FakeGoogle) {
   const groupMembers = new Map<string, string[]>();
   for (const [key, u] of Object.entries(DEMO_USERS)) {
     fake.addUser({ email: e(key), name: u.name, title: u.title, suspended: false });
@@ -106,6 +102,26 @@ export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
   }
   for (let i = 1; i <= 9; i++) if (!groupMembers.has(`vcdocs-r${i}`)) groupMembers.set(`vcdocs-r${i}`, []);
   for (const [g, members] of groupMembers) fake.addGroup(e(g), g, members);
+}
+
+/** Bộ nhớ dùng chung giả của một phòng, quyền cấp qua nhóm Google */
+export function addDemoDrive(fake: FakeGoogle, d: { number: string; code: string; name: string; securityLevel: string }, driveId = `drv-${d.number}`) {
+  const prefix = `${d.number}-${d.code.toLowerCase()}`;
+  fake.addDrive(driveId, `${d.number} ${d.name}${d.securityLevel === 'confidential' ? ' [MẬT]' : ''}`, [
+    ...DRIVE_GROUP_ROLES.map(([suffix, role]) => ({ type: 'group' as const, emailAddress: e(`${prefix}-${suffix}`), role: role as any })),
+    ...(d.number === '00' ? [{ type: 'group' as const, emailAddress: e('00-vcpv-xem'), role: 'reader' as const }] : []),
+    // Ban Điều hành là Người xem ở drive phòng khác (cây thư mục VCPV mục 3.6)
+    ...(d.number !== '01' ? [{ type: 'group' as const, emailAddress: e('vcdocs-r1'), role: 'reader' as const }] : []),
+  ]);
+}
+
+export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
+  const companyRow = await m.Company.create({ name: 'VC Phồn Vinh', domain: DEMO_DOMAIN, settings: {} });
+  const cid = companyRow._id as Types.ObjectId;
+  const ids: DemoIds = { companyId: String(cid), users: {}, emails: {}, depts: {}, folders: {}, blocks: {}, templates: {}, recordTypes: {} };
+
+  // Google giả: người dùng, nhóm Google
+  addDemoDirectory(fake);
 
   // Users trong VCdocs (vai trò, phòng được tính lại khi đăng nhập/đồng bộ)
   for (const [key, u] of Object.entries(DEMO_USERS)) {
@@ -163,16 +179,7 @@ export async function seedDemo(m: Models, fake: FakeGoogle): Promise<DemoIds> {
   for (const d of DEMO_DEPTS) {
     const driveId = `drv-${d.number}`;
     const prefix = `${d.number}-${d.code.toLowerCase()}`;
-    fake.addDrive(
-      driveId,
-      `${d.number} ${d.name}${d.securityLevel === 'confidential' ? ' [MẬT]' : ''}`,
-      [
-        ...DRIVE_GROUP_ROLES.map(([suffix, role]) => ({ type: 'group' as const, emailAddress: e(`${prefix}-${suffix}`), role: role as any })),
-        ...(d.number === '00' ? [{ type: 'group' as const, emailAddress: e('00-vcpv-xem'), role: 'reader' as const }] : []),
-        // Ban Điều hành là Người xem ở drive phòng khác (cây thư mục VCPV mục 3.6)
-        ...(d.number !== '01' ? [{ type: 'group' as const, emailAddress: e('vcdocs-r1'), role: 'reader' as const }] : []),
-      ],
-    );
+    addDemoDrive(fake, d);
     const dept = await m.Department.create({
       companyId: cid,
       code: d.code,

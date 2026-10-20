@@ -64,6 +64,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-20 · BE theo hợp đồng 1.3.0-gd1 (D21) và lỗi khởi động lại Google giả
+- Đã làm: gộp `giai-doan-1` (f2c0560). D21: trưởng phòng trình huỷ bỏ HD/BM cấp phòng → GĐ khối phụ trách duyệt (cả /approvals/preview). Google giả: mặc định lưu trạng thái ở `apps/api/.vcdocs-dev/fake-google.json`; thiếu file mà CSDL đã có dữ liệu thì dựng lại danh bạ, nhóm, drive, thư mục, file từ CSDL. Đã chạy thử 3 lần khởi động liên tiếp. 110 test e2e qua, build qua. Không push.
+- Còn dở: không.
+
 ### 2026-10-20 · Hợp đồng v1.2 (D15–D20), ghép lần 2
 - Đã làm: chủ dự án đồng ý N1–N4, #14, #15 → hợp đồng mục 9.4 (rev 20), `contract/openapi.yaml` 1.2.0-gd1. BE, FE sửa theo; ghép lại vào `giai-doan-1`. Build qua, BE 107/107, FE 69/69. Chạy thật qua API + giao diện: HD-MKT-01 đăng ký → cấp mã → nháp → lấy góp ý (hành động `feedback`) → người soạn trình → trưởng phòng duyệt → ban hành; QT-MKT-01 ban hành → trình huỷ bỏ → GĐ khối KD duyệt → việc nền `document.withdraw` xong → withdrawn; trang "Việc đang chạy" hiện "Huỷ bỏ tài liệu".
 - Phát hiện: (1) HD/BM cấp phòng không huỷ bỏ được — trưởng phòng vừa là người trình duy nhất vừa là người duyệt → 422 BR-05. (2) Google giả chỉ giữ người dùng trong bộ nhớ, khởi động lại BE với CSDL cũ thì trang đăng nhập giả trống.
