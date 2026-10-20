@@ -54,8 +54,16 @@ describe('Hợp đồng 1.1: people, allowedActions, limits, lookup, 413, gốc 
     expect(page.people[t.ids.users.hcns]).toMatchObject({ name: 'Kiểm soát tài liệu HCNS (mẫu)', email: t.ids.emails.hcns });
     const d = (await nv.get(`/documents/${t.ids.templates['BM-VCPV-02']}`)).body;
     expect(Object.keys(d.people).sort()).toEqual([t.ids.users.hcns, t.ids.users['gdk.vhnb']].sort());
+    // D17: danh sách chỉ có people ở cấp trang
     const codes = (await nv.get('/codes?limit=1')).body;
-    expect(codes.items[0].people[t.ids.users.tgd].name).toBe('Tổng giám đốc (mẫu)');
+    expect(codes.items[0].people).toBeUndefined();
+    expect(codes.people[t.ids.users.tgd].name).toBe('Tổng giám đốc (mẫu)');
+    // D19: danh mục nền và bảng uỷ quyền có people
+    const depts = (await nv.get('/departments')).body;
+    expect(depts.people[t.ids.users['tp.mkt']].email).toBe(t.ids.emails['tp.mkt']);
+    expect((await nv.get('/blocks')).body.people[t.ids.users['gdk.kd']].name).toBe('GĐ khối Kinh doanh (mẫu)');
+    expect((await nv.get('/divisions')).body.people).toEqual({});
+    expect((await gdk.get('/delegations')).body.people).toEqual({});
   });
 
   it('thư mục: allowedActions; tạo ở gốc drive không cần parentId; next-number theo driveId (D8)', async () => {
@@ -70,6 +78,16 @@ describe('Hợp đồng 1.1: people, allowedActions, limits, lookup, 413, gốc 
     expect((await nv.get(`/folders/${proj.id}`)).body.allowedActions).toEqual([]);
     expect((await r3.get(`/folders/${t.ids.folders['VCPV:00']}`)).body.allowedActions).toEqual(['create-child', 'rename', 'resync']);
 
+    // D20: gốc drive không có thư mục năm, tháng, đối tượng
+    const e = await tp.get(`/folders/next-number?driveId=${mkt}&kind=entity`);
+    expect(e.status).toBe(422);
+    expect(e.body.error.rule).toBe('BR-11');
+    const pe = await tp.post('/folders', { driveId: mkt, kind: 'entity', shortName: '30A-12345' });
+    expect(pe.status).toBe(422);
+    expect(pe.body.error.rule).toBe('BR-11');
+    expect((await tp.post('/folders', { driveId: mkt, kind: 'year', shortName: '2027' })).body.error.rule).toBe('BR-11');
+    const ent = await tp.post('/folders', { driveId: mkt, parentId: proj.id, kind: 'entity', shortName: '30A-12345' });
+    expect(ent.status).toBe(202);
     const n = await tp.get(`/folders/next-number?driveId=${mkt}&kind=project`);
     expect(n.body.number).toBe('52');
     expect((await tp.get('/folders/next-number?kind=project')).status).toBe(400);
@@ -80,6 +98,11 @@ describe('Hợp đồng 1.1: people, allowedActions, limits, lookup, 413, gốc 
     const job = (await tp.get(`/jobs/${c.body.jobId}`)).body;
     expect(job.result).toEqual({ objectType: 'folder', objectId: expect.any(String) });
     expect(job.people[t.ids.users['tp.mkt']].name).toBe('Trưởng phòng MKT (mẫu)');
+    const sync = await r9.post('/sync/google');
+    await t.drain();
+    const sj = (await r9.get(`/jobs/${sync.body.jobId}`)).body;
+    expect(sj.result).toBeUndefined();
+    expect(sj.summary.total).toBeGreaterThan(0);
     expect((await tp.get(`/folders/${job.result.objectId}`)).body).toMatchObject({ number: '52', path: '11 MKT / 52 DA-MAI-MAI3' });
   });
 

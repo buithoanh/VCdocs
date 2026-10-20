@@ -24,8 +24,12 @@ export type JobDef = { handler: JobHandler; steps: string[]; title: string };
  * Hàng đợi việc chạy lâu trên chính MongoDB (BA 9.1). Việc gọi Google nhiều
  * bước trả 202 + jobId; GET /jobs/{id} theo dõi; kết quả ghi vào đối tượng.
  */
+const MAX_ATTEMPTS = 3;
+
 @Injectable()
 export class JobsService implements OnModuleDestroy {
+  /** Giãn cách thử lại khi Google lỗi (test đặt 0) */
+  retryDelayMs = 30_000;
   private readonly log = new Logger('Jobs');
   private readonly defs = new Map<string, JobDef>();
   private timer: NodeJS.Timeout | null = null;
@@ -98,7 +102,13 @@ export class JobsService implements OnModuleDestroy {
   private async runOne(): Promise<boolean> {
     const now = new Date();
     const job = await this.db.m.Job.findOneAndUpdate(
-      { $or: [{ status: 'queued' }, { status: 'running', lockedUntil: { $lt: now } }], attempts: { $lt: 3 } },
+      {
+        $or: [
+          { status: 'queued', $or: [{ lockedUntil: null }, { lockedUntil: { $exists: false } }, { lockedUntil: { $lte: now } }] },
+          { status: 'running', lockedUntil: { $lt: now } },
+        ],
+        attempts: { $lt: MAX_ATTEMPTS },
+      },
       { $set: { status: 'running', startedAt: now, lockedUntil: new Date(now.getTime() + 10 * 60_000) }, $inc: { attempts: 1 } },
       { sort: { createdAt: 1 }, new: true, skipTenant: true },
     ).lean<any>();
@@ -163,6 +173,13 @@ export class JobsService implements OnModuleDestroy {
         objectId: result0?.objectId,
       });
     } catch (e: any) {
+      // Google lỗi tạm thời: đưa lại hàng đợi, thử lại sau (tối đa MAX_ATTEMPTS lần)
+      if (e instanceof GoogleError && (job.attempts ?? 1) < MAX_ATTEMPTS) {
+        const retryAt = new Date(Date.now() + this.retryDelayMs * 2 ** ((job.attempts ?? 1) - 1));
+        await save({ status: 'queued', lockedUntil: retryAt });
+        this.log.warn(`Job ${job._id} (${job.type}) Google lỗi, thử lại lần ${(job.attempts ?? 1) + 1}: ${e.message}`);
+        return true;
+      }
       const err =
         e instanceof AppError
           ? { code: e.code, message: e.message, rule: e.rule, details: e.details }

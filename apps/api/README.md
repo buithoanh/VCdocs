@@ -1,7 +1,7 @@
 # @vcdocs/api – máy chủ nghiệp vụ VCdocs
 
 NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`, đúng theo
-`contract/openapi.yaml` (1.1.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
+`contract/openapi.yaml` (1.2.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
 file, MongoDB giữ sổ sách.
 
 ## Chạy local
@@ -112,7 +112,8 @@ Nguyên tắc đã làm theo hợp đồng mục 1, 7:
   làm xong; bước lỗi thì việc dừng, `GET /jobs/{id}` báo bước nào.
 - Giới hạn 600 yêu cầu/phút/người, tìm kiếm 60/phút (429 kèm Retry-After); thân
   JSON ≤ 1 MB, file ≤ 100 MB (vượt → 413 PAYLOAD_TOO_LARGE).
-- Mọi phản hồi chi tiết, trang danh sách và từng phần tử có `people` (id → UserRef).
+- Phản hồi chi tiết và danh sách có `people` (id → UserRef) ở cấp đối tượng / cấp trang.
+- Việc nền gặp lỗi Google tạm thời tự thử lại tối đa 3 lần, giãn cách tăng dần.
 - Đăng nhập lỗi không trả JSON mà chuyển về `WEB_ORIGIN/dang-nhap?loi=domain|locked|expired|state`.
 
 ## Những gì còn dùng bản giả hoặc chưa làm

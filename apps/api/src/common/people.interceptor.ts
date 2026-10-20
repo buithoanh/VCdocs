@@ -57,7 +57,7 @@ export class PeopleInterceptor implements NestInterceptor {
             const isPage = 'items' in body && 'total' in body && 'page' in body;
             const isObj = (x: any) => x && typeof x === 'object' && 'id' in x && 'companyId' in x;
             const items: any[] = Array.isArray(body.items) ? body.items : [];
-            if (!isPage && !isObj(body) && !items.some(isObj)) return body;
+            if (!isPage && !isObj(body) && !Array.isArray(body.items)) return body;
             const ids = new Set<string>();
             collect(isObj(body) ? body : items, ids);
             const all: Record<string, any> = {};
@@ -78,10 +78,9 @@ export class PeopleInterceptor implements NestInterceptor {
               collect(x, own);
               return Object.fromEntries([...own].filter((id) => all[id]).map((id) => [id, all[id]]));
             };
-            // Từng đối tượng trong danh sách cũng mang people của riêng nó (schema WithPeople)
-            if (items.length) body = { ...body, items: items.map((x) => (isObj(x) ? { ...x, people: subset(x) } : x)) };
+            // Chi tiết một đối tượng: people ở cấp đối tượng; danh sách: chỉ ở cấp trang (D17, D19)
             if (isObj(body)) return { ...body, people: subset(body) };
-            return isPage ? { ...body, people: all } : body;
+            return { ...body, people: all };
           })(),
         ),
       ),

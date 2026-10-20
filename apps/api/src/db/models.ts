@@ -257,6 +257,8 @@ const Approval = mk({
   dueAt: Date,
   reminders: { type: [Date], default: [] },
   invalidatedReason: String,
+  /** Việc nền chạy sau quyết định, vd document.withdraw (D15) */
+  jobId: OID,
   meta: Mixed,
   driveId: String,
 });

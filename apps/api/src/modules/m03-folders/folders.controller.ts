@@ -131,6 +131,7 @@ export class FoldersController {
     const parent = body.parentId ? await this.folders.get(ctx.companyId, body.parentId) : undefined;
     if (body.parentId && (!parent || parent.driveId !== body.driveId)) throw Errors.validation('Thư mục cha không thuộc drive này', [{ field: 'parentId', issue: 'not_found' }]);
     await this.assertCanManage(ctx, body.driveId, parent, true);
+    if (!parent && UNNUMBERED.includes(kind)) throw Errors.rule('BR-11', 'Gốc drive chỉ có thư mục đánh số theo khung 00–99; thư mục năm, tháng, đối tượng phải nằm trong một thư mục cha', [{ field: 'parentId', issue: 'required_for_kind' }]);
     if (kind === 'year' || kind === 'month') throw Errors.rule('BR-11', 'Thư mục năm, tháng do VCdocs tự tạo (POST /folders/ensure-periods)');
     if (!String(body.shortName ?? '').trim()) throw Errors.validation('Thiếu tên ngắn', [{ field: 'shortName', issue: 'required' }]);
     if (['area', 'project'].includes(kind) && !body.code) throw Errors.rule('BR-12', 'Mảng, dự án phải chọn mã từ Bảng mã', [{ field: 'code', issue: 'required' }]);
@@ -154,8 +155,9 @@ export class FoldersController {
       if (q.driveId && q.driveId !== parent.driveId) throw Errors.validation('Thư mục cha không thuộc drive này', [{ field: 'parentId', issue: 'other_drive' }]);
       return { number: await this.folders.nextNumber(ctx.companyId, parent.driveId, String(parent._id), q.kind) };
     }
-    // Gốc drive (D8): cần driveId
+    // Gốc drive (D8): cần driveId; gốc chỉ có loại đánh số (D20)
     if (!q.driveId) throw Errors.validation('Cần driveId khi không có parentId', [{ field: 'query.driveId', issue: 'required' }]);
+    if (UNNUMBERED.includes(q.kind)) throw Errors.rule('BR-11', 'Gốc drive không có thư mục năm, tháng, đối tượng', [{ field: 'query.parentId', issue: 'required_for_kind' }]);
     if (!(await this.access.deptByDrive(ctx.companyId, q.driveId))) throw Errors.notFound('Không tìm thấy drive');
     await this.access.assertVisible(ctx, q.driveId);
     return { number: await this.folders.nextNumber(ctx.companyId, q.driveId, undefined, q.kind) };
