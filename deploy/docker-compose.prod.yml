@@ -1,0 +1,71 @@
+# VCdocs production – 1 máy ảo, chạy từ thư mục deploy/:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Cần 2 file cạnh file này (git bỏ qua, chép từ mẫu .example): .env và api.env
+# Hướng dẫn đầy đủ: deploy/README.md
+name: vcdocs
+
+services:
+  caddy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Thiếu DOMAIN trong deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_DIR:?Thiếu DATA_DIR}/caddy/data:/data
+      - ${DATA_DIR}/caddy/config:/config
+    depends_on:
+      - web
+      - api
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    image: vcdocs-web:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  # Chỉ chạy 1 bản: lịch định kỳ (SCHEDULER_ENABLED) chạy trong tiến trình và không khoá chống chạy trùng
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    image: vcdocs-api:latest
+    restart: unless-stopped
+    env_file: ./api.env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://${MONGO_USER:-vcdocs}:${MONGO_PASSWORD:?Thiếu MONGO_PASSWORD}@mongo:27017/vcdocs?authSource=admin
+      VAULT_DIR: /data/vault
+      UPLOAD_TMP_DIR: /data/uploads
+    volumes:
+      # Kho PDF đã chốt – dữ liệu pháp lý, phải nằm trên đĩa bền và được sao lưu
+      - ${DATA_DIR}/vault:/data/vault
+      - ${DATA_DIR}/uploads:/data/uploads
+      # Khoá JSON service account (đặt GOOGLE_SA_WRITE_KEY=/run/secrets/vcdocs-sa.json trong api.env)
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    # Không mở cổng ra ngoài; chỉ api trong mạng nội bộ Docker gọi được
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-vcdocs}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - ${DATA_DIR}/mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
