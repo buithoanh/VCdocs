@@ -51,7 +51,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
 - [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
-- [ ] Dựng máy ảo production theo `deploy/README.md`: xong bước 1–4 (2026-10-20); còn DNS A `vcdocs` → 34.87.68.77 trên Cloudflare (DNS only), xoá rule `default-allow-ssh`/`default-allow-rdp`, bước 5–9 (cài máy, deploy key, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
+- [ ] Production: còn bản ghi DNS A `vcdocs` → 34.87.68.77 trên Cloudflare (DNS only), rồi bật `caddy` (`docker compose -f docker-compose.prod.yml up -d caddy`), thử đăng nhập, bước 8 (cron `backup.sh`) và 9 (uptime check). Máy ảo đã chạy mongo, api (healthy, Google thật), web; đã khởi tạo công ty "Công ty TNHH VC Phồn Vinh" (tên lấy từ ví dụ trong hướng dẫn – chủ dự án xác nhận)
 - [ ] Hộp thư vcdocs@ cho `MAIL_FROM` (Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
 - [ ] Chủ dự án quyết định xoá repo cũ `buithoanh/VCknowledge` (vẫn còn trên GitHub, nội dung trùng)
@@ -70,6 +70,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-20 · Production bước 5–7 (trừ HTTPS)
+- Đã làm: cài máy ảo (đĩa `/mnt/vcdocs-data`, swap 2 GB, Docker 29.9); deploy key `vcdocs-prod` chỉ đọc (thêm bằng Chrome, chủ dự án xác nhận sudo), clone `/srv/vcdocs` (`main`); `deploy/.env` (mật khẩu Mongo sinh trên máy), `api.env` (admin subject + `MAIL_FROM` tạm = mail chủ dự án); khoá SA `vcdocs-backend` ở `deploy/secrets/` (400, uid 1000); OAuth client production `…8l6s8pa…` nạp vào `api.env` rồi xoá file JSON. Build 2 image trên máy (~440 MB mỗi image); chạy mongo/api/web, api healthy, `/auth/google` chuyển sang accounts.google.com; khởi tạo công ty.
+- Còn dở: DNS Cloudflare chưa có `vcdocs` nên chưa bật caddy/HTTPS; bước 8–9.
 
 ### 2026-10-20 · Dựng hạ tầng production bước 1–4
 - Đã làm: `main` lên ngang `dev` (d6474b2, chủ dự án push). Cài gcloud (Homebrew); chủ dự án đăng nhập và gắn thanh toán. Tạo IP tĩnh, service account `vcdocs-vm`, 2 bucket sao lưu, đĩa dữ liệu, máy ảo `vcdocs-prod`, firewall web + SSH qua IAP, lịch snapshot (chi tiết ở mục 5).
