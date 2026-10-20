@@ -120,7 +120,21 @@ Nguyên tắc đã làm theo hợp đồng mục 1, 7:
   JSON ≤ 1 MB, file ≤ 100 MB (vượt → 413 PAYLOAD_TOO_LARGE).
 - Phản hồi chi tiết và danh sách có `people` (id → UserRef) ở cấp đối tượng / cấp trang.
 - Việc nền gặp lỗi Google tạm thời tự thử lại tối đa 3 lần, giãn cách tăng dần.
-- Đăng nhập lỗi không trả JSON mà chuyển về `WEB_ORIGIN/dang-nhap?loi=domain|locked|expired|state`.
+- Đăng nhập lỗi không trả JSON mà chuyển về `WEB_ORIGIN/dang-nhap?loi=domain|locked|expired|state`;
+  CSDL chưa có công ty của `ALLOWED_DOMAIN` thì `loi=setup` và ghi log lỗi (chưa có trong hợp đồng, xem
+  `DE_NGHI_SUA_HOP_DONG.md` N5).
+
+## Khởi tạo CSDL trống (Google thật)
+
+Chế độ `GOOGLE_MODE=real` không nạp dữ liệu mẫu, nên CSDL mới chưa có bản ghi công ty và
+không ai đăng nhập được (`loi=setup`). Chạy một lần (chạy lại không tạo trùng, không ghi đè):
+
+```bash
+pnpm --filter api run khoi-tao -- --ten "Công ty TNHH VC Phồn Vinh" --mien vcprosperous.com
+```
+
+Thiếu `--mien` thì lấy `ALLOWED_DOMAIN`. Lệnh đọc `MONGODB_URI` từ `apps/api/.env`. Trên máy
+chủ đã build: `node dist/khoi-tao.js --ten "…"`.
 
 ## Những gì còn dùng bản giả hoặc chưa làm
 

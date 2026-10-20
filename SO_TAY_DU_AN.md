@@ -65,6 +65,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-20 · BE: lệnh khởi tạo công ty (nhánh `claude/khoi-tao-cong-ty`, tách từ `giai-doan-1`)
+- Đã làm: lệnh `pnpm --filter api run khoi-tao -- --ten "…" --mien vcprosperous.com` (thiếu `--mien` lấy `ALLOWED_DOMAIN`; chạy lại không tạo trùng, không ghi đè; bản build `node dist/khoi-tao.js`). Callback thiếu công ty → `loi=setup` + log lỗi kèm lệnh khởi tạo, không còn `loi=domain`. `setup` chưa có trong hợp đồng → đề nghị N5. 6 test mới, BE 116/116, build qua. Commit, chưa push.
+- Còn dở: chủ dự án duyệt N5; FE chưa có câu báo cho `loi=setup` (trang hiện không báo gì).
+
 ### 2026-10-20 · PR lên main và chuẩn bị Google thật (lái Chrome)
 - Đã làm: mở PR #2 `giai-doan-1` → `main`; chủ dự án merge cả PR #1 và #2. Hướng dẫn chủ dự án (qua Claude in Chrome) tạo project `vcdocs`, bật API, tạo service account `vcdocs-backend` và khoá JSON (tắt chính sách chặn tạo khoá riêng cho project), thêm domain-wide delegation 8 quyền — đã kiểm tra đủ. Ảnh hướng dẫn lưu `docs/huong-dan/anh/`.
 - Tạo OAuth client, `.env` chế độ thật. Chạy thật: đăng nhập Google thật thành công (sau khi thêm tay bản ghi công ty vào CSDL `vcdocs_that`); Directory đọc được 48 người, 1 nhóm; Drive chưa có shared drive nào cho service account.
