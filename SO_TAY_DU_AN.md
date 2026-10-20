@@ -49,7 +49,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
 - [ ] Đánh dấu điểm cuối nào thuộc giai đoạn 1 trong hợp đồng
 - [ ] Google thật, còn: nhóm Google theo mẫu C1, nạp sơ đồ tổ chức (khối, phòng, vai trò)
-- [ ] Merge `giai-doan-1` vào `dev` (đang làm 2026-10-20); `dev` → `main` khi chủ dự án cho phép
+- [ ] PR `dev` → `main` khi chủ dự án cho phép (`dev` đã có đủ `giai-doan-1` ở d6474b2)
+- [ ] Dọn 7 nhánh `claude/…` đã gộp/rỗng và worktree của chúng; xoá 2 nhánh lỗi thời trên GitHub (chờ chủ dự án đồng ý)
 - [ ] Dựng máy ảo production theo `deploy/README.md` (IP tĩnh, DNS `vcdocs`, OAuth client production, khoá SA, khởi tạo công ty, cron sao lưu, uptime check)
 - [ ] Hộp thư vcdocs@ cho `MAIL_FROM` (Q3 chưa chốt)
 - [ ] Chỗ điền cho mẫu BM-VCPV-02/03/04
@@ -74,9 +75,10 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Chủ dự án tự push `giai-doan-1` (chế độ auto của Claude chặn `git push`).
 - Còn dở: chưa build image Docker thật (làm ở bước 7 trên VM); đưa `deploy/` lên `main` (qua `dev`) để máy ảo clone; chủ dự án dựng VM theo hướng dẫn.
 
-### 2026-10-20 · Đưa BA, hợp đồng API, kiến trúc vào `docs/`, tạo nhánh `dev`
+### 2026-10-20 · Đưa BA, hợp đồng API, kiến trúc vào `docs/`, tạo nhánh `dev`, sơ đồ git
 - Đã làm: xuất BA (rev 20) và hợp đồng API (rev 22, v1.4) từ Claude Docs ra Markdown, chép trang kiến trúc HTML vào `docs/ba/`, `docs/hop-dong-api/`, `docs/kien-truc/`; `docs/README.md` ghi link artifact gốc (bản gốc đúng khi lệch). Hình vòng đời trong BA mục 5 không xuất được, thay bằng câu dẫn link. Commit 24488b5 trên `claude/docs-tai-lieu` (cắt từ `main`). Chủ dự án chọn tạo `dev` từ `main`: merge vào `dev` (e30943e), đã push `origin/dev`.
-- Còn dở: `dev` chưa có code mới của `giai-doan-1` (khởi tạo công ty, v1.4); sửa BA/hợp đồng thì xuất lại vào `docs/`.
+- Merge `giai-doan-1` (7bdab96: khởi tạo công ty, v1.4, deploy) vào `dev` → d6474b2; build qua, BE 116/116, FE 72/72; đã push `origin/dev`. Sơ đồ nhánh git (Artifact riêng tư): https://claude.ai/artifact/LAs5cVJWkugw7huhWj1AKx — 10 nhánh máy, 5 trên GitHub, 63 commit; mọi nhánh `claude/…` đã gộp vào `dev`; `origin/claude/be-gd1-7af2e6`, `origin/claude/fe-gd1-72b5d9` lỗi thời (máy hơn 28/18 commit).
+- Còn dở: PR `dev` → `main` khi chủ dự án cho phép; dọn nhánh/worktree `claude/…` đã gộp (chờ chủ dự án đồng ý); sửa BA/hợp đồng thì xuất lại vào `docs/`.
 
 ### 2026-10-20 · Đề xuất phương án deploy
 - Đã làm: đọc cấu hình chạy (`apps/api/.env.example`, `next.config.ts`, `main.ts`, hàng đợi việc). Ràng buộc: PDF đã chốt lưu đĩa (`VAULT_DIR`, giữ đến 2031) → cần đĩa bền + sao lưu; lịch định kỳ chạy trong tiến trình API, không khoá → chỉ chạy 1 bản API; hàng đợi việc đã khoá `lockedUntil`; không dùng transaction → Mongo đơn lẻ được; `API_ORIGIN` của web đọc lúc build; repo chưa có Dockerfile. Đề xuất A (khuyên dùng) / B / C trong chat, chưa đổi mã.
