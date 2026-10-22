@@ -18,7 +18,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - **Mục tiêu:** Phần mềm quản lý tài liệu – hồ sơ VCdocs cho VCPV. Giao diện Next.js, máy chủ NestJS, MongoDB, tích hợp Google Drive.
 - **Tài liệu gốc (Claude Docs):**
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
-  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 22: đủ mục 1–9; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
+  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 24: mục 1–10, mục 10 = giai đoạn 2 đợt 1 M10/M15 v1.5, đã vào `openapi.yaml` 1.5.0-gd2 trên nhánh `giai-doan-2`; `giai-doan-1` dừng ở rev 22 / 1.4.0-gd1; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
 - **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
@@ -44,6 +44,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Nghiên cứu VCworkspace**: đã có bản rút gọn `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md` (2026-10-22, nhánh `claude/nghien-cuu-vcworkspace`). Còn: kiểm chứng 42 luận điểm ○ của 8 mảng (tác vụ một lần `vcdocs-nghien-cuu-vcworkspace`, 2026-10-25 05:00 giờ VN, chỉ kiểm và sửa báo cáo); chủ dự án trả lời 20 câu hỏi mục 13 của báo cáo, chọn phương án mã A/B/C.
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
@@ -61,13 +62,16 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
+- (VCworkspace, 2026-10-22) "AI Jev" trong yêu cầu là gì: tên một dự án, "AI Dev", hay trợ lý kiểu Jarvis/Jeeves?
+- (VCworkspace) "Đập tính năng cũ" tới mức nào: bỏ hẳn quản lý hồ sơ – tài liệu (BA 15 phân hệ, giai đoạn 1–2 đã code ~22.000 dòng TS), hay giữ thành một ứng dụng chạy trên VCworkspace? Nhánh `giai-doan-2` (M10, M15, chưa gộp vào `dev`) gộp tiếp hay dừng?
+- (VCworkspace) Mốc thời gian muốn thay Google Workspace và ngân sách hạ tầng/tháng chấp nhận được?
 - Sơ đồ tổ chức (mẫu `apps/api/so-do-to-chuc.mau.yaml`): email GĐ 2 khối, trưởng 11 phòng, người giữ R1/R3/R8/R9; xác nhận khối của BDH, IT, VCE, MH, mã XDV, danh sách division. Nhóm "xem" của drive 00 có chứa cả công ty không, hay drive 00 cấp quyền cả tên miền.
 - Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCdocs nhận, hay để VCdocs chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCdocs không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 
 ## 5. Lưu ý & bài học
 
-- Máy local chưa cài `gh` CLI; thao tác GitHub (tạo, đổi tên, xoá repo) phải làm trên web.
+- Máy local đã có `gh` và `gcloud` (kiểm 2026-10-22), chưa có Docker. Ghi chú cũ "chưa cài `gh`" đã lỗi thời.
 - Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
@@ -76,6 +80,21 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-22 · Báo cáo rút gọn VCworkspace (Opus 5.5)
+- Đã làm: theo yêu cầu chủ dự án, bỏ phần kiểm chứng còn lại, viết báo cáo từ kết quả 72 agent: `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md` (14 mục + 2 phụ lục; ✅/◐/○ cho từng luận điểm). Kết luận chính: GCE chặn gửi cổng 25 → mail lai (hộp thư GCE + relay Amazon SES); nền đề xuất Nextcloud + Stalwart + ONLYOFFICE/Euro-Office + Authentik + LiveKit/Jitsi; không đập hết VCdocs (phương án C: tách khung hạ tầng, port nghiệp vụ hồ sơ sau); REA là công cụ phân tích, Creator OS là SaaS, "Jev" tìm được là mô hình quyết định đóng của TypeSafe AI (chờ xác nhận); VM cần ~2 máy 8 vCPU/32 GB + 4 vCPU/8 GB. Thêm dòng vào `docs/README.md`. Commit trên `claude/nghien-cuu-vcworkspace` (cắt từ `dev`), chưa merge.
+- Còn dở: kiểm chứng 42 luận điểm ○ (phiên 2026-10-25); 20 câu hỏi cho chủ dự án ở mục 13 báo cáo.
+
+### 2026-10-22 · Tác vụ định kỳ theo dõi hợp đồng API (rev 24, không sửa gì)
+- Đã làm: đọc toàn bộ hợp đồng rev 24 (so với rev 22 trong `contract/NGUON.md` của `giai-doan-1`): rev 23 thêm mục 10 giai đoạn 2 đợt 1 (M10 Bàn giao, M15 Nhật ký, E1–E21, OpenAPI 1.5.0-gd2), rev 24 sửa dòng phạm vi quyền mục 6. Toàn bộ đã nằm trong `contract/openapi.yaml` 1.5.0-gd2 và `NGUON.md` (dòng rev 24) trên nhánh `giai-doan-2` (commit 0ade10b). Phần chạm giai đoạn 1 (Job.type, Notification.type, `/me.limits`, `/me.auditorAccess`) chỉ thêm, không bắt buộc, thuộc việc giai đoạn 2 → không chép sang `giai-doan-1`. Không commit (checkout `main` đang có sửa chưa commit của phiên khác).
+- Lưu ý: hợp đồng chưa đổi tên `[Đã chốt]`; tác vụ 30 phút vẫn chạy (xem đề nghị tắt ở phiên 2026-10-22 VCworkspace).
+
+### 2026-10-22 · Nghiên cứu VCworkspace thay Google Workspace (tạm dừng vì hết hạn mức)
+- Yêu cầu chủ dự án (8 điểm): (1) code trực tiếp trên máy ảo Anthropic (Claude Code cloud) → merge GitHub → deploy GCP; (2) đập tính năng VCdocs, xây email server **VCworkspace** thay Google Workspace; (3) cần nhận/gửi thư, gắn nhãn, họp, lịch, lưu trữ, soạn văn bản/bảng tính/trình chiếu; để sẵn cửa tích hợp mã nguồn mở thay Adobe/CapCut/Office, "REA – Reverse Engineer Anything", "Creator OS" (chạy quảng cáo), nhân viên tự phát triển thêm; (4) tự động hoá tối đa quá trình phát triển; sản phẩm có AI agent, trợ lý cá nhân 24/7 always-on, "AI Jev"; (5) bảo mật cao (kho trung tâm công ty); (6) tận dụng mã nguồn mở, dễ mở rộng; (7) plugin `anthropics/knowledge-work-plugins`, hướng công ty 1 thành viên; (8) không hiểu thì hỏi lại.
+- Đã làm: Workflow 13 mảng khảo sát web song song (Claude Code cloud/GitHub Action/Agent SDK; CI/CD GitHub→GCP; mail server trên GCP; so sánh mail server OSS; bộ workspace OSS; office/họp/lịch; công cụ sáng tạo; REA/Creator OS/AI Jev; AI agent & plugins; bảo mật & pháp lý VN; di cư; chi phí; mã VCdocs hiện có), mỗi luận điểm quyết định kiểm bằng 2 agent độc lập (nguồn gốc, cập nhật). 13/13 khảo sát xong; kiểm chứng xong claude-cloud, cicd-gcp, gcp-mail, creative-tools, mail-stacks (5/6); dở workspace-suites; chưa kiểm 7 mảng còn lại, chưa rà thiếu, chưa viết báo cáo. Dừng theo yêu cầu. Kết quả 72 agent: `~/.claude/projects/-Users-apple-projects-VCdocs/0153f5e4-10fe-4d4d-98d6-3915a62ea6bf/subagents/workflows/wf_d8f20636-759/` (`ket-qua-da-xong.json`, `journal.jsonl`); script: `~/.claude/projects/-Users-apple-projects-VCdocs/0153f5e4-10fe-4d4d-98d6-3915a62ea6bf/workflows/scripts/nghien-cuu-vcworkspace-wf_d8f20636-759.js`.
+- Đặt tác vụ một lần `vcdocs-nghien-cuu-vcworkspace` (2026-10-25 05:00 giờ VN; chỉ chạy khi app Claude đang mở) làm tiếp: kiểm chứng còn lại → rà thiếu → viết `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md` → sổ tay → commit nhánh `claude/nghien-cuu-vcworkspace` cắt từ `dev` → báo chủ dự án.
+- Bên lề: máy local đã có `gh`, `gcloud` (sửa mục 5). Tác vụ `vcdocs-kiem-tra-hop-dong-api` vẫn chạy mỗi 30 phút dù hợp đồng đã chốt — tốn hạn mức, đề nghị chủ dự án tắt. Sổ tay sửa trên checkout `main`, chưa commit (để phiên 25/10 commit cùng báo cáo trên nhánh riêng).
+- Còn dở: toàn bộ báo cáo; 3 câu hỏi mới ở mục 4.
 
 ### 2026-10-20 · BE: lệnh nhận cây thư mục có sẵn trên Drive (nhánh `claude/nhan-cay-thu-muc`)
 - Đã làm: `pnpm --filter api run nhan-cay-thu-muc -- [--drive 11] [--thu] [--ra file]` (`src/nhan-cay-thu-muc.ts`, `src/seed/nhan-cay-thu-muc.ts`). Chỉ đọc Drive; đọc tên theo mẫu `<số> <MÃ>-<tên ngắn> <tên đầy đủ>` và khung 00–99, gán kind; sai mẫu thì không nhận cả nhánh, chỉ báo; chạy lại khớp googleId không trùng; ghi `folder_numbers`, audit `folder.import`; cảnh báo khung thiếu, mã chưa có trong Bảng mã, số trùng, thư mục đã đổi/xoá trên Drive. 6 test e2e (gồm nhận lại nguyên cây mẫu sau khi xoá sổ). Build qua, BE 129/129, 98/98 điểm cuối. Không sửa `contract/`, không cần đổi hợp đồng.

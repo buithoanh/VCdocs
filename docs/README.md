@@ -7,6 +7,7 @@ Bản lưu trong kho mã của các tài liệu gốc. **Bản gốc nằm trên
 | BA và đặc tả người dùng | [ba/BA-dac-ta-nguoi-dung.md](ba/BA-dac-ta-nguoi-dung.md) | https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc | rev 20, xuất 2026-10-20 |
 | Hợp đồng API v1 | [hop-dong-api/hop-dong-api-v1.md](hop-dong-api/hop-dong-api-v1.md) | https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT | rev 22, xuất 2026-10-20 |
 | Kiến trúc code | [kien-truc/kien-truc.html](kien-truc/kien-truc.html) (mở bằng trình duyệt) | https://claude.ai/artifact/Bh992AU1qAhyneRJxkbRhF | bản 1, 2026-10-20 |
+| Nghiên cứu khả thi VCworkspace (thay Google Workspace) | [nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md](nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md) | (bản gốc là file trong repo) | bản rút gọn, 2026-10-22 |
 
 Ghi chú:
 
