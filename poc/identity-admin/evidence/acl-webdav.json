@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-10-24T16:25:40.889Z",
+  "marker": "chat12-acl-1792859139255",
+  "correlationId": "d96372c5-c403-4c00-99d0-cdcbd0ef47fb",
+  "sha256": "9f1435b5f543dbbe8316c9791f10ee63f789dbe7405032f82e15507cc6f24432",
+  "managerPut": 204,
+  "memberRead": 200,
+  "outsiderRead": 404,
+  "outsiderWrite": 404,
+  "tenantCrossDenied": true,
+  "secretsIncluded": false
+}

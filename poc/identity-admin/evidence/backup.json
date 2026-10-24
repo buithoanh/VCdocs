@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-10-24T15:14:09.400Z",
+  "checksums": {
+    "nextcloud.dump": "f6e6daf54b5ee7c8a2453441d9f5f8fdeb334d5bcc79f2953f7a6a8a4badef33",
+    "authentik.dump": "44a3a0156c7f1ffde78f4b9ee4ae5b461173ca731f51a1e9c130f1fdd8d5b120",
+    "nextcloud-html.tgz": "8cc268c2fab76c8ce6eab3b3e935dee5023c40b4abd39c99a64f574b5cfe051e"
+  },
+  "mode": "0600",
+  "secretsIncluded": false
+}

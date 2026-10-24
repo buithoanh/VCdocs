@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-24T15:12:38.015Z",
+  "bindings": [
+    {
+      "authentikPk": 5,
+      "username": "admin12",
+      "subject": "a1cbd44dc3fa488493f65428e0ac6367619de3110851a58168b35d432a6da168",
+      "nextcloudUserId": "a1cbd44dc3fa488493f65428e0ac6367619de3110851a58168b35d432a6da168",
+      "email": "admin@tenant-a.test",
+      "enabled": true,
+      "groups": [
+        "vcw-admins",
+        "a5456db7b566e2caf0a0f39a7256102bf7a771e829843535f5ffc39f9ea59157"
+      ]
+    },
+    {
+      "authentikPk": 6,
+      "username": "manager-a",
+      "subject": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+      "nextcloudUserId": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+      "email": "manager@tenant-a.test",
+      "enabled": true,
+      "groups": [
+        "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+        "vcw-team-a"
+      ]
+    },
+    {
+      "authentikPk": 7,
+      "username": "member-a",
+      "subject": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+      "nextcloudUserId": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+      "email": "member@tenant-a.test",
+      "enabled": true,
+      "groups": [
+        "vcw-team-a",
+        "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74"
+      ]
+    },
+    {
+      "authentikPk": 8,
+      "username": "outsider-b",
+      "subject": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+      "nextcloudUserId": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+      "email": "outsider@tenant-b.test",
+      "enabled": true,
+      "groups": [
+        "62ac1e2016889e60262cb551175dcb205cdf62ad2755a03961c5d3b662cd2f2d",
+        "vcw-outsiders-b"
+      ]
+    }
+  ],
+  "secretsIncluded": false
+}

@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-10-24T15:16:16.615Z",
+  "browser": "Google Chrome headless",
+  "portalRole": "standalone OIDC test harness; not apps/web or apps/api",
+  "personas": [
+    {
+      "username": "manager-a",
+      "portal": {
+        "subject": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+        "email": "manager@tenant-a.test",
+        "groups": [
+          "vcw-team-a"
+        ]
+      },
+      "nextcloud": {
+        "finalUrl": "http://nextcloud.localtest.me:18120/apps/dashboard/",
+        "currentStatus": 200,
+        "id": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+        "email": "manager@tenant-a.test",
+        "groups": [
+          "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74"
+        ],
+        "fileStatus": 200,
+        "fileBody": "chat12-acl-1792854804159",
+        "credentialReentryPerformed": false,
+        "authentikFlowSeen": false,
+        "authentikAuthorizeSeen": true,
+        "callbackSeen": true
+      }
+    },
+    {
+      "username": "member-a",
+      "portal": {
+        "subject": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+        "email": "member@tenant-a.test",
+        "groups": [
+          "vcw-team-a"
+        ]
+      },
+      "nextcloud": {
+        "finalUrl": "http://nextcloud.localtest.me:18120/apps/dashboard/",
+        "currentStatus": 200,
+        "id": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+        "email": "member@tenant-a.test",
+        "groups": [
+          "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74"
+        ],
+        "fileStatus": 200,
+        "fileBody": "chat12-acl-1792854804159",
+        "credentialReentryPerformed": false,
+        "authentikFlowSeen": false,
+        "authentikAuthorizeSeen": true,
+        "callbackSeen": true
+      }
+    },
+    {
+      "username": "outsider-b",
+      "portal": {
+        "subject": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+        "email": "outsider@tenant-b.test",
+        "groups": [
+          "vcw-outsiders-b"
+        ]
+      },
+      "nextcloud": {
+        "finalUrl": "http://nextcloud.localtest.me:18120/apps/dashboard/",
+        "currentStatus": 200,
+        "id": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+        "email": "outsider@tenant-b.test",
+        "groups": [
+          "62ac1e2016889e60262cb551175dcb205cdf62ad2755a03961c5d3b662cd2f2d"
+        ],
+        "fileStatus": 404,
+        "fileBody": null,
+        "credentialReentryPerformed": false,
+        "authentikFlowSeen": false,
+        "authentikAuthorizeSeen": true,
+        "callbackSeen": true
+      }
+    }
+  ],
+  "mover": {
+    "subject": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+    "upstreamGroupAfterMove": [
+      "vcw-outsiders-b"
+    ],
+    "nextcloudGroupsAfterMove": [
+      "62ac1e2016889e60262cb551175dcb205cdf62ad2755a03961c5d3b662cd2f2d"
+    ],
+    "oldTeamAFileAfterRelogin": 404,
+    "restoredTeamAFileAfterRelogin": 200
+  },
+  "renameEmail": {
+    "before": "manager@tenant-a.test",
+    "after": "manager.renamed@tenant-a.test",
+    "portalSubjectUnchanged": true,
+    "nextcloudIdUnchanged": true,
+    "nextcloudEmailReadback": "manager.renamed@tenant-a.test"
+  },
+  "nextcloudCurrentSessionRevoke": {
+    "subject": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+    "beforeStatus": 200,
+    "browserTokensBefore": [
+      48,
+      53,
+      46,
+      54
+    ],
+    "browserTokensAfter": [],
+    "afterStatus": 401,
+    "afterUrl": "http://nextcloud.localtest.me:18120/ocs/v2.php/cloud/user?format=json",
+    "identityDisabled": true,
+    "nextcloudDisabled": true,
+    "idpSessionsDeleted": 4
+  },
+  "secretsIncluded": false,
+  "baselineRestored": true
+}
