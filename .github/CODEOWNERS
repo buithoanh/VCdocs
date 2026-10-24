@@ -1,0 +1,11 @@
+# Only takes effect when protected branches require code-owner approval.
+# Solo owner cannot approve their own PR: see the operations guide before enabling.
+/AGENTS.md @buithoanh
+/CLAUDE.md @buithoanh
+/.codex/ @buithoanh
+/.claude/settings.json @buithoanh
+/.agents/ @buithoanh
+/scripts/ai/ @buithoanh
+/.github/ @buithoanh
+/contract/ @buithoanh
+/deploy/ @buithoanh
