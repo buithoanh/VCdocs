@@ -538,6 +538,7 @@ Sau khi ghép giao diện và máy chủ, hai phên ghi thêm 6 đề nghị. An
 | D20 | Thư mục ở gốc drive | Được tạo ở gốc: docs (00), plan\_report (01), operations (02–09), area (10–49), project (50–89), closed (98), archive (99). year, month, entity bắt buộc có parentId; thiếu → 422 BR-11 |
 | D21 | Huỷ bỏ HD, BM cấp phòng (POST /documents/{id}/withdraw) | Trưởng phòng trình huỷ bỏ thì GĐ khối phụ trách phòng duyệt (như C9), vì trưởng phòng vừa là người trình duy nhất vừa là người duyệt HD, BM cấp phòng (BR-05). Phát hiện khi chạy thử 2026-10-20; anh Thọ Anh chốt cùng ngày |
 | D22 | Lỗi đăng nhập khi hệ thống chưa khởi tạo (GET /auth/google/callback) | Thêm loi=setup vào danh sách lỗi của D13: tài khoản đúng tên miền nhưng CSDL chưa có bản ghi công ty thì chuyển về /dang-nhap?loi=setup ("Hệ thống chưa được khởi tạo, liên hệ quản trị"), không trả loi=domain. Quản trị chạy lệnh khởi tạo công ty ở máy chủ. Phát hiện khi chạy Google thật 2026-10-20 (đề nghị N5); anh Thọ Anh chốt cùng ngày |
+| D23 | Drive cơ bản VCworkspace | Thêm sáu API `/spaces`, `/drive/items`, `/drive/folders`, `/drive/files`, `/drive/files/{fileId}`, `/drive/files/{fileId}/content`. DTO không phụ thuộc Nextcloud; tải đồng bộ tối đa 10 MiB/tệp thử, chỉ text/plain và application/octet-stream; trùng tên trả 409, không ghi đè/tự đổi; lưu SHA-256 và tách lỗi kho. Anh Thọ Anh duyệt trực tiếp trong chat 02 ngày 2026-10-23. |
 
 ## Lịch sử hợp đồng
 
@@ -548,3 +549,4 @@ Sau khi ghép giao diện và máy chủ, hai phên ghi thêm 6 đề nghị. An
 | v1.2 | 2026-10-20 | Mục 9.4: D15–D20 sau khi ghép giao diện và máy chủ (việc nền huỷ bỏ tài liệu, Job.summary, people chỉ ở cấp trang, hành động feedback, people cho danh mục nền, loại thư mục ở gốc drive) |
 | v1.3 | 2026-10-20 | Mục 9.4 D21: trưởng phòng trình huỷ bỏ HD, BM cấp phòng thì GĐ khối phụ trách duyệt |
 | v1.4 | 2026-10-20 | Mục 9.4 D22: lỗi đăng nhập loi=setup khi hệ thống chưa khởi tạo công ty |
+| v1.5-gd1 | 2026-10-23 | D23: sáu API Drive cơ bản VCworkspace và hợp đồng StoragePort trung lập kho; phạm vi giai đoạn 1 thử nghiệm local |

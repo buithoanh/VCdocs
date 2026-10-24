@@ -7,6 +7,123 @@ Phiên BE không sửa `contract/`. Chỗ hợp đồng thiếu, sai hoặc khó
 Nguồn đối chiếu: `contract/openapi.yaml` 1.2.0-gd1 (commit 432bad4), hợp đồng
 Claude Docs rev 20 (mục 9 D1–D20), BA rev hiện tại.
 
+## Đề nghị Drive cơ bản VCworkspace (2026-10-23) – chờ duyệt hợp đồng
+
+Phạm vi: sáu API Drive trung tính cho PoC Nextcloud local cô lập đã được duyệt.
+Chưa sửa OpenAPI, schema sinh hoặc endpoint sản phẩm; M03 Google giữ nguyên.
+
+| # | Điểm cuối | Thành công | Quyền |
+|---|---|---|---|
+| D1 | GET /spaces | 200 SpaceList | Chỉ không gian người gọi là thành viên |
+| D2 | GET /drive/items | 200 DriveItemList | reader trở lên; không lộ item cho người ngoài |
+| D3 | POST /drive/folders | 201 DriveFolder | manager/editor; CSRF và idempotency key |
+| D4 | POST /drive/files | 201 DriveFile | multipart; manager/editor; tối đa 10 MiB trong PoC |
+| D5 | GET /drive/files/{fileId} | 200 DriveFile | reader trở lên; người ngoài nhận 404 |
+| D6 | GET /drive/files/{fileId}/content | 200 stream | reader trở lên; PoC chưa hỗ trợ Range |
+
+DTO gồm Space, DriveFolder, DriveFile và DriveItemList với id nội bộ, spaceId,
+parentId, tên, loại, size, MIME, contentSha256, actor, thời gian và
+allowedActions. Không lộ googleId, Google driveId, URL/đường dẫn Nextcloud,
+provider object id hoặc credential.
+
+Tên upload chuẩn hoá NFC và cắt khoảng trắng đầu/cuối; cấm rỗng, dấu chấm đơn,
+dấu chấm đôi, slash, backslash và control character. PoC cho text/plain và
+application/octet-stream. Trùng tên trong cùng không gian/thư mục trả
+409 NAME_CONFLICT, không overwrite hoặc auto-rename.
+
+Fingerprint upload do server tính từ công ty, người dùng, đích, tên chuẩn hoá,
+size, MIME và SHA-256 của byte. Cùng key/cùng fingerprint replay đúng fileId;
+cùng key/khác fingerprint trả 409 IDEMPOTENCY_CONFLICT và không gọi kho. Chỉ
+file ready xuất hiện trong list. Sau timeout phải đối soát attempt/provider
+marker trước retry, không upload mù hoặc báo thành công giả.
+
+Download trả Content-Type, Content-Length, Content-Disposition, ETag nội bộ,
+Digest SHA-256 và Accept-Ranges none. ETag nhà cung cấp không thay checksum byte.
+
+Mã lỗi đề nghị: 400 VALIDATION, 401 AUTH_REQUIRED, 403 FORBIDDEN,
+404 NOT_FOUND, 409 NAME_CONFLICT, 409 IDEMPOTENCY_CONFLICT,
+409 STORAGE_STATE_CONFLICT, 413 PAYLOAD_TOO_LARGE,
+415 UNSUPPORTED_MEDIA_TYPE, 429 STORAGE_RATE_LIMITED kèm Retry-After,
+502 STORAGE_INTEGRITY_MISMATCH, 503 STORAGE_UNAVAILABLE và
+504 STORAGE_TIMEOUT. Chỉ retry lỗi kho tạm thời, có backoff, jitter và giới hạn.
+
+Audit create/upload/download/denied gồm actor nội bộ, company/space, action,
+object id khi an toàn, request id, result, error class và thời gian; không ghi
+
+## Đề nghị Drive an toàn dữ liệu VCworkspace (2026-10-23) – đã được giao áp dụng
+
+Nguồn quyết định: chủ dự án giao chat 03 thực hiện trọn đầu-cuối và giao rõ quyền
+cập nhật hợp đồng sau khi đối chiếu hành vi Nextcloud local. Đây là phần nối tiếp
+Drive cơ bản `1.5.0-gd1`, không lấy từ Claude Docs rev mới và không thay hợp đồng
+M03 Google hiện có.
+
+| Mã | Điểm cuối | Kết quả | Quy tắc an toàn |
+|---|---|---|---|
+| S1 | `PATCH /drive/items/{itemId}` | item đã đổi tên/di chuyển | manager; giữ `itemId`; tên đích trùng trả 409; MOVE kho xong mới cập nhật metadata |
+| S2 | `POST /drive/files/{fileId}/versions` | bản mới và metadata tệp | manager; multipart tối đa 10 MiB; checksum; idempotency; bản cũ bất biến |
+| S3 | `GET /drive/files/{fileId}/versions` | danh sách bản | reader trở lên; không lộ người ngoài |
+| S4 | `POST /drive/files/{fileId}/versions/{versionId}/restore` | metadata tệp trỏ bản được khôi phục | manager; đọc lại byte/hash trước khi chuyển bản hiện hành; tạo audit |
+| S5 | `POST /drive/items/{itemId}/trash` | item trong thùng rác | manager; lưu cha cũ; item không còn ở danh sách thường; không xoá vĩnh viễn blob |
+| S6 | `GET /drive/trash` | danh sách thùng rác theo space | reader trở lên; vẫn áp dụng membership/tenant |
+| S7 | `POST /drive/items/{itemId}/restore` | item về đúng cha cũ | manager; kiểm cha còn hoạt động và xung đột tên trước khôi phục |
+
+`WorkspaceDriveFile` bổ sung `currentVersionId`, `versionNumber`, `trashedAt` và
+allowed actions `rename`, `move`, `upload-version`, `list-versions`, `restore-version`,
+`trash`, `restore`. `WorkspaceDriveVersion` có id, fileId, number, size, MIME,
+checksum, createdAt/createdBy; không trả storage credential/path. Thư mục trong
+thùng rác kéo theo con cháu bị ẩn theo ancestry; phiên bản không bị xoá. Không có
+API xoá vĩnh viễn trong chat03.
+
+## Đề nghị soạn thảo văn bản VCworkspace (2026-10-23) – đã được giao áp dụng
+
+Nguồn quyết định: chủ dự án giao chat04 thực hiện tạo DOCX từ mẫu, nhúng
+ONLYOFFICE, callback lưu thành phiên bản Drive bất biến, quyền xem/sửa và xuất.
+Không lấy từ Claude Docs rev mới. Phạm vi local cô lập, không production.
+
+| Mã | Điểm cuối | Quy tắc |
+|---|---|---|
+| W1 | `POST /drive/documents` | manager tạo DOCX từ mẫu; idempotency; cùng quy tắc tên/cha của Drive |
+| W2 | `GET /drive/files/{fileId}/editor-config` | manager nhận edit, reader nhận view; config/JWT ngắn hạn; key gồm fileId + version |
+| W3 | `GET /drive/editor/content?ticket=` | máy-máy bằng vé HMAC hết hạn; chỉ trả bản hiện hành |
+| W4 | `POST /drive/editor/callback?ticket=` | bắt buộc vé + JWT; URL cùng origin editor; tải/kiểm DOCX rồi mới tạo version và trả `error: 0` |
+| W5 | `GET /drive/files/{fileId}/export?format=` | reader trở lên; DOCX lấy bản hiện hành, PDF qua converter có JWT và kiểm magic byte |
+
+Editor không ghi đè blob. Callback status 2/6 idempotent; lỗi tải, SSRF, chữ ký,
+định dạng hoặc kho trả `error: 1`, không cập nhật currentVersion.
+
+## Đề nghị bảng tính VCworkspace (2026-10-23) – đã được giao áp dụng
+
+Nguồn quyết định: chủ dự án giao chat05 thực hiện XLSX trọn đầu-cuối và giao rõ
+quyền cập nhật contract. Không lấy từ Claude Docs rev mới; không mở rộng sang
+Apps Script/macro hoặc dữ liệu thật.
+
+| Mã | Điểm cuối | Quy tắc |
+|---|---|---|
+| S01 | `POST /drive/spreadsheets` | manager tạo XLSX mẫu nghiệp vụ; tên/cha/idempotency như Drive |
+| S02 | `GET /drive/files/{fileId}/editor-config` | XLSX dùng `documentType=cell`; manager edit, reader view; key fileId + version |
+| S03 | `POST /drive/editor/callback?ticket=` | vé + JWT + same-origin; kiểm gói OOXML XLSX có workbook/worksheet trước khi tạo version |
+| S04 | `GET /drive/files/{fileId}/export?format=xlsx|pdf` | reader trở lên; XLSX lấy current version, PDF qua converter và kiểm magic |
+
+Mẫu có tiếng Việt, ngày, số lượng, tiền tệ, SUM/IF/SUMIF/VLOOKUP, auto-filter
+và sort state. Giá trị công thức được kiểm độc lập trong test và bằng chứng
+engine thật; không suy rộng thành tương thích mọi hàm Excel.
+
+## Đề nghị Slide chat06 — đã được giao trực tiếp (2026-10-23)
+
+| Mục | Điểm cuối | Nội dung đã chốt trong phạm vi local |
+|---|---|---|
+| P01 | `POST /drive/presentations` | Tạo PPTX ba slide từ mẫu tiếng Việt, có title/body/shape/table; lưu version 1 |
+| P02 | `GET /drive/files/{fileId}/editor-config` | PPTX dùng `documentType=slide`; manager edit, reader view; key fileId + version |
+| P03 | `POST /drive/editor/callback?ticket=` | Tái dùng vé/JWT/same-origin/stale-key/idempotency; kiểm package PPTX trước tạo version |
+| P04 | `GET /drive/files/{fileId}/export?format=pptx|pdf` | Native lấy current version; PDF qua converter, kiểm magic; không dùng V1 thay V2 |
+
+Mẫu dùng Liberation Sans có sẵn trong Document Server, tỷ lệ 16:9. Phạm vi
+không cam kết mọi hiệu ứng/chuyển cảnh/font bên ngoài, tải đồng thời hoặc fidelity
+production; trình chiếu và bố cục phải được kiểm trên engine/browser thật.
+byte, tên làm lộ đối tượng kín, cookie, Authorization, credential, đường dẫn tạm
+hoặc URL kho. Sáu API chỉ vào OpenAPI sau khi chủ hợp đồng duyệt; 10 MiB và hai
+MIME là giới hạn PoC, chưa phải quyết định production.
+
 ## Tình trạng (2026-10-20)
 
 Chủ dự án đã chốt toàn bộ mục A, B, C bên dưới ("Đồng ý theo đề xuất cho nhóm 1,
@@ -116,3 +233,26 @@ Danh sách đủ do test tự ghi: chạy `TEST_UNDECLARED_REPORT=/tmp/x.txt pnp
 | C18 | Giá trị còn `[..]` | Để trong `.env`: hạn duyệt 3 ngày, nhắc lại sau 24 giờ, rà soát 12 tháng, mở khoá sửa nhỏ 3 ngày, lùi ngày lập 3 ngày làm việc, chia sẻ tối đa 30 ngày, nhắc trước 3 ngày, hạn mức uỷ quyền 500.000.000 đ, ngày 25 tạo thư mục tháng sau |
 | C19 | Trường lạ trong thân | Theo hợp đồng mục 7: bị loại, không báo lỗi (OpenAPI ghi `additionalProperties: false`; máy giả Prism có thể báo 400) |
 | C20 | 413 (quá lớn) | Không có trong danh sách mã lỗi → BE trả 400 VALIDATION |
+# Đề nghị Email cơ bản chat07 — đã được giao áp dụng 2026-10-23
+
+Nguồn: chủ dự án giao trực tiếp chat07 và cho phép sửa hợp đồng trong phạm vi
+mail cơ bản local cô lập. Các điểm cuối M01–M06 gồm danh sách mailbox, hội thoại,
+tạo/đọc/sửa draft, gửi multipart có idempotency và tải raw MIME. Chỉ miền
+`vcworkspace.test`; aliases/shared mailbox/labels/filter thuộc chat08.
+
+# Đề nghị Quản lý Email chat08 — đã được giao áp dụng 2026-10-23
+
+Nguồn: chủ dự án giao trực tiếp chat08 và cho phép sửa hợp đồng trong phạm vi
+mail local cô lập. Mở rộng M01 để tìm theo mailbox/folder/from/subject/body và
+lọc nhãn; thêm API nhãn, filter hữu hạn, alias identity, shared mailbox và
+membership `read/send/manage`. Thu hồi dùng roles rỗng và có hiệu lực ở lần gọi
+kế tiếp. Alias không đồng nhất với shared mailbox; không có forwarding/MX.
+
+# Đề nghị liên thông chat09 — đã được giao áp dụng 2026-10-24
+
+Nguồn: chủ dự án giao trực tiếp chat09 và cho phép sửa hợp đồng. Thêm ba luồng:
+`POST /mail/messages/{messageId}/attachments/{part}/save-to-drive`, `POST
+/mail/send-drive-file` và `GET /drive/shared-links/{token}`. Lưu attachment phải
+authorize cả mailbox nguồn và folder Drive đích, giữ provenance/hash và
+idempotency. Gửi attachment cố định version/hash lúc compose; gửi link không tự
+cấp ACL, yêu cầu đăng nhập và người nhận có quyền đọc sẵn.

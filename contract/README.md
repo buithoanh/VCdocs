@@ -1,6 +1,6 @@
-# Hợp đồng API VCdocs
+# Hợp đồng API VCworkspace
 
-- `openapi.yaml` là gốc, viết tay theo tài liệu "Hợp đồng API VCdocs v1" trên
+- `openapi.yaml` là gốc, viết tay theo tài liệu "Hợp đồng API VCdocs v1" (tên tài liệu nguồn cũ) trên
   Claude Docs (https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT). Phạm vi hiện
   tại: giai đoạn 1 (M01–M09, M14, /jobs).
 - Chỗ hợp đồng chưa ghi rõ được đánh dấu `x-gia-dinh` (giả định).
@@ -25,3 +25,7 @@
 - Lỗi luôn theo `components/schemas/Error`; `message` tiếng Việt.
 - `pnpm-lock.yaml` mỗi bên tự sinh; lúc ghép thì chạy lại `pnpm install`
   để gộp, không sửa tay.
+
+> Tên dự án hiện tại là VCworkspace (từ 2026-10-23). Các định danh `vcdocs`,
+> package `@vcdocs/*` và cấu hình hạ tầng trong ví dụ vẫn đang dùng tên kỹ thuật cũ.
+> Phiên code AI: xem [quy tắc chung](../AGENTS.md) trước khi khởi động dịch vụ thật.
