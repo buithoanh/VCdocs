@@ -11,6 +11,8 @@ const apiPathPrefix = process.env.API_PATH_PREFIX ?? '/api/v1';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Cho phép smoke local dùng cache riêng, tránh tranh chấp với build/gate song song.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // Image Docker (deploy/web.Dockerfile) đặt NEXT_OUTPUT=standalone; local giữ nguyên `next start`.
   ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const } : {}),
   // Gốc workspace pnpm (2 cấp trên apps/web).
