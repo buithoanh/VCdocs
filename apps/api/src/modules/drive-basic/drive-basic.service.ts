@@ -44,23 +44,27 @@ export class DriveBasicService {
       : ['download', 'list-versions'];
   }
   private async ensureDefaultSpaces(ctx: Ctx) {
-    const defaults: Array<{ kind: 'personal' | 'department'; name: string }> = [
-      { kind: 'personal', name: 'Cá nhân · ' + ctx.user.name },
+    const defaults: Array<{ kind: 'personal' | 'department'; name: string; key: { ownerUserId?: Types.ObjectId; departmentId?: Types.ObjectId } }> = [
+      { kind: 'personal', name: 'Cá nhân · ' + ctx.user.name, key: { ownerUserId: this.uid(ctx) } },
     ];
     if (ctx.user.departmentId) {
       const department = await this.db.m.Department.findOne({ _id: ctx.user.departmentId,
         companyId: this.cid(ctx) }, { name: 1 }).lean<any>();
-      if (department) defaults.unshift({ kind: 'department', name: department.name });
+      if (department) defaults.unshift({ kind: 'department', name: department.name, key: { departmentId: department._id } });
     }
     for (const item of defaults) {
-      let space = await this.db.m.WorkspaceSpace.findOne({ companyId: this.cid(ctx),
-        kind: item.kind, name: item.name });
+      const filter = { companyId: this.cid(ctx), kind: item.kind, ...item.key };
+      let space = await this.db.m.WorkspaceSpace.findOne(filter);
       if (!space) {
-        const id = new Types.ObjectId();
-        space = await this.db.m.WorkspaceSpace.create({ _id: id, companyId: this.cid(ctx),
-          kind: item.kind, name: item.name, rootStorageKey: item.kind,
-          createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
+        try {
+          space = await this.db.m.WorkspaceSpace.create({ _id: new Types.ObjectId(), ...filter, name: item.name,
+            rootStorageKey: item.kind, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
+        } catch (error: any) {
+          if (error?.code !== 11000) throw error;
+          space = await this.db.m.WorkspaceSpace.findOne(filter);
+        }
       }
+      if (!space) throw Errors.notFound('Không tìm thấy không gian');
       const role = item.kind === 'personal' || ctx.user.systemRoles.includes('R4') ? 'manager' : 'reader';
       await this.db.m.WorkspaceSpaceMember.updateOne({ companyId: this.cid(ctx), spaceId: space._id,
         userId: this.uid(ctx) }, { $setOnInsert: { role, createdBy: this.uid(ctx),
@@ -97,9 +101,10 @@ export class DriveBasicService {
     if (!parent) throw Errors.notFound('Không tìm thấy thư mục cha');
     return parent.storageKey + '/' + leaf;
   }
-  private async assertNameAvailable(ctx: Ctx, spaceId: string, parentId: string | undefined, name: string) {
+  private async assertNameAvailable(ctx: Ctx, spaceId: string, parentId: string | undefined, name: string, excludeId?: Types.ObjectId) {
     const exists = await this.db.m.WorkspaceDriveItem.exists({ companyId: this.cid(ctx),
-      spaceId: new Types.ObjectId(spaceId), parentId: parentId ? new Types.ObjectId(parentId) : { $exists: false }, name });
+      spaceId: new Types.ObjectId(spaceId), parentId: parentId ? new Types.ObjectId(parentId) : { $exists: false }, name,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}) });
     if (exists) throw Errors.storageConflict();
   }
   async createFolder(ctx: Ctx, input: { spaceId: string; parentId?: string; name: string }) {
@@ -231,7 +236,7 @@ export class DriveBasicService {
       if (row.kind === 'folder' && String(parent.storageKey).startsWith(row.storageKey + '/'))
         throw Errors.validation('Không thể di chuyển thư mục vào thư mục con của chính nó');
     }
-    await this.assertNameAvailable(ctx, String(row.spaceId), parentId ? String(parentId) : undefined, name);
+    await this.assertNameAvailable(ctx, String(row.spaceId), parentId ? String(parentId) : undefined, name, row._id);
     const leaf = row.kind + '-' + itemId;
     const nextKey = row.kind === 'file' ? row.storageKey
       : await this.itemStorageKey(ctx, String(row.spaceId), parentId ? String(parentId) : undefined, leaf);
@@ -293,12 +298,19 @@ export class DriveBasicService {
     if (!version) throw Errors.notFound('Không tìm thấy phiên bản');
     const stored = await this.storage.get(version.storageKey, this.actor(ctx));
     if (stored.sha256 !== version.contentSha256) throw Errors.storageIntegrity();
+    // Khôi phục = tạo phiên bản mới (số tiếp theo) trỏ tới đúng blob bất biến của bản cũ,
+    // để số phiên bản luôn tăng và key editor không bị dùng lại.
+    const number = Number(row.versionNumber || 1) + 1;
+    const restored = await this.db.m.WorkspaceDriveVersion.create({ companyId: this.cid(ctx), fileId: row._id,
+      number, storageKey: version.storageKey, mimeType: version.mimeType, size: version.size,
+      contentSha256: version.contentSha256, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
     await this.db.m.WorkspaceDriveItem.updateOne({ _id: row._id, companyId: this.cid(ctx) }, { $set: {
-      storageKey: version.storageKey, currentVersionId: version._id, versionNumber: version.number,
+      storageKey: version.storageKey, currentVersionId: restored._id, versionNumber: number,
       mimeType: version.mimeType, size: version.size, contentSha256: version.contentSha256, updatedBy: this.uid(ctx),
     } });
     await this.audit.record(ctx, { action: 'workspace_drive.version.restore', objectType: 'workspace_drive_item', objectId: fileId,
-      before: { versionId: row.currentVersionId, number: row.versionNumber }, after: { versionId, number: version.number } });
+      before: { versionId: row.currentVersionId, number: row.versionNumber },
+      after: { versionId: String(restored._id), number, restoredFromVersionId: versionId, restoredFromNumber: version.number } });
     return this.file(ctx, fileId);
   }
 
@@ -450,6 +462,7 @@ export class DriveBasicService {
   }
 
   async editorContent(ticketValue: string) {
+    if (!this.cfg.documentEditor.enabled) throw Errors.notFound('Không tìm thấy văn bản');
     const ticket = this.readTicket(ticketValue);
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId,
       kind: 'file', trashedAt: { $exists: false } }).lean<any>();
@@ -460,6 +473,7 @@ export class DriveBasicService {
   }
 
   async editorCallback(ticketValue: string, body: any, authorization?: string) {
+    if (!this.cfg.documentEditor.enabled) return { error: 1 };
     const ticket = this.readTicket(ticketValue);
     if (ticket.mode !== 'edit') return { error: 1 };
     // Document Server ký toàn bộ callback; không nhận callback không xác thực.

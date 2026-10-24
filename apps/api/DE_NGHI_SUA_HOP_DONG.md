@@ -7,6 +7,16 @@ Phiên BE không sửa `contract/`. Chỗ hợp đồng thiếu, sai hoặc khó
 Nguồn đối chiếu: `contract/openapi.yaml` 1.2.0-gd1 (commit 432bad4), hợp đồng
 Claude Docs rev 20 (mục 9 D1–D20), BA rev hiện tại.
 
+## Đề nghị sau review chat01–12B (2026-10-25) – chờ duyệt hợp đồng
+
+BE đã làm theo cách an toàn; chỉ là thay đổi mô tả, không đổi schema.
+
+| # | Điểm cuối | BE đang làm | Đề nghị ghi vào hợp đồng |
+|---|---|---|---|
+| R1 | GET /auth/google, GET /auth/google/callback | `AUTH_MODE=oidc` thì 302 `/dang-nhap?loi=provider` | Thêm `provider` vào danh sách `loi` của luồng Google; nêu rõ Google tắt khi bật OIDC |
+| R2 | POST /drive/files/{fileId}/versions/{versionId}/restore | Tạo phiên bản mới số max+1 trỏ đúng blob của bản cũ | Mô tả: khôi phục tạo phiên bản mới, `versionNumber` luôn tăng |
+| R3 | PATCH /drive/items/{itemId} | Gửi lại đúng tên/thư mục hiện tại trả 200 (no-op) | Mô tả: 409 chỉ khi trùng với mục khác |
+
 ## Đề nghị Drive cơ bản VCworkspace (2026-10-23) – chờ duyệt hợp đồng
 
 Phạm vi: sáu API Drive trung tính cho PoC Nextcloud local cô lập đã được duyệt.

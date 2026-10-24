@@ -68,7 +68,8 @@ describe('Drive cơ bản VCworkspace', () => {
     const moved = await manager.patch('/drive/items/' + first.body.id, { name: 'da-doi-ten.txt', parentId: folderB.body.id });
     expect(moved.status).toBe(200);
     expect(moved.body).toMatchObject({ id: first.body.id, name: 'da-doi-ten.txt', parentId: folderB.body.id });
-    expect((await manager.patch('/drive/items/' + first.body.id, { name: 'da-doi-ten.txt', parentId: folderB.body.id })).status).toBe(409);
+    // Gửi lại đúng tên/thư mục hiện tại là no-op, không phải trùng tên với chính nó.
+    expect((await manager.patch('/drive/items/' + first.body.id, { name: 'da-doi-ten.txt', parentId: folderB.body.id })).status).toBe(200);
 
     const second = await manager.upload('/drive/files/' + first.body.id + '/versions', {}, {
       name: 'du-lieu.txt', type: 'text/plain', content: Buffer.from('ban-hai'),
@@ -80,7 +81,7 @@ describe('Drive cơ bản VCworkspace', () => {
     expect(versions.body.items.map((v: any) => v.number)).toEqual([2, 1]);
     const v1 = versions.body.items.find((v: any) => v.number === 1);
     const restoredVersion = await manager.post(`/drive/files/${first.body.id}/versions/${v1.id}/restore`, {});
-    expect(restoredVersion.body).toMatchObject({ id: first.body.id, versionNumber: 1, contentSha256: v1.contentSha256 });
+    expect(restoredVersion.body).toMatchObject({ id: first.body.id, versionNumber: 3, contentSha256: v1.contentSha256 });
     expect((await manager.get('/drive/files/' + first.body.id + '/content')).text).toBe('ban-mot');
 
     const trashed = await manager.post('/drive/items/' + first.body.id + '/trash', {});
@@ -121,7 +122,7 @@ describe('Drive cơ bản VCworkspace', () => {
         expect(await restoredDb.collection(name).countDocuments({})).toBe(docs.length);
       }
       const restoredFile = await restoredDb.collection('workspace_drive_items').findOne({ name: 'da-doi-ten.txt' });
-      expect(restoredFile).toMatchObject({ name: 'da-doi-ten.txt', contentSha256: v1.contentSha256, versionNumber: 1 });
+      expect(restoredFile).toMatchObject({ name: 'da-doi-ten.txt', contentSha256: v1.contentSha256, versionNumber: 3 });
     } finally {
       await restoredDb.dropDatabase();
     }

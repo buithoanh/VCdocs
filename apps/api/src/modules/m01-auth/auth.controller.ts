@@ -44,6 +44,8 @@ export class AuthController {
   @Public()
   @Get('google')
   async start(@Query('returnTo') returnTo: string | undefined, @Res() res: Response) {
+    // Khi đã chuyển sang OIDC, đăng nhập Google phải tắt để không vượt qua khoá/thu hồi của lifecycle.
+    if (this.cfg.authMode !== 'google') return this.fail(res, 'provider');
     const state = randomToken(24);
     const nonce = randomToken(16);
     await this.db.m.OAuthState.create({ state, nonce, returnTo: safeReturnTo(returnTo), expiresAt: new Date(Date.now() + 10 * 60_000) });
@@ -133,6 +135,7 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   async callback(@Req() req: Request, @Res() res: Response, @Query('code') code?: string, @Query('state') state?: string) {
+    if (this.cfg.authMode !== 'google') return this.fail(res, 'provider');
     const ctx = getCtx(req);
     const cookieState = (req as any).cookies?.[OAUTH_COOKIE];
     res.clearCookie(OAUTH_COOKIE, { path: '/api/v1/auth' });

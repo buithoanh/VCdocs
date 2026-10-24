@@ -197,8 +197,12 @@ const WorkspaceSpace = mk({
   kind: { type: String, enum: ['department', 'personal'], required: true },
   name: { type: String, required: true },
   rootStorageKey: { type: String, required: true },
+  // Khoá nhận diện không gian theo ID, không theo tên hiển thị (trùng tên ≠ cùng không gian)
+  ownerUserId: OID,
+  departmentId: OID,
 });
-WorkspaceSpace.index({ companyId: 1, kind: 1, name: 1 }, { unique: true });
+WorkspaceSpace.index({ companyId: 1, ownerUserId: 1 }, { unique: true, partialFilterExpression: { kind: 'personal' } });
+WorkspaceSpace.index({ companyId: 1, departmentId: 1 }, { unique: true, partialFilterExpression: { kind: 'department' } });
 
 const WorkspaceSpaceMember = mk({
   spaceId: { type: OID, required: true },

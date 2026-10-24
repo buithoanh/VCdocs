@@ -132,6 +132,8 @@ export function loadDotEnv(): void {
   }
 }
 
+const DEFAULT_EDITOR_SECRET = 'vcworkspace-test-editor-secret';
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AppConfig> = {}): AppConfig {
   const nodeEnv = env.NODE_ENV || 'development';
   const googleMode = (env.GOOGLE_MODE || 'fake') as 'fake' | 'real';
@@ -199,7 +201,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       publicOrigin: env.DOCUMENT_EDITOR_PUBLIC_ORIGIN || 'http://127.0.0.1:18082',
       internalOrigin: env.DOCUMENT_EDITOR_INTERNAL_ORIGIN || 'http://127.0.0.1:18082',
       apiOriginForEditor: env.DOCUMENT_EDITOR_API_ORIGIN || env.PUBLIC_API_ORIGIN || 'http://host.docker.internal:4000',
-      jwtSecret: env.DOCUMENT_EDITOR_JWT_SECRET || 'vcworkspace-test-editor-secret',
+      jwtSecret: env.DOCUMENT_EDITOR_JWT_SECRET || DEFAULT_EDITOR_SECRET,
       enabled: bool(env.DOCUMENT_EDITOR_ENABLED, nodeEnv !== 'production'),
     },
     vaultDir: env.VAULT_DIR || path.resolve(process.cwd(), '.vault'),
@@ -254,6 +256,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
   }
   if (!['fake', 'stalwart'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake hoặc stalwart');
   if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
+  if (cfg.nodeEnv === 'production') {
+    // Bản giả/khoá mặc định chỉ dành cho local/test; production phải cấu hình tường minh.
+    if (cfg.workspaceStorage.mode === 'fake') throw new Error('Không được chạy WORKSPACE_STORAGE_MODE=fake ở production');
+    if (cfg.mailEngine.mode === 'fake') throw new Error('Không được chạy MAIL_ENGINE_MODE=fake ở production');
+    if (cfg.documentEditor.enabled && (cfg.documentEditor.jwtSecret === DEFAULT_EDITOR_SECRET || Buffer.byteLength(cfg.documentEditor.jwtSecret) < 32)) {
+      throw new Error('DOCUMENT_EDITOR_JWT_SECRET phải đặt riêng, tối thiểu 32 byte ở production');
+    }
+  }
   return cfg;
 }
 
