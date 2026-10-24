@@ -89,7 +89,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
     { NODE_ENV: 'test', GOOGLE_MODE: 'fake' } as any,
     { mongoUri: uri, jobsPollMs: 0, schedulerEnabled: false, seedDemo: false, vaultDir: ':memory:', cookieSecure: false, uploadTmpDir: path.join(require('os').tmpdir(), `vcdocs-up-${process.pid}`), ...overrides },
   );
-  const app = await createApp(cfg, { logger: false });
+  const app = await createApp(cfg, { logger: process.env.TEST_LOGGER === '1' });
   const db = app.get(Db);
   const fake = app.get(GOOGLE) as FakeGoogle;
   const ids = await seedDemo(db.m, fake);

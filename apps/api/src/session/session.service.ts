@@ -20,7 +20,7 @@ export class SessionService {
     return { httpOnly: true, secure: this.cfg.cookieSecure, sameSite: 'lax' as const, path: '/', maxAge: maxAgeMs };
   }
 
-  async create(p: { userId: string; companyId: string; ip: string; device: string }) {
+  async create(p: { userId: string; companyId: string; ip: string; device: string; authProvider?: 'google' | 'oidc'; identityId?: string }) {
     const sid = randomToken(32);
     const csrfToken = randomToken(24);
     const expiresAt = new Date(Date.now() + this.ttlMs);
@@ -32,6 +32,8 @@ export class SessionService {
       expiresAt,
       ip: p.ip,
       device: p.device,
+      authProvider: p.authProvider ?? 'google',
+      ...(p.identityId ? { identityId: new Types.ObjectId(p.identityId) } : {}),
     });
     return { sid, csrfToken, expiresAt };
   }
