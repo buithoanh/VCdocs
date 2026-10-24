@@ -21,11 +21,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
   - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 24: mục 1–10, mục 10 = giai đoạn 2 đợt 1 M10/M15 v1.5, đã vào `openapi.yaml` 1.5.0-gd2 trên nhánh `giai-doan-2`; `giai-doan-1` dừng ở rev 22 / 1.4.0-gd1; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái code VCworkspace (cập nhật 2026-10-25):** các chat công việc 01–12B (phần lớn do ChatGPT/Codex làm) đã **nghiệm thu LOCAL**, toàn bộ còn là **WIP chưa commit** trên checkout chính, nhánh `claude/nghien-cuu-vcworkspace` (36 file sửa, ~390 file mới gồm `poc/`, `scripts/ai`, `.agents/`, ảnh). Đã có:
+- **Trạng thái code VCworkspace (cập nhật 2026-10-25):** các chat công việc 01–12B (phần lớn do ChatGPT/Codex làm) đã **nghiệm thu LOCAL** và đã **commit** trên nhánh local `vcworkspace/chat01-12b` (cắt từ `claude/nghien-cuu-vcworkspace`: quản trị AI, hợp đồng, BE, FE, PoC, tài liệu, sửa sau review, báo cáo). **Chưa push, chưa có PR** (repo chặn `git push` cho Claude). Review/QA/bảo mật: `docs/ke-hoach/vcworkspace-review-qa-2026-10-25.md` — đã sửa 6 lỗi (F1–F6), còn mở 15 (O1–O15). Đã có:
   - Hợp đồng `contract/openapi.yaml` **2.3.0-gd2** (từ 1.5.0-gd1 chat02 đến OIDC/lifecycle chat12B; nguồn ghi ở `contract/NGUON.md`).
   - BE mới: `drive-basic` (Drive, version/trash/restore, DOCX/XLSX/PPTX qua ONLYOFFICE), `mail-basic` (Stalwart: gửi/nhận, MIME, nhãn/lọc/alias/hộp chung, offboard), `workspace-interop` (đính kèm mail → Drive, gửi bản Drive), `m01-auth` thêm OIDC + identity lifecycle (journal/CAS/Idempotency-Key, app→Authentik→Nextcloud). FE mới: `/drive`, `/email` (bố cục kiểu Outlook), `/bo-nho`; đăng nhập OIDC. Google cũ vẫn giữ.
   - PoC chạy local: Nextcloud 33, ONLYOFFICE 9.4, Stalwart 0.16, Authentik 2026.8 (`poc/`).
-  - Gate cuối do phiên 12B/điều phối ghi (2026-10-24/25): guard 44, BE 173, endpoint 145/145, FE 76, typecheck/build đạt. Phiên cập nhật sổ tay 2026-10-25 **không chạy lại**.
+  - Gate cuối 2026-10-25 sau sửa review (chạy trên `vcworkspace/chat01-12b`): guard 44, BE 180 (9 skip), endpoint 145/145, FE đạt, typecheck/build đạt.
   - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần) và Admin/SSO; **chưa làm** Sync desktop/mobile, Talk, Work management (chat13 chờ duyệt), Flow, Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
 - **Trạng thái VCdocs cũ:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (API kiểm 2026-10-23: public; tên repo chưa đổi), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
@@ -59,9 +59,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
-- [ ] **Đưa WIP VCworkspace vào Git (chờ chủ dự án):** chat 01–12B chưa có commit nào; cần chốt cách tách (một nhánh `vcworkspace/…` cắt từ `dev`, chia commit theo Drive / Office / Email / liên thông / OIDC / quản trị AI / tài liệu), chạy `pnpm ai:check:full` trên cây đó rồi PR vào `dev`. Loại `apps/web/.next-mail08/`, `.next-smoke/` và evidence lớn/nhạy cảm trong `poc/` khỏi commit. Báo cáo nghiên cứu cũng đang nằm chung WIP này.
+- [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
 
-- [ ] **Chờ duyệt mở chat13 Work management:** Deck/Notes/Forms/Tables/Collectives trong stack thử riêng, hai nhóm giả, kiểm quyền/ownership/export/restore/browser/API. Chưa có chat13 đang làm; không deploy hoặc chuyển Google thật.
+- [ ] **Sửa 15 lỗi còn mở sau review (O1–O15):** ưu tiên O1–O4 (lưu ONLYOFFICE, OIDC đăng xuất sau 5 phút, quyền hộp thư) trước pilot; cần runtime thật trên Docker.
+
+- [ ] **Chat13 Work management (chủ dự án giao mở 2026-10-25; chat 14–21 mở lần lượt sau):** Deck/Notes/Forms/Tables/Collectives trong stack thử riêng, hai nhóm giả, kiểm quyền/ownership/export/restore/browser/API. Chưa có chat13 đang làm; không deploy hoặc chuyển Google thật.
 
 - [x] **Chat12B tích hợp OIDC vào app thật hoàn tất LOCAL sau review (2026-10-24):** OpenAPI
   `2.3.0-gd2`; `apps/web`→Authentik→`apps/api` browser tạo session manager R4,
@@ -211,6 +213,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ## 5. Lưu ý & bài học
 
 - Máy local có `gh`, `gcloud` (kiểm 2026-10-22) và Docker (dùng cho PoC từ chat02, kiểm lại 2026-10-25). Ghi chú cũ "chưa có Docker" đã lỗi thời.
+- QA trình duyệt không cần Docker: `RUN_QA_FAKE_SERVER=1` chạy `apps/api/test/qa-fake-server.spec.ts` (API cổng 14100, mọi thứ giả) cùng web `NEXT_DIST_DIR=.next-qa API_ORIGIN=http://127.0.0.1:14100 next dev -p 13100`. Không chạy `node dist/main.js` vì nó nạp `.env` thật.
+- Repo chặn `git push` cho Claude (`.claude/settings.json`): chủ dự án tự push và mở PR.
 - Browser dev và full build dùng chung `apps/web/.next` làm shell đứng ở "Đang mở…"; dùng thư mục build riêng (`.next-oidc12`, `.next-smoke`…) khi chạy song song.
 - Git dùng thông tin đăng nhập trong macOS Keychain. Ghi chú private trước đây đã lỗi thời: API GitHub 2026-10-23 trả `private=false`; main/dev chưa có branch protection và chưa có ruleset.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
@@ -220,6 +224,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Commit, review, QA và bảo mật chat01–12B
+
+- Rà file chưa commit (không có khoá thật), bỏ `.next-*` và `__pycache__` khỏi Git, chia commit trên nhánh mới `vcworkspace/chat01-12b`. Gate đầy đủ đạt. `git push` bị repo chặn nên chưa có PR.
+- Hai lượt review độc lập (logic, bảo mật) và QA trình duyệt trên server giả cô lập. Đã kiểm chứng và sửa F1–F6 (không gian theo tên làm lộ dữ liệu, khôi phục phiên bản làm kẹt tệp, khoá editor mặc định, Google vượt khoá OIDC, production chạy kho giả, đổi tên trùng chính nó), thêm test hồi quy; gate sau sửa đạt BE 180, endpoint 145/145.
+- Còn mở O1–O15 (cần ONLYOFFICE/Stalwart/Authentik thật; Docker đang tắt). Báo cáo: `docs/ke-hoach/vcworkspace-review-qa-2026-10-25.md`.
 
 ### 2026-10-25 · Cập nhật tình trạng code sau các chat 01–12B
 
