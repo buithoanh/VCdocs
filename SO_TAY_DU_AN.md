@@ -61,6 +61,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
 
+- [ ] **Audit bảo mật Cloudflare skill (quick, 2026-10-25): 12 đầu mối `needs_validation`, 0 confirmed** (không chạy mã vì máy không cưỡng chế được giới hạn bộ nhớ/tiến trình/đĩa). Báo cáo `docs/bao-mat/audit-cloudflare-2026-10-25.md`, chi tiết `...-needs-validation.md`, bản ghi `...-findings.json`; bản đầy đủ (ledger, prompt) ở `~/security-audit-skill/VCdocs/run-1/`. Ưu tiên: OIDC không kiểm tên miền email + hộp thư theo local-part; nhập tài liệu ngoài (service account copy fileId bất kỳ, SSRF theo redirect); quyền không gian Drive không thu hồi; callback ONLYOFFICE tin JWT trình duyệt; ai cũng tạo alias/hộp nhóm; production chấp nhận lifecycle giả. 7 vùng `deferred` chưa săn. Ngoài phạm vi: `.claude/settings.json` chưa chặn đọc `poc/*/secrets/**`.
+
 - [ ] **Sửa 15 lỗi còn mở sau review (O1–O15):** ưu tiên O1–O4 (lưu ONLYOFFICE, OIDC đăng xuất sau 5 phút, quyền hộp thư) trước pilot; cần runtime thật trên Docker.
 
 - [ ] **Chat13 Work management (chủ dự án giao mở 2026-10-25; chat 14–21 mở lần lượt sau):** Deck/Notes/Forms/Tables/Collectives trong stack thử riêng, hai nhóm giả, kiểm quyền/ownership/export/restore/browser/API. Chưa có chat13 đang làm; không deploy hoặc chuyển Google thật.
@@ -224,6 +226,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Audit bảo mật theo Cloudflare security-audit skill
+
+- Skill chưa cài: đọc `SKILL.md` từ github.com/cloudflare/security-audit-skill (commit c1c8a8c), tải các file hướng dẫn + 2 validator (đã rà: chỉ dùng fs/path/util) vào `~/security-audit-skill/skill/` theo đồng ý của chủ dự án. Chạy full audit profile quick: 4 trinh sát, 4 hunter, 1 critic, 4 verifier (13 agent).
+- Không chạy mã dự án: macOS không cưỡng chế RLIMIT bộ nhớ/tiến trình/đĩa, Docker không có image Node (không được tải). Mọi kết luận từ đọc mã; 12 đầu mối đều `needs_validation` có kế hoạch kiểm local bằng harness Jest. Hai validator của skill đạt (12 findings, 23 coverage units).
+- Báo cáo copy vào `docs/bao-mat/`. Chưa sửa mã theo audit.
 
 ### 2026-10-25 · Commit, review, QA và bảo mật chat01–12B
 
