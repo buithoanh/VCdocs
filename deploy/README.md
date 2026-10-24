@@ -1,4 +1,4 @@
-# Deploy VCdocs lên máy ảo Google Cloud (phương án A)
+# Deploy VCworkspace lên máy ảo Google Cloud (phương án A)
 
 Chốt ngày 2026-10-20: 1 máy ảo Compute Engine ở Singapore chạy Docker Compose, tên miền
 `https://vcdocs.vcprosperous.com`.
@@ -56,7 +56,7 @@ Máy ảo dùng service account riêng `vcdocs-vm`, chỉ có quyền ghi bucket
 `vcdocs-backend` vẫn là tài khoản gọi Google Workspace, khoá JSON của nó đặt ở bước 6.
 
 ```bash
-gcloud iam service-accounts create vcdocs-vm --display-name="VCdocs máy ảo"
+gcloud iam service-accounts create vcdocs-vm --display-name="VCworkspace máy ảo"
 VM_SA=vcdocs-vm@vcdocs.iam.gserviceaccount.com
 
 # CSDL: giữ 90 ngày rồi tự xoá
@@ -193,7 +193,7 @@ sudo chmod 400 /srv/vcdocs/deploy/secrets/vcdocs-sa.json
 ```
 
 **OAuth client:** Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth
-client ID → Web application, tên `VCdocs web (production)`:
+client ID → Web application, tên `VCworkspace web (production)`:
 - Authorized JavaScript origins: `https://vcdocs.vcprosperous.com`
 - Authorized redirect URIs: `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`
 
@@ -285,3 +285,7 @@ disk). Tạo lại máy ảo theo bước 4 và gắn đĩa đó vào. Làm lạ
   5 của sổ tay dự án.
 - Đổi khoá service account: chép file mới đè lên `secrets/vcdocs-sa.json`, rồi chạy
   `docker compose -f docker-compose.prod.yml restart api`.
+
+> Tên dự án hiện tại là VCworkspace (từ 2026-10-23). Các định danh `vcdocs`,
+> package `@vcdocs/*` và cấu hình hạ tầng trong ví dụ vẫn đang dùng tên kỹ thuật cũ.
+> Phiên code AI: xem [quy tắc chung](../AGENTS.md) trước khi khởi động dịch vụ thật.

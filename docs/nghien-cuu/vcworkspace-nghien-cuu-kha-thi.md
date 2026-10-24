@@ -1,9 +1,10 @@
-# VCworkspace: nghiên cứu khả thi thay Google Workspace (bản rút gọn)
+# VCworkspace: nghiên cứu khả thi thay Google Workspace
 
 - **Ngày:** 2026-10-22 · **Người yêu cầu:** Bùi Thọ Anh · **Người viết:** Claude (Opus 5.5) tổng hợp từ 72 agent nghiên cứu
-- **Trạng thái:** bản rút gọn. 13/13 mảng đã khảo sát. Luận điểm quyết định của 5 mảng đã kiểm chứng chéo (2 agent độc lập mỗi luận điểm). 8 mảng còn lại **chưa kiểm chứng**, đánh dấu ○ bên dưới. Phiên 2026-10-25 sẽ kiểm tiếp.
-- **Ký hiệu:** ✅ đã kiểm, đúng · ◐ đã kiểm, đúng một phần (đã ghi lại cho đúng) · ○ chưa kiểm chứng (chỉ một agent tìm được)
-- **Lưu ý chung:** giá, phiên bản, giấy phép đều "tính đến 10/2026" theo nguồn agent đọc ngày 2026-10-22. Kiểm lại trước khi ký hợp đồng hoặc mua. Vấn đề pháp lý chỉ để chủ dự án kiểm với luật sư.
+- **Cập nhật kiểm chứng:** 2026-10-23, theo yêu cầu chủ dự án: GPT-6.1 Sol mức high làm chính, GPT-6 Astra mức high kiểm các điểm khó về bảo mật, pháp lý, chi phí và rà chéo kết luận. Kết quả, nguồn đã mở và giới hạn bằng chứng ở [hồ sơ kiểm chứng](vcworkspace-kiem-chung-2026-10-23.md) và Phụ lục C. Đây vẫn là nghiên cứu, chưa phê duyệt kiến trúc hay triển khai.
+- **Sửa phạm vi bàn giao:** số “42” không khớp dữ liệu gốc. Có 41 luận điểm của 7 mảng chưa bắt đầu, 6 của workspace đang dở và 1 về nhãn thư: **48 mục** chưa hoàn tất kiểm chéo; 47 mục ○ và workspace-suites#2 đã có 1 lượt kiểm. Phiên này xét đủ 48 ID, kể cả các mục trùng nội dung; không tự tạo 42 mục mới. Những thông tin bổ trợ ngoài bộ ID này chưa được coi là đã kiểm chỉ vì nằm trong cùng đoạn.
+- **Ký hiệu:** ✅ đúng trong phạm vi đã nêu · ◐ đúng một phần/cần điều kiện · ❌ bị bác theo nguồn đã mở · ? đã tìm nhưng chưa đủ bằng chứng · ○ thông tin bổ trợ chưa thuộc đợt kiểm này. Kết quả gắn với từng luận điểm gốc, không phải điểm đánh giá toàn bộ sản phẩm.
+- **Giới hạn:** nguồn web và mã nguồn được đối chiếu ngày 2026-10-23 cho bộ 48 ID; nhóm đã kiểm ngày 22/10 giữ lịch sử riêng. Giá phụ thuộc SKU/vùng/thuế/gói; bản master hoặc tài liệu latest không thay cho kiểm tra image/version định dùng. Không có thử tải, di cư dữ liệu thật hay kiểm toán bảo mật trong phiên này. Pháp lý cần đối chiếu hoàn cảnh và hợp đồng thực tế của VCPV.
 
 ## Mục lục
 
@@ -23,20 +24,24 @@
 13. Câu hỏi cần chủ dự án trả lời
 - Phụ lục A: bảng luận điểm đã kiểm
 - Phụ lục B: nguồn chính
+- Phụ lục C: kết quả đợt kiểm chứng 2026-10-23
+- Phụ lục D: phương án nên chọn và các quyết định trước triển khai
 
 ---
 
 ## 0. Tóm tắt điều hành
 
-1. **Làm được, nhưng không phải "một email server".** Không có bộ mã nguồn mở nào thay trọn Google Workspace với chất lượng đồng đều. Cách khả thi là ghép một nền chín (Nextcloud) với một mail server rời (Stalwart), nối bằng một hệ đăng nhập chung (SSO).
-2. **Google Cloud chặn gửi thư ra cổng 25** (✅). Mail server trên Compute Engine nhận thư được nhưng không gửi thẳng tới Gmail/Outlook. Phải gửi qua dịch vụ chuyển tiếp (relay) như Amazon SES, chi phí dưới 1 USD/tháng ở lượng thư của VCPV, hoặc đặt máy gửi thư ở nhà cung cấp khác.
-3. **Quy trình Claude Code cloud → GitHub → Google Cloud làm được ngay** (◐). Điểm vướng: repo private trên gói GitHub Free/Pro/Team không có bước "người duyệt bắt buộc" trước khi deploy (✅). Cần dùng cách thay thế hoặc nâng gói.
-4. **Không nên "đập hết" VCdocs.** Mọi lời gọi Google đã gom về một lớp cổng duy nhất (○). Phần hạ tầng (nhật ký kiểm toán, hàng đợi việc, chống gửi trùng, mẫu deploy) dùng lại ngay được cho VCworkspace. Nghiệp vụ hồ sơ ISO có thể thành một ứng dụng chạy trên nền mới.
-5. **REA, Creator OS, AI Jev không phải nền để xây VCworkspace** (◐/○). REA là công cụ phân tích phần mềm cho AI agent. Creator OS là dịch vụ trả phí, chỉ phần nhỏ mở mã. "Jev" tìm được là một mô hình quyết định đóng của TypeSafe AI. Các phần mềm "thay Adobe/CapCut/Office" là phần mềm viết độc lập, không phải bản dịch ngược.
-6. **Hạ tầng phải lớn hơn hiện nay.** VM e2-medium không đủ. Đề xuất 2 VM, khoảng 8 vCPU/32 GB cho ứng dụng và 4 vCPU/8 GB cho họp video (○). Chi phí ước 440 USD/tháng chưa cam kết, giảm khoảng 37% nếu cam kết 1 năm (○). Google Workspace Business Standard cho 48 người ước 8.064 USD/năm (○).
-7. **Quyết định lớn nhất nằm ở dữ liệu, không ở kỹ thuật.** Thư và tài liệu đi qua AI của Anthropic (lưu tại Mỹ) được không. Thư gửi ra có được đi qua relay bên thứ ba không. Dữ liệu có phải đặt tại Việt Nam không.
+**Đề xuất mới nhất:** xem Phụ lục D. Chọn hướng C về mã và Nextcloud làm nền, thí điểm theo từng bước; các lựa chọn cũ về video, gateway và lịch triển khai là phương án khảo sát, không phải quyết định đã duyệt. Bộ quản trị AI mới trong repo cũng chưa đồng nghĩa hook, CI và quyền ngoài dịch vụ đã có hiệu lực.
 
-**Đề xuất ngay:** chưa đụng tới Google Workspace. Dựng thử VCworkspace cho 1 phòng trong 3–6 tháng, Drive và lịch trước, mail sau cùng.
+1. **Làm được, nhưng không phải "một email server".** Không có bộ mã nguồn mở nào thay trọn Google Workspace với chất lượng đồng đều. Cách khả thi là ghép một nền chín (Nextcloud) với một mail server rời (Stalwart), nối bằng một hệ đăng nhập chung (SSO).
+2. **Google Cloud mặc định chặn egress TCP 25 ngoài VPC**, có project ngoại lệ; chưa thử project vcdocs. Relay như SES hoặc MTA ở nơi khác là phương án dự kiến khi chưa xác nhận ngoại lệ. Chưa biết lượng thư và kích thước attachment của VCPV nên chưa kết luận phí relay dưới 1 USD/tháng (migration#4).
+3. **Quy trình Claude Code cloud → GitHub → Google Cloud làm được ngay** (◐). Điểm vướng: repo private trên gói GitHub Free/Pro/Team không có bước "người duyệt bắt buộc" trước khi deploy (✅). Cần dùng cách thay thế hoặc nâng gói.
+4. **Đề xuất giữ phần có giá trị của VCdocs.** Các SDK Google tập trung trong adapter, nhưng hàng đợi việc phụ thuộc gián tiếp vào Gmail qua thông báo, và quyền/DB/hợp đồng còn khái niệm Drive. Có thể tái sử dụng sau khi tách các phụ thuộc; chưa có căn cứ cho tỷ lệ sửa 30–40% hay “dùng lại ngay”. Xem codebase#1–6 trong hồ sơ kiểm chứng.
+5. **Phân biệt công cụ phân tích, SaaS và mô hình quyết định.** REA là công cụ phân tích; CreatorOS được kiểm là SaaS có harness MIT, chưa phải bộ tự host toàn nền. Có sản phẩm Jev của TypeSafe AI nhưng chưa xác nhận đó là “AI Jev” người dùng nói. Không dùng ba tên này làm kiến trúc đã chốt; các phương án phần mềm thay Adobe/CapCut/Office phải đánh giá riêng.
+6. **Cấu hình và TCO chưa được đo.** Hai VM 8 vCPU/32 GB và 4 vCPU/8 GB chỉ là cấu hình thử dự kiến; chưa thể chứng minh e2-medium không đáp ứng mọi kịch bản hoặc cần đúng cấu hình này. Bỏ mức 440 USD/tháng và giảm 37% cho cả hệ thống vì chưa đủ báo giá chính thức và thành phần chi phí. Mốc Google Workspace 8.064 USD/năm chỉ là phép tính cho 48 tài khoản Standard ở đơn giá 14 USD, chưa phải hoá đơn VCPV. Xem mục 9.
+7. **Cần chốt nơi xử lý và lưu dữ liệu.** Managed Agents workspace hiện có giới hạn vùng; điều này không đồng nghĩa mọi sản phẩm Anthropic và mọi loại dữ liệu đều cùng chính sách. SES Singapore là vùng dịch vụ dự kiến, còn AWS là nhà cung cấp chịu hệ thống pháp luật riêng. Cần chốt loại dữ liệu được gửi cho AI/relay, hợp đồng, thời hạn lưu và nghĩa vụ chuyển dữ liệu xuyên biên giới.
+
+**Đề xuất nghiên cứu, chưa được phê duyệt triển khai:** chưa đụng tới Google Workspace. Dựng thử VCworkspace cho 1 phòng trong 3–6 tháng, Drive và lịch trước, mail sau cùng.
 
 ---
 
@@ -65,7 +70,7 @@
 - **Hạn chế:** proxy GitHub chặn GraphQL, nên `gh pr` trả lỗi 403, phải dùng `gh api` (REST).
 - **Dữ liệu:** code và transcript lưu ở Anthropic. Nếu công ty bật Zero Data Retention (ZDR) thì cloud sessions, Remote Control và môi trường tự host đều bị tắt (◐). Model Fable bắt buộc lưu 30 ngày, không đủ điều kiện ZDR (◐).
 - **Gói Claude:** không có gói tổ chức 1 người. Team tối thiểu 2 thành viên, Enterprise tối thiểu 20 (◐). Lựa chọn thực tế: Pro/Max cá nhân (tắt tuỳ chọn cho phép huấn luyện), API key, hoặc Team 2 thành viên.
-- **Tác vụ định kỳ trên cloud** (tên cũ routines): đang ở bản thử nghiệm (research preview). Chạy không hỏi quyền, connector có quyền ghi (◐). Không dùng cho việc chạm production.
+- **Tác vụ định kỳ trên cloud** (tên cũ routines): tài liệu hiện hành mô tả auto mode và bộ phân loại; có thể dừng chờ người duyệt khi gặp ask rule hoặc chặn lặp lại. Không còn dùng nhận định “mọi connector ghi đều không hỏi”. Cần cấu hình quyền riêng cho tác vụ. Xem ai-agents#4.
 - **Remote Control** không phải giải pháp 24/7: máy local phải bật.
 
 Giá model (đọc ngày 2026-10-22, ◐):
@@ -109,8 +114,8 @@ Giai đoạn sau: chuyển sang cơ chế VM tự kéo bản mới (doco-cd ho�
 | GCE có chặn gửi ra cổng 25? | Có, mặc định chặn tới mọi IP ngoài VPC. Không có form tự xin mở; Google chỉ gỡ khi tự đánh giá "rủi ro thấp" hoặc qua kênh bán hàng | ✅◐ |
 | Cổng 465/587 ra ngoài? | Không bị chặn | ✅ |
 | Nhận thư vào cổng 25? | Không bị chặn. Cần rule firewall ingress tcp:25 | ◐ |
-| Relay rẻ nhất | Amazon SES, 0,10 USD/1.000 thư, có hướng dẫn chính thức làm smarthost cho Postfix qua cổng 587 | ◐ |
-| Ngưỡng "người gửi số lượng lớn" Gmail/Outlook | VCPV dưới 5.000 thư/tháng, xa ngưỡng khoảng 5.000 thư/ngày | ◐ |
+| Relay tham khảo | Amazon SES có tài liệu smarthost Postfix qua 587; giá theo thư/dữ liệu/tính năng. Chưa so sánh đủ để gọi rẻ nhất và chưa có workload VCPV | ◐, lịch sử 22/10 |
+| Ngưỡng "người gửi số lượng lớn" Gmail/Outlook | Mốc khoảng 5.000 thư/ngày cần đọc điều kiện từng nhà cung cấp; chưa có số lượng thực của VCPV nên chưa kết luận thuộc nhóm nào | ◐, chưa biết workload |
 | DigitalOcean | Chặn cả 25, 465, 587; loại | ◐ |
 | Hetzner Cloud | Chặn 25 và 465 mặc định; xin mở sau 1 tháng và đã trả hoá đơn đầu; có Singapore | ◐ |
 
@@ -121,7 +126,7 @@ Giai đoạn sau: chuyển sang cơ chế VM tự kéo bản mới (doco-cd ho�
 - DNS: DKIM bằng domain công ty, SPF, MAIL FROM riêng để SPF khớp, DMARC bắt đầu `p=none` rồi nâng dần lên `p=reject` sau 2–4 tuần. Thêm MTA-STS và TLS-RPT.
 - Cấu hình sẵn relay dự phòng thứ hai (SMTP2GO hoặc Mailjet).
 
-**Đánh đổi:** thư gửi ra đi qua hạ tầng Amazon (Mỹ). Nếu không chấp nhận, phải tự đặt máy gửi thư ở nhà cung cấp cho mở cổng 25 và tự lo uy tín IP. Đây là câu hỏi cho chủ dự án (mục 13).
+**Đánh đổi:** thư gửi ra đi qua dịch vụ AWS; vùng SES dự kiến là Singapore. Không đồng nhất quốc tịch nhà cung cấp với vị trí mọi bản dữ liệu, log và hỗ trợ; phải đối chiếu hợp đồng và cấu hình vùng. Nếu không chấp nhận, phải tự đặt máy gửi thư ở nhà cung cấp cho mở cổng 25 và tự lo uy tín IP. Đây là câu hỏi cho chủ dự án (mục 13).
 
 ---
 
@@ -136,25 +141,26 @@ Có hai hướng:
 
 Agent khuyên **A' (lai): Nextcloud làm xương sống, Stalwart làm mail server**, vì B có quá nhiều mảnh cho 1–2 người vận hành. Các bộ trọn gói khác bị loại:
 
-- **grommunio:** bản miễn phí chỉ cho tối đa 5 người (✅). 48 người phải trả 1,99–3,99 EUR/người/tháng.
-- **Carbonio CE:** thiếu ActiveSync, thiếu backup thời gian thực (○).
-- **Zimbra OSE, Kopano:** đã dừng phát triển.
-- **Twake:** còn non.
+- **grommunio:** gói Community hãng cung cấp tới 5 người; Basic/Plus từ 6 người có giá niêm yết 1,99/3,99 EUR/người/tháng. Đây là phạm vi gói hãng, không phải kết luận mọi component OSS cấm tự build trên 5 người (workspace-suites#2).
+- **Carbonio CE:** thiếu tính năng ActiveSync và bộ backup/HSM/legal hold thương mại; vẫn có thể sao lưu ngoài (workspace-suites#5).
+- **Zimbra OSE, Kopano, Twake:** đánh giá loại/chọn trong bản cũ chưa phải kết quả của bộ 48 ID; không dùng nhận định tuyệt đối về tình trạng phát triển làm căn cứ loại nếu chưa kiểm phiên bản và sản phẩm cụ thể.
 
 ### 4.2 Thành phần
 
 | Mảng | Chọn chính | Dự phòng | Giấy phép | Ghi chú |
 |---|---|---|---|---|
 | Mail server | **Stalwart** v0.16.x | Mailcow | AGPL-3.0 / GPL-3.0 | Stalwart: một chương trình gồm SMTP, IMAP, JMAP, CalDAV, CardDAV, WebDAV, Sieve, chống spam, OIDC/LDAP; khoảng 1 GB RAM cho 5–10 người (◐). Chưa có bản 1.0, mỗi bản minor đều có thay đổi phá vỡ (✅), phụ thuộc gần như một lập trình viên chính. Mailcow chín hơn nhưng cần 6–8 GiB RAM, không có JMAP |
-| Webmail + nhãn | Nextcloud Mail hoặc Twake Mail | root-fr JMAP Webmail | AGPL / MIT | Nhãn lưu bằng IMAP keyword hoặc JMAP keyword, một thư nhiều nhãn (○) |
+| Webmail + nhãn | Nextcloud Mail hoặc webmail JMAP | Twake Mail; root-fr JMAP Webmail | Xác nhận LICENSE từng repo/version | IMAP/JMAP có cơ chế nhãn; JMAP mailbox và keyword là hai khái niệm khác nhau. Twake có Label API riêng, không mặc định tương thích Stalwart. Phải thử nhiều nhãn, tìm kiếm và di cư (mail-stacks#6) |
 | Lưu trữ tệp | **Nextcloud Hub** (server 35) | — | AGPL-3.0 | 11 shared drive thành 11 Group Folder theo phòng |
-| Lịch, danh bạ | Nextcloud Calendar | Stalwart CalDAV | AGPL-3.0 | Nextcloud có giao diện, đặt phòng, đặt lịch hẹn; Stalwart không có giao diện lịch |
-| Office trên web | **ONLYOFFICE Docs CE ≥ 9.4** hoặc Euro-Office | Collabora Online | AGPL-3.0 / MPL-2.0 | ONLYOFFICE 9.4 đã bỏ giới hạn 20 tài liệu mở cùng lúc (○). Euro-Office là bản tách nhánh từ ONLYOFFICE của liên minh châu Âu; Nextcloud Office nay dùng nó (○). Bản Collabora miễn phí (CODE) "không khuyến nghị production" |
+| Lịch, danh bạ | Nextcloud Calendar | Stalwart CalDAV | AGPL-3.0 | Stalwart có scheduling/iMIP/RSVP và free/busy; chưa xác minh UI lịch đầy đủ hay luồng đặt phòng/tài nguyên. Cần client và PoC (office-meet-calendar#3) |
+| Office trên web | Thử ONLYOFFICE CE 9.4 và Nextcloud Office/Euro-Office | Collabora Online/CODE | Kiểm LICENSE và distribution từng bản; Euro-Office có nhiều thành phần | Nguồn phát hành ONLYOFFICE 9.4 xác nhận bỏ hard cap 20; không đồng nghĩa tải vô hạn. Euro-Office có thật; phân biệt community testing builds với production distribution. Bản production công khai không đồng nghĩa bắt buộc mua Enterprise; Enterprise là kênh hỗ trợ chuyên nghiệp. CODE mặc định không còn hard cap 10/20; Home Mode có giới hạn. Xem workspace-suites#4 và office-meet-calendar#1–2 |
 | Ghi chú, wiki | La Suite Docs | Docmost | MIT / AGPL | La Suite Docs dùng Next.js, gần stack VCdocs |
-| Họp video | **LiveKit** + La Suite Meet | Jitsi Meet / Nextcloud Talk + máy chủ hiệu năng cao | Apache-2.0 / MIT | LiveKit cho AI "tham gia phòng" để ghi chép; Jitsi không cần code (○) |
+| Họp video | **LiveKit** + La Suite Meet | Jitsi Meet / Nextcloud Talk + máy chủ hiệu năng cao | Apache-2.0 / MIT | LiveKit cho AI "tham gia phòng" để ghi chép; Jitsi có hệ triển khai sẵn; vẫn cần cấu hình, xác thực và tích hợp. Phiên âm mới xem office-meet-calendar#4 |
 | Đăng nhập chung (SSO) | **Authentik** | Keycloak; Pocket ID + LLDAP | MIT / Apache-2.0 | Thay Google Directory; bắt buộc passkey |
-| Tự động hoá | Windmill | n8n (dùng nội bộ) | AGPL / Sustainable Use | n8n cho dùng nội bộ, không được bán lại (○) |
+| Tự động hoá | Windmill | n8n (dùng nội bộ) | AGPL / Sustainable Use | n8n cho internal business purposes; cần xét cách cung cấp cho khách hàng, giá trị sản phẩm và mã .ee., không giản lược thành cấm mọi hoạt động có thu phí (ai-agents#5) |
 | Tìm kiếm | Meilisearch + pgvector | Qdrant | MIT / PostgreSQL | Cần model embedding tiếng Việt, chưa khảo sát |
+
+**Nguồn và điều kiện chọn:** workspace-suites#1–6 và office-meet-calendar#1–6 ở Phụ lục C; ONLYOFFICE 9.4 còn có additional attribution terms và trademark policy, cần đọc license của bản phân phối định dùng.
 
 **Câu hỏi then chốt:** VCworkspace tự viết giao diện bằng TypeScript và chỉ nhúng các engine (ONLYOFFICE, LiveKit, Stalwart), hay nhận Nextcloud (PHP) làm nền? Chọn Nextcloud nhanh hơn nhiều. Tự viết thì kiểm soát hoàn toàn nhưng tốn công. Agent nghiêng về Nextcloud cho giai đoạn đầu.
 
@@ -170,23 +176,22 @@ Agent khuyên **A' (lai): Nextcloud làm xương sống, Stalwart làm mail serv
 
 | Tên | Thực chất | Trạng thái |
 |---|---|---|
-| **REA – Reverse Engineer Anything** | Repo `morluto/rea` (MIT). MCP server + skill cho Claude Code/Codex/Cursor, bọc Ghidra, IDA, jadx để AI agent phân tích phần mềm không có mã nguồn. Không tự có decompiler. Bản điều khoản của chính REA cấm dùng để chép phần mềm độc quyền hay vượt DRM | ◐ (bản mới nhất 6.7.0 ngày 2026-10-18). Agent ghi khoảng 358.000 sao GitHub, con số rất cao, **cần kiểm lại** |
-| **Creator OS** | Dịch vụ trả phí `creatoros.ca` của Kev Builds (Canada, ra mắt 08/2026): đăng bài, lịch đăng, phân tích mạng xã hội; gói quảng cáo thêm 19,99 USD/tháng chạy Meta/Google/TikTok Ads qua API. Phần mở mã (MIT) chỉ là bộ khung agent nhỏ, vẫn cần API key trả phí | ○ |
-| **"AI Jev"** | Kết quả khớp nhất: **Jev** của TypeSafe AI (ra mắt 2026-09-15). Đây là "mô hình quyết định" đóng, chỉ gọi qua API, đặt tại Mỹ. Không sinh văn bản, không phải trợ lý 24/7 | ○, **cần chủ dự án xác nhận** |
+| **REA – Reverse Engineer Anything** | Repo `morluto/rea` (MIT). MCP server + skill cho Claude Code/Codex/Cursor, bọc Ghidra, IDA, jadx để AI agent phân tích phần mềm không có mã nguồn. Không tự có decompiler. DISCLAIMER nêu ranh giới sử dụng/hỗ trợ và quyền bên thứ ba, nhưng nói rõ không sửa giấy phép MIT; không gọi đây là điều kiện bổ sung của MIT | ◐; thông tin phiên bản/sao là ảnh chụp động, xem rea-creatoros#1; không dùng độ phổ biến làm bằng chứng an toàn |
+| **Creator OS** | SaaS `creatoros.ca` có gói solo 14,99 USD/tháng, Ads add-on 19,99 USD/tháng theo công bố. `social-agents` MIT gọi dịch vụ bên dưới, không phải toàn nền tự host. Chưa kiểm mọi repo/kênh quảng cáo/định danh trùng tên | ◐ rea-creatoros#2 |
+| **"AI Jev"** | Có sản phẩm Jev của TypeSafe AI (15/9/2026), mô hình quyết định qua API, không phải LLM hội thoại/tự gọi tool. Chưa xác nhận đây là ý người dùng, mối liên hệ với CreatorOS hoặc nơi inference | ? rea-creatoros#3; **cần xác nhận định danh** |
 
 Thay cho Creator OS: agent mã mở `langchain-ai/paid-media-agent` (Apache-2.0, tự host), cùng Postiz (lên lịch mạng xã hội), Mautic hoặc Listmonk (email marketing), Umami (đo truy cập).
 
 ### 5.3 Ranh giới pháp lý khi "reverse"
 
-- Điều khoản dịch vụ của Google, Microsoft, Adobe, CapCut đều cấm dịch ngược, trừ phạm vi luật bắt buộc cho phép (○).
-- **Được làm:** học ý tưởng và tính năng, tự xây sạch (clean-room), đọc định dạng tệp và giao thức để tương thích.
-- **Không được làm:** chép mã, giao diện, icon, font, tài sản.
-- **Rủi ro thực tế:** dịch ngược client Google bằng tài khoản công ty có thể bị khoá cả Google Workspace của 48 người trong lúc chưa chuyển xong.
+- Các điều khoản đã mở có hạn chế reverse engineering/extraction nhưng khác sản phẩm, vùng và ngày hiệu lực; Google/Microsoft consumer terms không tự động là hợp đồng Google Workspace/Microsoft 365 của VCPV. CapCut URL năm 2020 là nguồn cũ. Xem rea-creatoros#4 và phần Astra rà chéo.
+- Học chức năng, clean-room và tương thích là hướng nghiên cứu; chưa thể kết luận được phép trong mọi trường hợp. Phải xét hợp đồng, quyền tác giả, sáng chế, bí mật kinh doanh và ngoại lệ luật áp dụng.
+- Dùng mã/tài sản bên thứ ba phải có quyền phù hợp. Chưa có bằng chứng để dự báo một hành vi sẽ tự động khoá toàn bộ 48 tài khoản.
 
 ### 5.4 Để nhân viên dùng REA phát triển thêm, có kiểm soát
 
-1. **Chính sách 3 tầng.** Được phép: phần mềm công ty sở hữu, mã nguồn mở, định dạng tệp. Phải xin phép: phần mềm bên thứ ba đã mua. Cấm: mọi SaaS công ty đang dùng.
-2. **Chạy trong VM hoặc container riêng.** Không đăng nhập Google công ty, không có SSH key, không có tệp `.env`. REA tự nhận "không phải sandbox", và MCP server chạy ngoài sandbox của Claude Code (○).
+1. **Đề xuất chính sách nội bộ, chưa được chủ dự án chốt:** chỉ thử trên đối tượng có quyền phù hợp; đánh giá riêng phần mềm và SaaS bên thứ ba. Không coi lệnh cấm mọi SaaS là hệ quả tự động của giấy phép REA hoặc pháp luật.
+2. **Chạy trong VM hoặc container riêng.** Không đăng nhập Google công ty, không có SSH key, không có tệp `.env`. REA tự nhận "không phải sandbox"; sandbox Bash của Claude Code không tự bao phủ MCP server. Đây là cơ sở kỹ thuật cho đề xuất lab riêng, không phải chứng nhận container luôn đủ an toàn (rea-creatoros#5).
 3. **Chỉ cài từ `github.com/morluto/rea` hoặc npm `rea-agents`**, ghim phiên bản. Đã có bản giả mạo chứa mã độc. Phương án nhẹ hơn: `aicodeking/leanrea`.
 4. **Mọi tính năng mới đi qua nhánh riêng, PR, review bắt buộc**, kèm kiểm giấy phép phụ thuộc.
 
@@ -210,7 +215,7 @@ Thay cho Creator OS: agent mã mở `langchain-ai/paid-media-agent` (Apache-2.0,
 
 | Lựa chọn | Đánh giá |
 |---|---|
-| **Claude Agent SDK (TypeScript) tự host trên VM VCPV** | Phù hợp nhất. Cùng stack với VCdocs. Tệp và dữ liệu ở lại VM, chỉ prompt đi Anthropic. Phải dùng API key, không dùng gói đăng ký cho sản phẩm (◐) |
+| **Claude Agent SDK (TypeScript) tự host trên VM VCPV** | Phù hợp nhất. Cùng stack với VCdocs. Tệp gốc có thể ở VM nhưng nội dung tệp, thư và kết quả công cụ đưa vào ngữ cảnh vẫn có thể đi Anthropic; phải kiểm soát dữ liệu gửi đi. Phải dùng API key, không dùng gói đăng ký cho sản phẩm (◐) |
 | **Claude Managed Agents** (beta) | Ít hạ tầng nhất, có lịch chạy, kho bí mật, giới hạn ngân sách. Tính thêm 0,08 USD mỗi giờ phiên chạy. Không đủ điều kiện ZDR (◐) |
 | OpenClaw (MIT) | Nhiều kênh chat nhất, nhưng đầu 2026 có lỗ hổng chạy mã từ xa và 341 skill độc hại. Không dùng làm lõi cho kho dữ liệu công ty (○) |
 | Hermes Agent (MIT) | Có lịch chạy và sandbox, nhưng thiết kế cho cá nhân, viết bằng Python (○) |
@@ -220,9 +225,9 @@ Thay cho Creator OS: agent mã mở `langchain-ai/paid-media-agent` (Apache-2.0,
 
 - `anthropics/knowledge-work-plugins` (Apache-2.0) chỉ là Markdown + JSON trỏ tới MCP server từ xa (○). Các plugin productivity, marketing, sales, data, HR... vẫn dùng được.
 - Connector Gmail, Calendar, Drive sẽ mất tác dụng khi bỏ Google.
-- Chưa thấy MCP server mã mở nào đủ chín cho IMAP/JMAP, CalDAV, Nextcloud, Jitsi (○).
+- Luận điểm “không có MCP mã mở trên 100 sao” bị bác: đã mở được `cbcoutinho/nextcloud-mcp-server` và `dominik1001/caldav-mcp`. Số sao không chứng minh độ chín hay bảo mật. Nextcloud Context Agent còn có MCP endpoint và cấu hình server bên ngoài; phải kiểm đúng phiên bản và giới hạn token theo người (workspace-suites#3, ai-agents#6).
 
-→ **Phải tự viết "VCworkspace MCP Gateway"** (NestJS + MCP TypeScript SDK, đăng nhập qua SSO công ty, token theo từng người):
+→ **Đề xuất đánh giá connector có sẵn trước khi quyết định viết "VCworkspace MCP Gateway".** Chỉ viết phần còn thiếu về SSO, phân quyền từng người, audit và điều phối; NestJS + MCP TypeScript SDK là một lựa chọn chưa được chốt:
 
 - Công cụ đặt tên theo nhóm: `mail_*`, `calendar_*`, `files_*`, `meet_*`, `tasks_*`.
 - Mỗi công cụ đánh dấu đọc hay ghi; mọi lời gọi đều ghi nhật ký.
@@ -239,37 +244,37 @@ Thay cho Creator OS: agent mã mở `langchain-ai/paid-media-agent` (Apache-2.0,
 ### 6.4 Nguyên tắc an toàn
 
 - **Prompt injection qua email là rủi ro số 1.** Tách agent phân loại (không có công cụ) khỏi agent hành động (gửi thư, chia sẻ tệp phải có người duyệt).
-- **Dữ liệu đi Anthropic:** API không dùng để huấn luyện, xoá sau 30 ngày theo mặc định. Model Fable bắt buộc lưu 30 ngày. Kho lưu workspace của Anthropic hiện chỉ đặt ở Mỹ (○).
+- **Dữ liệu đi Anthropic:** Commercial Terms và chính sách API có điều kiện, ngoại lệ và khác biệt theo tính năng/model. Managed Agents không đủ điều kiện ZDR; self-hosted sandbox vẫn có tool input/output đi control plane và workspace geography hiện chỉ `us`. Không đồng nhất các giới hạn này với toàn bộ API hoặc với gói cá nhân (ai-agents#2–3).
 - **Dữ liệu nhạy cảm** (kế toán, HĐQT) cân nhắc chạy model local.
 - **Chi phí token phải có trần**, ví dụ 100 / 300 / 1.000 USD mỗi tháng. Đây là câu hỏi cho chủ dự án.
 
 ### 6.5 Hướng "công ty 1 thành viên"
 
-Chủ dự án ra lệnh. Đội agent chia vai: agent code (Claude Code cloud), agent vận hành (theo dõi, sao lưu, cập nhật qua PR), agent nghiệp vụ (trợ lý cá nhân, marketing). Tất cả đi qua MCP Gateway với quyền tối thiểu. Mọi việc ghi đều có nhật ký và có thể quay lui.
+Chủ dự án ra lệnh. Đội agent chia vai: agent code (Claude Code cloud), agent vận hành (theo dõi, sao lưu, cập nhật qua PR), agent nghiệp vụ (trợ lý cá nhân, marketing). Tất cả đi qua MCP Gateway với quyền tối thiểu. Đề xuất mọi thao tác ghi có nhật ký và kiểm quyền; thao tác không thể thu hồi như gửi email cần duyệt phù hợp. Phục hồi, bù trừ hoặc quay lui phải thiết kế theo từng loại hành động, không bảo đảm chung cho mọi thao tác.
 
 ---
 
 ## 7. Bảo mật và pháp lý
 
-Toàn bộ mục này **chưa kiểm chứng (○)**.
+Các luận điểm quyết định đã được xét trong đợt 23/10; xem các ID tương ứng ở Phụ lục C và hồ sơ bằng chứng. Các cấu hình đề xuất chưa được triển khai hay thử nghiệm.
 
 **Kiến trúc tối thiểu:**
 
-1. **Danh tính:** Authentik (lõi MIT có OIDC, SAML, LDAP, SCIM, WebAuthn). Bắt buộc passkey cho mọi người. LDAP outpost cấp thư mục cho Stalwart và Nextcloud. Nhập 48 người từ Google Directory bằng script dựa trên adapter VCdocs. Chỉ giữ 2–3 tài khoản Google miễn phí để quản trị GCP.
-2. **Offboarding Stalwart:** Stalwart bản miễn phí không có SCIM. Tài khoản đăng nhập qua OIDC chỉ được biết sau lần đăng nhập đầu, nên thư gửi tới trước đó bị từ chối. Xoá trong LDAP không xoá hộp thư. Cách xử lý: mua Stalwart Enterprise (khoảng 2 EUR/hộp thư/năm, tối thiểu 25 hộp thư) hoặc tự viết script offboarding.
-3. **Truy cập mạng:** Cloudflare Zero Trust bản miễn phí (tối đa 50 người, 48/50 là sát trần, log chỉ 24 giờ) che giao diện web, trang quản trị và SSH. Cloudflare không che được SMTP/IMAP, nên cổng 25/465/587/993 vẫn mở công khai. Chặn bằng CrowdSec và giới hạn tốc độ. SSH quản trị qua IAP + OS Login 2FA.
-4. **Mã hoá:** mã hoá đĩa mặc định của GCE là đủ. Mã hoá cấp ứng dụng chặn tìm kiếm, xem trước và AI, nên chỉ bật cho nhóm hộp thư hoặc thư mục nhạy cảm.
-5. **Sao lưu 3-2-1:** snapshot đĩa hằng ngày; Kopia sang Backblaze B2 với Object Lock chế độ COMPLIANCE, không xoá được kể cả khi bị chiếm quyền; thêm một bản sang GCS. Diễn tập phục hồi định kỳ.
+1. **Danh tính:** Authentik có OIDC, SAML, LDAP, WebAuthn và SCIM cơ bản trong mã MIT; OAuth authentication for SCIM và scheduled offboarding là Enterprise. Bắt buộc passkey là đề xuất cấu hình, chưa bật. Phải thử cấp/thu hồi người dùng giữa IdP và mail. Chưa xác nhận cách chuyển gói và số tài khoản Google quản trị cần giữ (security#1).
+2. **Offboarding Stalwart:** Community không có SCIM. OIDC cần provision người trước khi nhận mail nếu chưa từng đăng nhập; LDAP không tự xoá hộp thư khi xoá người. Enterprise 2 EUR/hộp thư/năm ở bậc 25–499 là giá niêm yết tính năng, dưới 150 hộp thư chưa gồm Premium Support. Dù chọn Enterprise hay script vẫn phải thử suspend, thu hồi phiên, bàn giao và retention (security#2).
+3. **Truy cập mạng:** Cloudflare Free có 50 người và standard log tới 24 giờ. Arbitrary TCP/private-network có thể bảo vệ IMAP/submission nếu client có cloudflared/WARP và cấu hình phù hợp; không buộc mở cả 465/587/993 công khai. MX nhận thư từ MTA Internet vẫn cần SMTP public hoặc gateway/relay. Phải thử mail client, điện thoại và kết nối dài; SSH qua IAP + OS Login là phương án đề xuất (security#3).
+4. **Mã hoá:** GCE có mã hoá at-rest mặc định, nhưng chưa có threat model để kết luận “là đủ”. Tác động của mã hoá ứng dụng/E2EE tới tìm kiếm, preview và AI phụ thuộc cách triển khai; phải thử theo loại dữ liệu, không khẳng định mọi cơ chế đều chặn các tính năng đó.
+5. **Sao lưu 3-2-1:** Kopia + B2 qua S3 backend là một phương án; cần COMPLIANCE, extend-object-locks và maintenance. Kopia docs còn nêu Azure/GCS, nên không coi S3 là backend duy nhất. Khoá chỉ bảo vệ trong hạn retention, không bảo đảm backup đầy đủ hay đọc được. Phải thử xoá/khôi phục đúng cấu hình và tách quyền; chưa có thiết kế sao lưu được chứng nhận (security#4).
 6. **Cập nhật:** Renovate mở PR, ghim theo digest; Trivy quét image. **Không dùng Watchtower** (tự cập nhật không kiểm soát).
-7. **Giám sát:** Loki/Grafana, Uptime Kuma. Wazuh quá nặng cho cấu hình hiện tại.
+7. **Giám sát:** Loki/Grafana, Uptime Kuma là đề xuất. Wazuh all-in-one và CrowdSec khác chức năng; không dùng minimum riêng của Wazuh server để ước RAM cả hệ thống. e2-medium có 2 vCPU hiển thị nhưng tổng mức CPU duy trì tương đương 1 vCPU, RAM 4 GB; phải đo tải chung (security#6).
 8. **Không đặt mọi thứ trên một VM nhỏ.** Mất IdP là mất đăng nhập toàn công ty.
 
-**Pháp lý Việt Nam (chỉ để kiểm với luật sư):**
+**Pháp lý Việt Nam — đã đọc các điều liên quan, chưa là ý kiến pháp lý cho VCPV:**
 
-- Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 (hiệu lực 2026-01-01) và Nghị định 356/2025. Lưu dữ liệu cá nhân trên máy chủ nước ngoài (Singapore, Mỹ) có thể bị coi là chuyển dữ liệu xuyên biên giới.
-- Có điều khoản miễn hoặc hoãn cho doanh nghiệp nhỏ và cho dữ liệu nhân viên. Cần xác định VCPV có thuộc diện này không và có lưu dữ liệu cá nhân khách hàng không.
-- Luật An ninh mạng 2018 + Nghị định 53/2022 về lưu trữ dữ liệu trong nước.
-- GCP không có vùng đặt máy tại Việt Nam.
+- [Luật 91/2025/QH15](https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/7/91qh.signed.pdf), hiệu lực 01/01/2026, Điều 20 quy định chuyển dữ liệu xuyên biên giới và đánh giá tác động. Điều 20(6)(b) có miễn riêng đánh giá chuyển xuyên biên giới cho dữ liệu của chính người lao động lưu trên cloud; không tự bao gồm khách hàng/đối tác trong thư và tệp.
+- Luật Điều 38(2) và [Nghị định 356/2025, Điều 41](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf) cho DN nhỏ/khởi nghiệp đủ điều kiện chọn không thực hiện Điều 21, Điều 22 và khoản 2 Điều 33 trong 5 năm; **không liệt kê Điều 20 về đánh giá tác động chuyển xuyên biên giới ban đầu**. Không ghi miễn chung “DPIA/CTIA/DPO 5 năm”. Phải xét ngoại lệ về dịch vụ xử lý dữ liệu, dữ liệu nhạy cảm và lượng chủ thể; chưa xác định VCPV đủ điều kiện (security#5).
+- [Luật An ninh mạng 116/2025/QH15, Điều 44](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/luat116-2025.pdf) có hiệu lực 01/07/2026 và làm Luật 24/2018/QH14 hết hiệu lực. Sửa viện dẫn Luật 2018 như luật hiện hành trong bản cũ; vẫn phải rà hướng dẫn/chuyển tiếp và phạm vi NĐ53/2022, không tự kết luận mọi dữ liệu nội bộ phải lưu tại VN.
+- Bảng vùng Compute Engine đã mở không có vùng tại Việt Nam; asia-southeast1 là Singapore. Điều này không tự quyết định tính hợp pháp của một phương án lưu trữ (security#6).
 
 **Checklist trước khi đưa dữ liệu thật lên:**
 
@@ -286,32 +291,32 @@ Toàn bộ mục này **chưa kiểm chứng (○)**.
 
 ## 8. Di cư từ Google Workspace
 
-Toàn bộ mục này **chưa kiểm chứng (○)**.
+Các luận điểm quyết định đã được xét trong đợt 23/10; xem các ID tương ứng ở Phụ lục C và hồ sơ bằng chứng. Các cấu hình đề xuất chưa được triển khai hay thử nghiệm.
 
 **Ràng buộc kỹ thuật:**
 
-1. Gmail giới hạn tải qua IMAP 2.500 MB/ngày/tài khoản. Từ 2025-03-14 chỉ chấp nhận app password hoặc OAuth.
-2. Nhãn Gmail qua IMAP thành thư mục. Thư có nhiều nhãn bị nhân bản, hoặc imapsync chỉ giữ một nhãn. **Đường giữ trọn nhãn:** Google Takeout (header `X-Gmail-Labels`) rồi chạy `vandelay import takeout` của Stalwart. Vandelay là công cụ mới, phải thử trước.
-3. Docs/Sheets chuyển sang DOCX/XLSX (rclone). Mất lịch sử phiên bản, Apps Script, Forms, Sites, hàm QUERY và IMPORTRANGE, và các liên kết `docs.google.com`.
-4. Cổng 25 bị chặn (mục 3).
+1. Gmail công bố IMAP download 2.500 MB/ngày/tài khoản. Help còn mốc 14/3/2025 nhưng blog chính thức cập nhật 29/4 đã dời hạn ngừng less-secure-apps sang **01/5/2025**; dùng OAuth hoặc app password theo chính sách tenant, không dùng mật khẩu tài khoản thường (migration#2).
+2. Cần giữ semantics nhiều nhãn của Gmail khi chuyển. Docs Vandelay mô tả `import takeout` ánh xạ nhãn/mailbox, gộp raw messages giống hệt và bỏ category tự động, nhưng đầu ra là **SQLite archive offline**. Còn bước restore sang server đích và thử đa nhãn; chưa chứng minh migration end-to-end hay mọi bản trùng được gộp (migration#1).
+3. rclone xuất Docs/Sheets/Slides mặc định DOCX/XLSX/PPTX; export không tự tái tạo Apps Script, Forms/Sites, lịch sử chỉnh sửa hoặc liên kết Google trong hệ mới. Không khẳng định mọi hàm QUERY/IMPORTRANGE đều mất theo cùng cách: phải kiểm 20–30 tệp đại diện. Metadata quyền rclone bỏ quyền inherited ở shared drives và owner ở My Drive; chưa bảo toàn ACL sang Nextcloud. `files.export` giới hạn nội dung xuất 10 MB (migration#5).
+4. GCE mặc định chặn egress TCP 25 ngoài VPC, có project ngoại lệ; chưa thử project vcdocs. Relay là phương án dự kiến khi chưa xác nhận ngoại lệ (migration#4).
 
 **Công cụ:**
 
 - **GAM 7.48:** kiểm kê người dùng, bí danh, nhóm, chữ ký, filter, quyền Drive, quyền lịch, phòng họp.
-- **Google Data Export:** xuất toàn tổ chức, kể cả shared drive và nhóm.
-- **rclone:** chép Drive.
+- **Google Data Export:** xuất toàn tổ chức gồm shared drives/Groups, có điều kiện super-admin, 2SV và tài khoản/subscription; sớm nhất 48 giờ, thường 72 giờ, có thể 14 ngày. Bucket Google cung cấp xoá sau 60 ngày **từ khi bắt đầu export** (migration#3).
+- **rclone:** chép/xuất Drive; phải lưu inventory và ánh xạ ACL riêng. Chưa ghim/test v1.75.2 như câu gốc (migration#5).
 - **imapsync:** đồng bộ phần chênh vào ngày cuối.
 - **Sieve:** filter Gmail xuất bằng GAM rồi sinh script Sieve.
 - **Danh sách thư:** Google Groups chuyển sang Stalwart Lists hoặc Mailman 3.
 
-**Trình tự: Drive và lịch trước, mail sau cùng.** Drive và lịch chạy song song được, không rủi ro. Mail là bước chuyển MX một chiều, nên làm cuối.
+**Trình tự đề xuất: Drive và lịch trước, mail sau cùng.** Chạy song song vẫn có rủi ro lệch dữ liệu, quyền và xung đột lịch; phải định nguồn ghi chính. MX có thể đổi lại nhưng rollback mail cần đồng bộ thư phát sinh và tránh vòng lặp, không coi là thao tác một chiều hay không rủi ro.
 
 1. **Tuần 1–2:** kiểm kê bằng GAM, đo dung lượng, chọn phòng thí điểm. Nên chọn phòng dùng Docs/Sheets nhiều để lộ lỗi chuyển đổi sớm.
 2. **Tuần 2–4, thí điểm:** chép shared drive của phòng đó, mở thử 20–30 tệp thật bằng ONLYOFFICE và Collabora, nhập Takeout cho người thí điểm.
 3. **Các phòng tiếp theo:** Drive, lịch, danh bạ.
-4. **Mail:** hạ TTL DNS. Bật "Also deliver to" trên Gmail để nhận song song. Chuyển MX. Giữ Gmail đọc được 1–3 tháng.
+4. **Mail:** thử dual-delivery khi MX còn ở Google, cấu hình `Also deliver to` + `Change route` đúng OU/group và loại thư inbound/internal; rules/spam có thể đổi tập thư nhận. Sau khi thử thành công mới đề nghị chuyển MX; giữ Gmail 1–3 tháng là phương án cần duyệt (migration#6).
 
-**Quay lui:** MX trỏ lại Google; Drive vẫn còn bản gốc trên Google.
+**Quay lui cần kế hoạch:** MX có thể trỏ lại Google nhưng phải xử lý DNS propagation, đối soát và đồng bộ thư phát sinh ở cả hai hệ, tránh routing loop/trùng thư. Giữ bản gốc Drive chưa đủ nếu tài liệu/quyền đã đổi sau cutover; phải xác định nguồn ghi chính, đối soát delta/ACL và thử phục hồi trước khi chuyển thật.
 
 Dịch vụ trả phí thay thế: audriga khoảng 10 EUR/tài khoản, tức khoảng 480 EUR cho 48 người. Chưa kiểm audriga có hỗ trợ đích Stalwart/Nextcloud không.
 
@@ -319,72 +324,54 @@ Dịch vụ trả phí thay thế: audriga khoảng 10 EUR/tài khoản, tức k
 
 ## 9. Kích cỡ và chi phí
 
-Toàn bộ mục này **chưa kiểm chứng (○)**. Giá egress, GCS, IP tĩnh, snapshot tại Singapore **chưa đọc được**, nên phải lấy từ Pricing Calculator.
+Đã kiểm nguồn cho sizing-cost#1–6; kết quả chưa phải báo giá hoặc benchmark. Hai VM dưới đây chỉ là **giả thuyết để thử**, không phải cấu hình tối thiểu cho 48–100 người. Chưa có số liệu dung lượng, concurrency, kích thước thư, antivirus, search, office và video của VCPV.
 
-**Kích cỡ 48–100 người:** tổng khoảng 8–12 vCPU, 28–40 GB RAM, 500 GB–1 TB đĩa.
-
-| VM | Cấu hình | Chạy gì |
+| VM dự kiến | Cấu hình thử | Phạm vi cần đo |
 |---|---|---|
-| VM-A | 8 vCPU / 32 GB | Stalwart, Nextcloud + PostgreSQL + Redis, ONLYOFFICE/Collabora, Authentik, giám sát |
-| VM-B | 4 vCPU riêng / 8 GB | Họp video (Jitsi hoặc LiveKit), ăn CPU và băng thông theo số người họp |
+| VM-A | 8 vCPU / 32 GB | Mail, Nextcloud + DB/Redis, office, IdP, giám sát, backup đồng thời |
+| VM-B | 4 vCPU / 8 GB | Video, TURN, ghi hình; STT có thể cần tài nguyên khác, không mặc định đủ |
 
-Chọn Stalwart thay Mailcow tiết kiệm 6–14 GB RAM.
+Mailcow và Stalwart công bố yêu cầu theo workload khác nhau; **không có cơ sở khẳng định tiết kiệm cố định 6–14 GB RAM**. Talk transcription cũng có ước tính RAM riêng, không được cộng/trừ máy móc (sizing-cost#6, office-meet-calendar#6).
 
-**Giá GCP asia-southeast1 (nguồn gcloud-compute.com, 2026-10-18):**
-
-| Máy | Theo giờ | Cam kết 1 năm | Cam kết 3 năm |
-|---|---|---|---|
-| e2-medium (hiện tại) | 30,17 USD/tháng | — | — |
-| e2-standard-8 | 241,39 | 152,07 | 108,62 |
-| e2-standard-4 | 120,69 | 76,04 | 54,31 |
-| pd-balanced | 0,11 USD/GB-tháng | | |
-
-**So sánh nhanh:**
-
-| Kịch bản | Ước tính | Ghi chú |
+| Khoản | Kết quả đối chiếu 23/10 | Giới hạn sử dụng |
 |---|---|---|
-| Giữ Google Workspace Business Standard | 8.064 USD/năm, 24.192 USD/3 năm (14 USD/người/tháng, cam kết năm) | Kiểm lại hoá đơn thật |
-| Tự host GCP, 2 VM, chưa cam kết | khoảng 440 USD/tháng gồm cả đĩa, cộng egress | Họp 1 TB/tháng có thể thêm khoảng 100 USD |
-| Tự host Hetzner Singapore | rẻ hơn GCP khoảng 25%; CCX33 (8 vCPU riêng / 32 GB) 174,99 EUR/tháng kèm 3 TB | Phải làm lại pipeline |
-| OVHcloud | egress miễn phí | Chưa xác nhận có vùng Singapore |
-| Nhà cung cấp Việt Nam | dữ liệu trong nước | Chưa có giá cho 8 vCPU/32 GB; CMC giới hạn quốc tế 10 Mbps |
+| Google Workspace Standard | 14 USD/user/tháng annual; 16,80 flexible. 48 user annual = 8.064 USD/năm | 24.192 USD/3 năm chỉ là chiếu giá không đổi; chưa gồm thuế, ưu đãi, reseller và chưa biết gói VCPV. [Giá chính thức](https://knowledge.workspace.google.com/admin/billing/compare-flexible-and-annual-fixed-term-payment-plans) |
+| GCP Singapore VM/disk/CUD | **Chưa đủ bằng chứng đúng SKU/vùng** cho bảng 241,39/152,07/108,62 USD và pd-balanced 0,11 cũ | Bảng giá Google động tải ra mặc định Iowa; không gán cho Singapore. Cần SKU, OS, 730 giờ quy ước, CUD resource/flexible, disk zonal/regional, IP, snapshot, backup, egress và thuế. [Compute pricing](https://cloud.google.com/products/compute/pricing/general-purpose), [disk pricing](https://cloud.google.com/compute/disks-image-pricing) |
+| Hetzner CCX33 Singapore | 8 dedicated vCPU/32 GB/240 GB NVMe; 174,49 EUR/tháng **chưa IPv4/VAT**, kèm 3 TB; EU 138,49 EUR/30 TB. AP overage niêm yết 7,40 EUR/TB | Bảng từ 15/6/2026; kiểm lại cart. Không dùng số 174,99 cũ hoặc kết luận rẻ hơn GCP 25% khi chưa đồng nhất mọi khoản. [Điều chỉnh giá](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/), [sản phẩm](https://www.hetzner.com/cloud/general-purpose/) |
+| Nextcloud Enterprise Standard | Từ 100 user, 71,29 EUR/user/năm; mức nền 7.129 EUR/năm | Không có nghĩa mọi hỗ trợ thương mại qua partner đều tối thiểu 100 user; cần báo giá đúng tính năng/thuế. [Giá hãng](https://nextcloud.com/pricing/) |
+| Stalwart Enterprise | Bậc 25–499: 2 EUR/hộp thư/năm; 48 hộp thư = 96 EUR/năm | Chưa gồm thuế xác định, dưới 150 hộp thư chưa có Premium Support. [Giá hãng](https://stalw.art/pricing/) |
+| Video egress | Giả sử 2,5 Mbit/s egress trung bình/người nhận: 1,125 GB/người-giờ; 80 giờ × 10 người = 900 GB | Đây là kịch bản tính, không phải định mức của họp 10 người; phụ thuộc SFU, layers, LastN, P2P, TURN, screen share. [Jitsi requirements](https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-requirements/) |
 
-**Chi phí ẩn của tự host:**
+**Bỏ tổng 440 USD/tháng và giảm 37% trên toàn hệ thống** khỏi kết luận tài chính. Chưa xác minh giá egress/GCS/IP/snapshot Singapore; chưa định giá thời gian vận hành, gián đoạn, backup/restore, hỗ trợ, dual-running Google, relay và token AI. Các so sánh OVH/nhà cung cấp VN trong bản cũ chưa đủ nguồn nên chưa dùng để xếp hạng.
 
-- **Thời gian vận hành:** Claude làm phần lớn, nhưng chủ dự án vẫn phải duyệt.
-- **Relay SMTP:** dưới 10 USD/tháng.
-- **Stalwart Enterprise (tuỳ chọn):** khoảng 96 EUR/năm.
-- **Token AI:** cần đặt trần.
-- **Hỗ trợ thương mại:** Nextcloud Enterprise chỉ bán từ 100 người, khoảng 71 EUR/người/năm, nên chưa đáng mua.
-
-**Đề xuất:** thử 3–6 tháng trên GCP, chưa cam kết, để đo egress và dung lượng thật. Chỉ mua cam kết 1 năm khi số đo đã ổn. Trong lúc đó vẫn giữ Google Workspace.
+**Đề xuất tiếp theo, chưa phải lệnh triển khai:** lấy hoá đơn/dung lượng/workload thật; lập low/base/high TCO cùng phạm vi và tiền tệ; thử tải trên cấu hình không cam kết rồi mới quyết mua CUD hoặc di cư. Giữ Google Workspace trong giai đoạn thử.
 
 ---
 
 ## 10. Mã VCdocs hiện có
 
-Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, kiểm chứng sẽ đọc lại.
+Đã đọc lại mã tại commit `b8c8b805fce3ab831ac316d21343140b48d9b421` trên nhánh nghiên cứu (2026-10-23); xem codebase#1–6. Kiểm tra kiểu API đạt. 129 là số ca test khai báo đã đếm, chưa chạy lại toàn bộ; không đại diện nhánh giai đoạn 2 hay production.
 
 **Kích cỡ:**
 
 | Phần | Dòng | Test |
 |---|---|---|
-| `apps/api` (NestJS) | 9.527 src + 2.638 test | 129 e2e |
-| `apps/web` (Next.js) | 6.529 viết tay + 4.831 sinh tự động | 72 |
+| `apps/api` (NestJS) | 9.527 src + 2.638 test | 129 ca e2e khai báo; phiên này chỉ chạy typecheck |
+| `apps/web` (Next.js) | 6.529 mã ứng dụng + 4.831 schema sinh tự động; chưa gồm 983 dòng test/hỗ trợ | 72 theo bàn giao cũ, chưa chạy lại |
 | `contract/openapi.yaml` | 2.184 (98 thao tác) | — |
 
 **Phụ thuộc Google:**
 
 - Mọi lời gọi Google đi qua một interface `GooglePorts` (8 cổng, 32 method) trong [ports.ts](../../apps/api/src/google/ports.ts).
 - Chỉ `real-google.ts` dùng thư viện `@googleapis/*`.
-- Bản giả `FakeGoogle` phủ đủ 32/32 method; mọi test chạy trên bản giả.
-- FE không gọi Google, chỉ dựng link `drive.google.com`.
+- Bản giả `FakeGoogle` thực hiện đủ 32/32 method về kiểu; test app mặc định fake. Một test CLI đặt `GOOGLE_MODE=real` nhưng không gọi Google. Chưa có bằng chứng test tích hợp tự động adapter thật.
+- FE không thấy gọi trực tiếp Google API; còn URL Drive/Docs, đăng nhập `/auth/google`, đồng bộ `/sync/google`, nhãn và schema Google. Đổi kho phải rà cả hợp đồng và quyền.
 
-**Phần dùng lại ngay cho VCworkspace (không dính Google):**
+**Phần có thể tái sử dụng sau khi tách phụ thuộc (codebase#4–5):**
 
 - Nhật ký kiểm toán băm nối dòng (`audit.service.ts`)
-- Hàng đợi việc trên Mongo (`jobs.service.ts`)
-- Idempotency-Key, phiên cookie, CSRF, tách dữ liệu theo công ty (`tenant.plugin`)
+- Hàng đợi việc trên Mongo (`jobs.service.ts`): cần tách retry GoogleError và NotificationsService/Gmail
+- Idempotency-Key, phiên cookie, CSRF, tách dữ liệu theo công ty (`tenant.plugin`); AuthGuard/AccessService vẫn mang mô hình quyền drive
 - Bộ kiểm phản hồi khớp OpenAPI
 - Đóng dấu PDF, kho PDF qua `VaultPort`, đổi được sang S3
 - Mẫu deploy: Dockerfile, Compose, Caddy, `backup.sh`
@@ -394,7 +381,7 @@ Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, ki�
 | Phương án | Nội dung | Đánh giá của agent |
 |---|---|---|
 | A. Bỏ hết | Xây từ trang trắng | 2/5. Mất nghiệp vụ ISO đã code và test (vòng đời tài liệu, phê duyệt theo thẩm quyền, mã hồ sơ, chốt PDF) |
-| B. Giữ nghiệp vụ, đổi adapter | Thay `GooglePorts` bằng cổng lưu trữ, danh bạ, thư mới | 4/5. Chạm khoảng 30–40% mã BE. Một số tính năng Google không có bản tương đương 1:1: khoá chủ sở hữu, chặn tải/in, lịch sử phiên bản, Admin Reports |
+| B. Giữ nghiệp vụ, đổi adapter | Thay cổng lưu trữ, danh bạ, thư; sửa quyền, DB và hợp đồng tương ứng | Có cơ sở tái dùng nhưng chưa ước lượng được tỷ lệ công sửa. Cần kiểm tính tương đương khoá, chặn tải/in, revision và audit; điểm 4/5 là đánh giá, không phải số đo |
 | **C. Tách** (khuyên dùng) | Đóng băng VCdocs trên `main`; tách khung hạ tầng làm nền VCworkspace; sau đó port VCdocs thành "ứng dụng quản lý hồ sơ" theo B | 5/5 |
 
 **Hệ quả nếu chọn C:**
@@ -402,7 +389,7 @@ Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, ki�
 - Dừng M10 Bàn giao trên `giai-doan-2`, vì phần này dùng Google Data Transfer. M15 Nhật ký giữ được.
 - Tạm dừng việc giao IT tạo 64 nhóm Google C1.
 - BA mục 11 (cách lách Google Drive) và hợp đồng mục 6 phải viết lại theo quyền của kho mới.
-- 129 test phải chuyển sang bản giả mới.
+- Rà 129 ca test khai báo và xây test tương đương kho mới; số ca cần sửa chỉ biết sau thiết kế adapter/hợp đồng. Việc dừng M10/tạo nhóm C1 ở trên là hệ quả đề xuất nếu chọn C, chưa là quyết định triển khai.
 
 ---
 
@@ -425,9 +412,9 @@ Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, ki�
 1. **Stalwart còn ở bản 0.x và phụ thuộc gần như một lập trình viên.** Giảm bằng ghim phiên bản, thử nâng cấp trên staging, xuất dữ liệu định dạng mở, giữ Mailcow làm phương án B.
 2. **Thư gửi ra bị vào spam** với IP và tên miền mới. Giảm bằng relay uy tín, DMARC nâng dần, MTA-STS.
 3. **Prompt injection qua email làm AI agent rò dữ liệu.** Giảm bằng tách agent đọc khỏi agent hành động, việc ghi phải có người duyệt.
-4. **Một VM chứa tất cả thì một sự cố là mất toàn bộ.** Giảm bằng tối thiểu 2 VM, IdP có sao lưu, snapshot hằng ngày.
+4. **Điểm lỗi đơn của các dịch vụ lõi.** Tách VM họp chỉ giảm phạm vi sự cố video; VM-A đề xuất vẫn gom mail/files/IdP nên còn điểm lỗi đơn. Cần thiết kế backup và phục hồi, đo RTO/RPO; hai VM không tự tạo HA hoặc bảo đảm không gián đoạn.
 5. **Mất dữ liệu đặc thù Google khi chuyển** (Apps Script, Forms, IMPORTRANGE, lịch sử phiên bản). Giảm bằng kiểm kê sớm và giữ Google chế độ đọc một thời gian.
-6. **Giấy phép thay đổi** (tldraw, Remotion, ONLYOFFICE ↔ Euro-Office). Giảm bằng ghim phiên bản, lưu bản LICENSE. Nếu sau này bán VCworkspace cho bên khác, tránh sửa lõi thành phần AGPL.
+6. **Giấy phép và cách cung cấp phần mềm.** Ghim phiên bản, lưu LICENSE, rà nghĩa vụ theo cách sửa/phân phối/cung cấp qua mạng; giữ attribution và đáp ứng nghĩa vụ mã nguồn nếu phát sinh. Thu phí không phải tác nhân duy nhất và để nguyên lõi không tự loại mọi nghĩa vụ. Mô hình thương mại VCworkspace chưa chốt.
 7. **Pháp lý dữ liệu** (dữ liệu đặt ở Singapore, Mỹ). Giảm bằng hỏi luật sư trước giai đoạn 3.
 8. **Chi phí token AI tăng không kiểm soát.** Giảm bằng trần ngân sách theo tháng và chọn model theo việc.
 
@@ -444,8 +431,8 @@ Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, ki�
 
 **Dữ liệu và bảo mật:**
 
-5. Chấp nhận thư gửi ra đi qua Amazon SES (Mỹ) không?
-6. Chấp nhận nội dung thư và tệp đi qua API Anthropic (Mỹ, không huấn luyện, xoá sau 30 ngày) không? Hay dữ liệu nhạy cảm phải dùng model local?
+5. Chấp nhận dùng AWS SES vùng Singapore làm relay thư gửi không; yêu cầu gì về hợp đồng, vùng xử lý và lưu log?
+6. Loại nội dung thư/tệp nào được gửi API Anthropic, theo sản phẩm/model, vùng và thời hạn lưu nào; dữ liệu nào phải dùng model local? Không coi chính sách 30 ngày là bảo đảm áp dụng cho mọi tính năng.
 7. Có bắt buộc dữ liệu đặt tại Việt Nam không? VCPV có lưu dữ liệu cá nhân khách hàng không?
 8. Chấp nhận phụ thuộc Cloudflare cho lớp truy cập không?
 
@@ -471,7 +458,7 @@ Toàn bộ mục này **chưa kiểm chứng (○)**; agent đã đọc mã, ki�
 
 ## Phụ lục A: bảng luận điểm đã kiểm
 
-Mỗi luận điểm được 2 agent kiểm độc lập: một agent đối chiếu nguồn gốc, một agent xét thông tin còn mới không. Cột "Kết quả" ghi theo thứ tự đó. Nội dung đã sửa nằm trong thân báo cáo.
+Lịch sử đợt 22/10: nhóm hoàn tất có 2 agent theo hai lăng kính; workspace-suites#2 mới có 1. Bảng này giữ dấu vết đợt cũ, không phải chứng nhận lại ngày 23/10. Các dòng chưa xong được thay bằng liên kết sang bảng ID của đợt mới ở Phụ lục C; mô hình kiểm ngày 23/10 là Sol làm chính, Astra rà nhóm khó, không phải mọi ID đều được hai model kiểm độc lập.
 
 | Mảng | Luận điểm | Kết quả |
 |---|---|---|
@@ -498,16 +485,16 @@ Mỗi luận điểm được 2 agent kiểm độc lập: một agent đối ch
 | Mail server | Lịch phát hành Stalwart, mỗi bản minor có thay đổi phá vỡ, chưa có 1.0 | ✅ / ✅ |
 | Mail server | Từ v0.16 Stalwart thay REST API quản trị bằng JMAP | ◐ / ◐ |
 | Mail server | Dovecot CE vẫn LGPLv2.1 (kèm phần MIT) | ◐ / ✅ |
-| Mail server | Nhãn JMAP/IMAP keyword và webmail hiển thị | ○ |
-| Workspace | grommunio miễn phí tối đa 5 người | ✅ (1 agent) |
-| Workspace | 5 luận điểm còn lại | ○ |
+| Mail server | Nhãn JMAP/IMAP keyword và webmail hiển thị | Đã xét 23/10: mail-stacks#6 (Phụ lục C) |
+| Workspace | grommunio gói Community tối đa 5 người | Đã xét lại 23/10: workspace-suites#2 |
+| Workspace | 5 luận điểm còn lại | Đã xét 23/10: workspace-suites#1,3–6 |
 | Công cụ sáng tạo | REA là công cụ phân tích, không phải nguồn "bản thiết kế lại" | ◐ / ◐ |
 | Công cụ sáng tạo | Remotion cần license cho công ty từ 4 người | ◐ / ◐ |
 | Công cụ sáng tạo | OpenCut đang viết lại, chưa dùng production | ◐ / ◐ |
 | Công cụ sáng tạo | tldraw không mã nguồn mở, cần license key production | ✅ / ✅ |
 | Công cụ sáng tạo | Stirling-PDF lõi MIT, Free 5 người | ◐ / ◐ |
 | Công cụ sáng tạo | Giấy phép model AI tự host (FLUX, Kokoro, F5-TTS) | ◐ / ◐ |
-| Office/họp/lịch, REA/Creator OS, AI agent, bảo mật, di cư, chi phí, mã nguồn | 42 luận điểm | ○ (phiên 2026-10-25) |
+| Office/họp/lịch, REA/Creator OS, AI agent, bảo mật, di cư, chi phí, mã nguồn | Thực tế 41 ID của 7 mảng; số 42 cũ sai | Đã xét 23/10: Phụ lục C và hồ sơ bằng chứng |
 
 ## Phụ lục B: nguồn chính
 
@@ -538,10 +525,134 @@ Mỗi luận điểm được 2 agent kiểm độc lập: một agent đối ch
 - Jev: https://typesafe.ai/blog/introducing-system-one-models-and-jev
 - OpenClaw: https://github.com/openclaw/openclaw · Hermes: https://github.com/NousResearch/hermes-agent
 - Penpot: https://github.com/penpot/penpot · Stirling-PDF: https://github.com/Stirling-Tools/Stirling-PDF · OpenCut: https://github.com/OpenCut-app/OpenCut
-- Authentik: https://docs.goauthentik.io/docs/enterprise/enterprise-features/ · Pocket ID: https://github.com/pocket-id/pocket-id
-- Cloudflare Zero Trust: https://www.cloudflare.com/plans/sase-zero-trust/ · Tailscale: https://tailscale.com/pricing
+- Authentik: https://docs.goauthentik.io/enterprise/enterprise-features/ · Pocket ID: https://github.com/pocket-id/pocket-id
+- Cloudflare Zero Trust: https://www.cloudflare.com/plans/ · Tailscale: https://tailscale.com/pricing
 - Gmail giới hạn IMAP: https://knowledge.workspace.google.com/admin/gmail/gmail-bandwidth-limits
 - Google Data Export: https://knowledge.workspace.google.com/admin/migrate/export-all-your-organizations-data
 - imapsync Gmail: https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt · GAM: https://github.com/GAM-team/GAM
-- Giá GCE Singapore: https://gcloud-compute.com/asia-southeast1.html
+- Giá GCE chính thức: https://cloud.google.com/products/compute/pricing/general-purpose — chưa xác nhận được lựa chọn Singapore/SKU. `gcloud-compute.com` là nguồn bên thứ ba của bản cũ, không dùng làm xác nhận giá ở đợt này.
 - Kết quả thô 72 agent (máy local): `~/.claude/projects/-Users-apple-projects-VCdocs/0153f5e4-10fe-4d4d-98d6-3915a62ea6bf/subagents/workflows/wf_d8f20636-759/ket-qua-da-xong.json`
+
+
+## Phụ lục C: kết quả kiểm chứng 2026-10-23
+
+Đã xét đủ **48 ID** truy từ dữ liệu gốc (số “42” cũ sai): **21 đúng trong phạm vi, 24 đúng một phần/cần điều kiện, 1 bị bác, 2 chưa đủ bằng chứng**. Đây là trạng thái câu gốc; mệnh đề con sai được sửa ngay trong thân báo cáo. Chi tiết câu gốc, nguồn đã mở, phiên bản và giới hạn: [hồ sơ kiểm chứng](vcworkspace-kiem-chung-2026-10-23.md).
+
+| ID gốc | Kết quả | Kết luận đã sửa | Bằng chứng |
+|---|---|---|---|
+| [mail-stacks#6](vcworkspace-kiem-chung-2026-10-23.md#mail-stacks-6) | ◐ | RFC keywords đúng; Twake dùng thêm Label API, chưa bảo đảm tương thích Stalwart; không chứng minh mọi plugin Roundcube chỉ có nhãn cố định. | [Nguồn](https://github.com/linagora/tmail-flutter/blob/master/CHANGELOG.md) |
+| [workspace-suites#1](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-1) | ✅ | Mail là client IMAP/SMTP; vẫn cần mail server riêng. AIO cho phép thêm Stalwart bằng container cộng đồng. | [Nguồn](https://github.com/nextcloud/all-in-one#mail-server) |
+| [workspace-suites#2](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-2) | ✅ | Gói Community miễn phí tới 5 người; Basic 1,99 EUR, Plus 3,99 EUR/người/tháng từ 6; Business 5,49 EUR từ 50. | [Nguồn](https://grommunio.com/pricing/) |
+| [workspace-suites#3](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-3) | ✅ | Có MCP server và nhận MCP ngoài; chưa hỗ trợ access token riêng từng người cho server ngoài, chưa scale được. | [Nguồn](https://docs.nextcloud.com/server/stable/admin_manual/ai/app_context_agent.html) |
+| [workspace-suites#4](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-4) | ◐ | ONLYOFFICE CE 9.4 bỏ cap; CODE mặc định không giới hạn, Home Mode mới giới hạn 10 tài liệu/20 kết nối. | [Nguồn](https://forum.collaboraonline.com/t/does-collabora-code-26-04-2-4-have-any-user-or-concurrent-connection-limits/5023) |
+| [workspace-suites#5](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-5) | ✅ | Carbonio CE thiếu backup tích hợp/HSM/legal hold thương mại; ActiveSync là add-on bản trả phí. | [Nguồn](https://zextras.com/editions) |
+| [workspace-suites#6](vcworkspace-kiem-chung-2026-10-23.md#workspace-suites-6) | ◐ | Giao thức và tính năng Enterprise được xác nhận; WebUI mô tả quản trị, chưa chứng minh phủ định tuyệt đối về webmail. | [Nguồn](https://stalw.art/compare/) |
+| [office-meet-calendar#1](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-1) | ✅ | CE 9.4 bỏ cap 20 kết nối và RabbitMQ/DB; hãng vẫn khuyến nghị tối đa 20 người cho CE. | [Nguồn](https://www.onlyoffice.com/blog/2026/05/onlyoffice-docs-9-4) |
+| [office-meet-calendar#2](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-2) | ✅ | Nextcloud/CryptPad dùng Euro-Office; có production distribution công khai, Enterprise là hỗ trợ chuyên nghiệp, không mặc định paywall binary. | [Nguồn](https://euro-office.github.io/documentation/installation/releases/) |
+| [office-meet-calendar#3](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-3) | ◐ | Scheduling/iMIP/RSVP/JMAP có thật; trang so sánh có free/busy. Chưa xác minh đặt phòng/tài nguyên. | [Nguồn](https://stalw.art/compare/) |
+| [office-meet-calendar#4](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-4) | ✅ | Jitsi công bố thay Jigasi transcription bằng JVB/WebSocket/proxy; hỗ trợ endpoint STT tương thích OpenAI tự host. | [Nguồn](https://jitsi.org/blog/a-new-architecture-for-transcription-and-more/) |
+| [office-meet-calendar#5](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-5) | ✅ | License và tính năng Meet được xác nhận; transcription/summary beta; 100+ người chưa được đo trên hạ tầng VCPV. | [Nguồn](https://documentation-meet.beta.numerique.gouv.fr/overview/what-is-meet/) |
+| [office-meet-calendar#6](vcworkspace-kiem-chung-2026-10-23.md#office-meet-calendar-6) | ◐ | Khả năng Talk tùy mạng/thiết bị; Vosk có tiếng Việt. 16 GB là ước tính cho 1–2 cuộc, chưa phải benchmark. | [Nguồn](https://docs.nextcloud.com/server/stable/admin_manual/ai/app_live_transcription.html) |
+| [ai-agents#1](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-1) | ✅ | Stalwart LLM spam/Sieve là Enterprise; không ngăn tích hợp AI bên ngoài qua API. | [Nguồn](https://stalw.art/enterprise/) |
+| [ai-agents#2](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-2) | ✅ | Managed Agents chưa ZDR; self-hosted vẫn gửi tool I/O về control plane; workspace geo hiện us. | [Nguồn](https://platform.claude.com/docs/en/managed-agents/overview) |
+| [ai-agents#3](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-3) | ✅ | Commercial Terms không train; mặc định API 30 ngày có ngoại lệ theo model, tính năng và nghĩa vụ lưu. | [Nguồn](https://www.anthropic.com/legal/commercial-terms) |
+| [ai-agents#4](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-4) | ◐ | Cron tối đa một lần/giờ; auto mode có thể dừng chờ duyệt, không phải mọi ghi đều tự chạy. | [Nguồn](https://code.claude.com/docs/en/routines) |
+| [ai-agents#5](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-5) | ◐ | n8n cho nghiệp vụ nội bộ; .ee. và thư mục .ee cần giấy phép khác; không coi là OSS OSI. | [Nguồn](https://raw.githubusercontent.com/n8n-io/n8n/master/LICENSE.md) |
+| [ai-agents#6](vcworkspace-kiem-chung-2026-10-23.md#ai-agents-6) | ❌ | Có Nextcloud/CalDAV MCP trên 100 sao; bác lý do bắt buộc tự viết gateway, chưa chứng minh độ an toàn. | [Nguồn](https://github.com/cbcoutinho/nextcloud-mcp-server) |
+| [rea-creatoros#1](vcworkspace-kiem-chung-2026-10-23.md#rea-creatoros-1) | ◐ | REA MIT; disclaimer không sửa MIT. Local analysis vẫn có kết quả gửi model; chưa audit mọi provider. | [Nguồn](https://github.com/morluto/rea) |
+| [rea-creatoros#2](vcworkspace-kiem-chung-2026-10-23.md#rea-creatoros-2) | ◐ | CreatorOS là SaaS; social-agents MIT dùng API dịch vụ, chưa xác nhận mọi repo/cùng tên. | [Nguồn](https://www.creatoros.ca/) |
+| [rea-creatoros#3](vcworkspace-kiem-chung-2026-10-23.md#rea-creatoros-3) | ? | Xác nhận sản phẩm Jev TypeSafe; chưa xác nhận đây là “AI Jev” người dùng muốn nói. | [Nguồn](https://typesafe.ai/blog/introducing-system-one-models-and-jev) |
+| [rea-creatoros#4](vcworkspace-kiem-chung-2026-10-23.md#rea-creatoros-4) | ◐ | Terms hạn chế RE nhưng khác sản phẩm/vùng/hợp đồng; không suy cấm chung mọi SaaS hoặc clean-room luôn hợp pháp. | [Nguồn](https://policies.google.com/terms) |
+| [rea-creatoros#5](vcworkspace-kiem-chung-2026-10-23.md#rea-creatoros-5) | ✅ | Bash sandbox không bao phủ MCP; lab riêng là đề xuất kỹ thuật, container không tự bảo đảm cách ly. | [Nguồn](https://code.claude.com/docs/en/sandboxing) |
+| [security#1](vcworkspace-kiem-chung-2026-10-23.md#security-1) | ✅ | Authentik có SCIM cơ bản MIT; OAuth SCIM và scheduled offboarding thuộc Enterprise. | [Nguồn](https://docs.goauthentik.io/enterprise/enterprise-features/) |
+| [security#2](vcworkspace-kiem-chung-2026-10-23.md#security-2) | ✅ | Stalwart SCIM Enterprise; OIDC cần provision trước, LDAP không tự xoá mailbox; 96 EUR chưa gồm Premium Support. | [Nguồn](https://stalw.art/docs/auth/scim/) |
+| [security#3](vcworkspace-kiem-chung-2026-10-23.md#security-3) | ◐ | Cloudflare có arbitrary TCP; IMAP/submission có thể riêng, MX Internet vẫn cần đường SMTP public/gateway. | [Nguồn](https://www.cloudflare.com/plans/) |
+| [security#4](vcworkspace-kiem-chung-2026-10-23.md#security-4) | ◐ | Kopia không chỉ S3; Object Lock cần retention/maintenance, không tự bảo đảm phục hồi; restic cần phân biệt native/append-only. | [Nguồn](https://kopia.io/docs/advanced/ransomware-protection/) |
+| [security#5](vcworkspace-kiem-chung-2026-10-23.md#security-5) | ◐ | Miễn dữ liệu nhân viên có phạm vi; ưu đãi DN nhỏ không liệt kê CTIA ban đầu Điều 20. | [Nguồn](https://vanban.chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroup=) |
+| [security#6](vcworkspace-kiem-chung-2026-10-23.md#security-6) | ◐ | e2-medium duy trì tương đương 1 vCPU/4 GB; Wazuh cả stack khác server; chưa xác nhận CrowdSec sizing. | [Nguồn](https://docs.cloud.google.com/compute/docs/general-purpose-machines) |
+| [migration#1](vcworkspace-kiem-chung-2026-10-23.md#migration-1) | ✅ | Takeout nhập archive SQLite offline; giữ nhãn theo tài liệu nhưng còn restore và PoC vào hộp thư đích. | [Nguồn](https://stalw.art/docs/migration/import-export/import/takeout/) |
+| [migration#2](vcworkspace-kiem-chung-2026-10-23.md#migration-2) | ◐ | 2.500 MB/ngày đúng; Google dời hạn LSA sang 01/5/2025, cần kiểm OAuth/app-password của tenant. | [Nguồn](https://knowledge.workspace.google.com/admin/gmail/gmail-bandwidth-limits) |
+| [migration#3](vcworkspace-kiem-chung-2026-10-23.md#migration-3) | ✅ | Export đủ tổ chức có điều kiện admin; bucket Google giữ 60 ngày tính từ bắt đầu, không từ hoàn tất. | [Nguồn](https://knowledge.workspace.google.com/admin/migrate/export-all-your-organizations-data) |
+| [migration#4](vcworkspace-kiem-chung-2026-10-23.md#migration-4) | ✅ | GCE mặc định chặn egress 25, có ngoại lệ; chưa kiểm project vcdocs. | [Nguồn](https://docs.cloud.google.com/compute/docs/tutorials/sending-mail) |
+| [migration#5](vcworkspace-kiem-chung-2026-10-23.md#migration-5) | ◐ | rclone export được nhưng không bảo toàn mọi ACL; 10 MB là giới hạn nội dung xuất; chưa ghim bản. | [Nguồn](https://rclone.org/drive/) |
+| [migration#6](vcworkspace-kiem-chung-2026-10-23.md#migration-6) | ✅ | Dual delivery làm được; cần đúng OU/group, loại thư và routing, không bảo đảm mọi thư vô điều kiện. | [Nguồn](https://knowledge.workspace.google.com/admin/gmail/advanced/deliver-email-to-multiple-inboxes-with-dual-delivery) |
+| [sizing-cost#1](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-1) | ✅ | Standard 14 USD annual, 16,80 flexible; 8.064 USD/năm cho 48 người là phép tính, chưa phải hoá đơn VCPV. | [Nguồn](https://knowledge.workspace.google.com/admin/billing/compare-flexible-and-annual-fixed-term-payment-plans) |
+| [sizing-cost#2](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-2) | ? | Chưa xác nhận giá GCP đúng Singapore/SKU/CUD; không lấy bảng mặc định Iowa hoặc nguồn thứ ba làm báo giá. | [Nguồn](https://cloud.google.com/products/compute/pricing/general-purpose) |
+| [sizing-cost#3](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-3) | ◐ | CCX33 Singapore 174,49 EUR chưa IPv4/VAT, 3 TB; chưa đủ cơ sở kết luận rẻ hơn GCP 25%. | [Nguồn](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/) |
+| [sizing-cost#4](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-4) | ◐ | Enterprise Standard từ 100 user/7.129 EUR năm; không đồng nghĩa mọi hỗ trợ partner đều cùng tối thiểu. | [Nguồn](https://nextcloud.com/pricing/) |
+| [sizing-cost#5](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-5) | ◐ | 900 GB chỉ là kịch bản egress 2,5 Mbit/s/người nhận, không phải định mức mọi cuộc họp. | [Nguồn](https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-requirements/) |
+| [sizing-cost#6](vcworkspace-kiem-chung-2026-10-23.md#sizing-cost-6) | ◐ | Không có benchmark cùng tải chứng minh Stalwart tiết kiệm cố định 6–14 GB so với Mailcow. | [Nguồn](https://docs.mailcow.email/getstarted/prerequisite-system/) |
+| [codebase#1](vcworkspace-kiem-chung-2026-10-23.md#codebase-1) | ✅ | SDK Google tập trung adapter; GooglePorts có 8 cổng, 32 method; CLI có thể tự tạo adapter. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-1) |
+| [codebase#2](vcworkspace-kiem-chung-2026-10-23.md#codebase-2) | ◐ | Fake đủ kiểu; có CLI test đặt real nhưng không gọi Google; 129 ca khai báo, chưa chạy lại. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-2) |
+| [codebase#3](vcworkspace-kiem-chung-2026-10-23.md#codebase-3) | ◐ | FE không gọi trực tiếp Google API; vẫn phụ thuộc login/sync, URL, nhãn và schema Google. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-3) |
+| [codebase#4](vcworkspace-kiem-chung-2026-10-23.md#codebase-4) | ◐ | Không import trực tiếp chưa đủ độc lập: Jobs → Notifications → Gmail; retry và access còn nghĩa Google/Drive. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-4) |
+| [codebase#5](vcworkspace-kiem-chung-2026-10-23.md#codebase-5) | ◐ | Vault tách riêng; S3 cần giữ write-once, retention, quyền xoá và thử restore, chưa tự bảo đảm pháp lý. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-5) |
+| [codebase#6](vcworkspace-kiem-chung-2026-10-23.md#codebase-6) | ✅ | Repo chưa có .github, Compose 4 service/deploy tay; Google IDs ở DB/API; chưa xác minh môi trường thật. | [Nguồn](vcworkspace-kiem-chung-2026-10-23.md#codebase-6) |
+
+**Việc còn lại sau kiểm tài liệu:** xác nhận đúng dự án “AI Jev”; lấy báo giá GCP Singapore đúng SKU và hoá đơn/workload VCPV; kiểm giấy phép/distribution bản định triển khai; PoC MCP từng người, nhãn thư/Twake–Stalwart, provisioning/offboarding, Takeout restore/ACL, tải office/video và diễn tập phục hồi. Không chọn mua hoặc triển khai chỉ từ số sao repo hay phép tính RAM/egress.
+
+
+## Phụ lục D: phương án đề xuất sau kiểm chứng — 2026-10-23
+
+**Trạng thái: đề xuất để chủ dự án chốt, chưa phê duyệt triển khai.** Căn cứ là 48 ID ở Phụ lục C và hồ sơ nguồn. Nguồn chính Nextcloud MCP, ONLYOFFICE 9.4, Stalwart OIDC và Talk scalability được mở lại ngày 23/10; các lựa chọn dưới đây là đánh giá thiết kế từ bằng chứng, không phải kết quả thử tải.
+
+### D.1 Phương án nên chọn
+
+**Chọn C về mã: giữ nghiệp vụ hồ sơ VCdocs làm ứng dụng trên VCworkspace; dùng Nextcloud làm nền cộng tác, thay Google theo từng chức năng.** Tách nền và nghiệp vụ bằng module/adapter có hợp đồng rõ; chưa cần tách repo hay viết lại toàn bộ giao diện. Giữ bản ổn định của nghiệp vụ cũ, chưa gộp M10 phụ thuộc Google Data Transfer vào nền mới; quyết định tiếp tục giai đoạn 2 phải được chủ dự án chốt riêng.
+
+Lý do: mã hiện tại có giá trị nghiệp vụ nhưng còn Google identifiers, quyền Drive và Gmail gián tiếp (codebase#1–6). Tự viết từ đầu bộ mail/office/lịch làm tăng phần phải phát triển và vận hành; kiểm chứng không cho cơ sở tính trước tiết kiệm hay tỷ lệ tái dùng. Nextcloud cung cấp nền tích hợp để thử, còn giao diện riêng VCworkspace chỉ bổ sung khi có nhu cầu nghiệp vụ rõ.
+
+| Mảng | Lựa chọn đề xuất | Điều kiện trước dùng thật |
+|---|---|---|
+| Danh tính và tệp/lịch | Authentik + Nextcloud Files, Calendar, Contacts; nhóm theo phòng | Thử SSO, quyền chéo phòng, mời ngoài và thu hồi người nghỉ việc; không sao chép ACL Google rồi coi là tương đương |
+| Docs/Sheets/Slides | ONLYOFFICE CE là ứng viên thử đầu; chọn bản còn được cập nhật bảo mật tương thích Nextcloud | So 20–30 tệp đại diện, công thức, định dạng, in/PDF và đồng biên tập. 9.4 bỏ cap 20 không phải khuyến nghị ghim bản cũ hoặc bảo đảm đủ tải. Nếu không đạt, thử Nextcloud Office/Euro-Office hoặc Collabora; không chạy ba bộ cùng lúc |
+| Mail | Giữ Gmail trong thí điểm đầu; Stalwart + Nextcloud Mail là ứng viên chuyển sau | Dùng tên miền thử trước; kiểm nhãn, tìm kiếm, điện thoại, mailbox tồn tại trước đăng nhập, offboarding và restore. Chưa chọn Twake làm mặc định vì Label API chưa chứng minh tương thích Stalwart |
+| Gửi mail | SES vùng Singapore là relay ứng viên nếu chọn GCP và được duyệt luồng dữ liệu | Kiểm vùng/chính sách, sandbox/quota, DKIM/SPF/DMARC và phí đầy đủ; chưa kết luận project vcdocs có/không ngoại lệ cổng 25 |
+| Họp | Giữ Google Meet lúc đầu; thử Nextcloud Talk + HPB khi sang bước họp tự host | Đo cuộc họp đại diện, TURN, khách ngoài, điện thoại và băng thông. Chưa xây thêm LiveKit/La Suite Meet; chỉ xét nếu yêu cầu AI vào phòng/ghi âm hoặc Talk không đạt |
+| AI | Dịch vụ agent riêng, dùng API với tài khoản/quyền từng người; đọc/tóm tắt/soạn nháp trước | Thử connector Nextcloud/CalDAV có sẵn, chỉ viết adapter/gateway bổ sung phần thiếu. Không bật trọn bộ tool chỉ vì có MCP; tool gửi/chia sẻ/xoá cần kiểm quyền và xác nhận phù hợp |
+| Hạ tầng | Ưu tiên thử trên GCP để tận dụng hướng vận hành sẵn có, nếu vùng dữ liệu được chấp nhận | Môi trường thử tách identity và dữ liệu thật. Khi mail thành dịch vụ thật, đề xuất tách workload mail khỏi ứng dụng/office/AI; quy mô và số máy phải theo đo tải. Đây chưa phải HA; cần kế hoạch phục hồi IdP, mail và tệp |
+| Sao lưu | Bản sao tách quyền xoá và một bản ngoài điểm lỗi chính, thử retention và restore | Chọn vùng hợp lệ, hạn giữ và trần chi phí; không khoá retention không thể đảo ngược trước khi chủ dự án chốt. Không coi Object Lock thay được thử phục hồi |
+
+Nguồn kiểm lại: [Nextcloud Context Agent](https://docs.nextcloud.com/server/stable/admin_manual/ai/app_context_agent.html), [ONLYOFFICE 9.4](https://www.onlyoffice.com/blog/2026/05/onlyoffice-docs-9-4), [Stalwart OIDC](https://stalw.art/docs/auth/backend/oidc/), [Talk scalability](https://nextcloud-talk.readthedocs.io/en/latest/scalability/). Giới hạn token của Context Agent áp cho **MCP server bên ngoài mà nó kết nối tới**, không gộp thành mọi kết nối MCP đều không có quyền từng người.
+
+Không chọn REA, CreatorOS hoặc Jev làm phụ thuộc lõi. Có thể xét riêng theo mục đích sau; “AI Jev” vẫn cần xác nhận định danh. Windmill/n8n, tìm kiếm vector, công cụ thiết kế/video và nhiều kênh chat cũng chưa cần thêm trước khi thí điểm chứng minh nhu cầu.
+
+### D.2 Thứ tự triển khai và điểm dừng
+
+1. **Chuẩn bị:** chủ dự án chốt D.3; lập inventory dữ liệu/ứng dụng Google, kiểm quyền môi trường, báo giá theo SKU và chọn tệp thử. Chưa di chuyển dữ liệu thật trong bước tư vấn này.
+2. **Thử kỹ thuật trong môi trường riêng:** SSO + Nextcloud + một bộ office + connector AI quyền đọc. Dùng dữ liệu giả/ẩn danh trước; dữ liệu thật chỉ sau khi phân loại và được cho phép. Kiểm quyền không được vượt giữa hai người/phòng, backup/restore và offboarding.
+3. **Thí điểm một phòng, đề xuất 5–10 người trong 4–6 tuần sử dụng:** tệp/lịch/office và trợ lý đọc/nháp. Đây là quy mô và thời gian đánh giá đề xuất, không phải cam kết thời gian xây dựng. Quy định thư mục/lịch nào là nguồn ghi chính, tránh sửa hai bản. Gmail và Meet tiếp tục là hệ chính.
+4. **Mail/họp thử riêng:** chỉ sau khi bước 3 đạt; dùng hộp thư/tên miền thử, đo nhãn, delivery, quyền, điện thoại, restore và họp thực tế. Thử dual delivery dữ liệu thật là thay đổi vận hành cần được giao riêng; đổi MX là quyết định khác.
+5. **Mở rộng/chuyển từng phần:** lập bảng kiểm dữ liệu và ACL, xử lý tính năng Google không thay được, phê duyệt ngày chuyển và kế hoạch quay lui có đồng bộ phần phát sinh. Chỉ hạ/huỷ Google khi hết phụ thuộc được chấp nhận; không gắn ngày huỷ cứng từ đầu.
+
+**Điều kiện qua cổng:** không có truy cập chéo trái quyền trong các tình huống đã thử; tệp đại diện và nghiệp vụ trọng yếu đạt tiêu chí đã chốt; thu hồi người dùng có hiệu lực; restore vào môi trường riêng đạt mục tiêu mất dữ liệu/gián đoạn đã chọn; chi phí đo được trong trần. Mail cần thêm kiểm số lượng/nhãn/attachment, gửi nhận ngoài và nội bộ, spam/bounce, routing loop, rollback; họp cần tải và thiết bị đại diện. Không dùng số test VCdocs thay bằng chứng của hệ mới.
+
+### D.3 Những điểm chủ dự án cần chốt
+
+**Trước khi dựng môi trường thử:**
+
+| # | Quyết định | Mặc định mình đề xuất, chờ chủ dự án chốt |
+|---|---|---|
+| 1 | Mục tiêu và phạm vi sản phẩm | Nội bộ trước; giữ nghiệp vụ hồ sơ theo C. Nếu định bán cho khách hàng phải nêu ngay để thiết kế tenant/giấy phép phù hợp |
+| 2 | Nhóm và phạm vi thí điểm | Một phòng, 5–10 người; tệp/lịch/office + trợ lý đọc/nháp. Chỉ định người phụ trách nghiệm thu; chưa thay Gmail/Meet |
+| 3 | Nơi đặt dữ liệu | Có chấp nhận Singapore và nhà cung cấp nước ngoài không; nếu bắt buộc VN thì đổi nơi thử trước khi đưa dữ liệu thật lên. Phân biệt dữ liệu gốc, backup, log và dữ liệu gửi AI |
+| 4 | Dữ liệu nào được gửi AI | Cho phép nhóm dữ liệu đã phân loại; dữ liệu nhạy cảm chưa đưa ra API khi chưa có quyết định. Xác định người được dùng và trần token; làm rõ “AI Jev”/kênh chat mong muốn |
+| 5 | Ngân sách và nguồn lực | Trần riêng cho thử nghiệm, hạ tầng/tháng, AI/tháng và license/hỗ trợ; tính cả thời gian vẫn trả Google. Chỉ định IT/người vận hành và người xử lý khi có sự cố; chưa cam kết CUD |
+| 6 | Giới hạn tự động hoá | AI đọc và tạo nháp trước; gửi thư, chia sẻ ngoài, xoá dữ liệu, thay quyền, đổi MX/deploy production có người duyệt theo phạm vi. Nêu các ngoại lệ tự chạy cụ thể nếu cần |
+
+**Trước khi đưa dữ liệu thật vào thí điểm và trước khi chuyển dịch vụ chính:**
+
+| # | Quyết định | Nội dung phải xác nhận |
+|---|---|---|
+| 7 | Quyền dữ liệu và thời hạn lưu | Người chốt ma trận phòng/vai trò; loại dữ liệu thật được thử; cơ sở lưu/xử lý, thời hạn xoá/giữ và nghĩa vụ pháp lý. Không coi miễn dữ liệu nhân viên là miễn mọi nghĩa vụ |
+| 8 | Mức mất dữ liệu/gián đoạn chấp nhận | Anh chọn mục tiêu; IT thiết kế và thử RPO/RTO tương ứng. Mức nghiêm ngặt hơn làm đổi chi phí, số máy và lịch backup; chưa có số cam kết từ báo cáo |
+| 9 | Tính năng bắt buộc và ngoại lệ | Gmail đa nhãn, mail điện thoại/ActiveSync, Sheets/Apps Script, Form, lịch sử phiên bản, quyền ngoài công ty, họp/ghi âm. Chốt cái nào phải giữ Google hoặc cần hỗ trợ trả phí nếu PoC không đạt |
+| 10 | Relay, truy cập và hỗ trợ | Có chấp nhận SES/Cloudflare theo vai trò cụ thể không; có ngân sách hỗ trợ trả phí cho IdP/office/mail không. Không mặc định mua Enterprise chỉ vì số người dùng |
+| 11 | Ranh giới quyền phát triển/vận hành | Chốt visibility repo, identity agent riêng, quyền Google/GCP/GitHub, người được duyệt production; hoàn tất trust hook và bật check bắt buộc. Có file cấu hình chưa chứng minh các quyền này đã được cưỡng chế |
+| 12 | Ngày chuyển và đường quay lui | Người duyệt go/no-go, thời gian chạy song song, nguồn ghi chính, đồng bộ delta mail/tệp/quyền và điều kiện dừng. Đổi MX/hạ gói Google phải duyệt riêng sau nghiệm thu |
+
+**Số liệu cần giao IT lấy, không phải yêu cầu chủ dự án tự chọn công nghệ:** gói/hoá đơn Google, số tài khoản, GB Gmail/Drive, thư/tháng và attachment, số họp đồng thời/người tham gia, danh sách Sheets/Apps Script/Form, yêu cầu mail điện thoại và quyền nhóm hiện tại. Thu thập bằng quyền đọc được giao; không tự dùng thông tin đăng nhập quản trị từ máy agent.
+
+### D.4 Đề nghị phê duyệt cho bước tiếp theo
+
+Chỉ phê duyệt **lập kế hoạch và dựng thử theo phạm vi được chốt ở D.3**, với tài khoản/môi trường riêng và trần ngân sách. Mua dịch vụ, đưa dữ liệu thật vào thử, thay quyền production, chuyển MX hoặc dừng Google là các quyết định tiếp theo có kết quả thử cụ thể để xem trước. Chưa thực hiện các hành động đó trong phiên này.
