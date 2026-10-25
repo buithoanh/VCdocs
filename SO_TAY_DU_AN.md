@@ -35,6 +35,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 | Ngày | Quyết định | Lý do |
 |------|-----------|-------|
+| 2026-10-25 | Thiết kế lại giao diện `apps/web` trên **Ant Design 6** (không Tailwind/shadcn), theme token theo HD-VCPV-02 (navy `#13233A`, sọc `#E8EDF3`, bo góc 4px, font Be Vietnam Pro, một bộ icon `@ant-design/icons`). Bước 1 thay lớp component nền giữ nguyên tên export/props; sau đó chuyển từng module (hồ sơ → tài liệu → phê duyệt → thư mục/Drive → email), mỗi module một PR vào `dev` | Chủ dự án muốn giao diện "bớt AI"; app là CRUD nghiệp vụ dày (bảng, form, cây, duyệt theo bước) nên antd có sẵn widget; antd 6 chạy React 19.1/Next 15 không cần patch; Tailwind + shadcn mặc định chính là bộ mặt cần tránh |
 | 2026-10-24 | Human duyệt mở chat 11 khảo sát lộ trình đủ chín nhóm, chỉ tài liệu/read-only; chưa code lớn, cài app, mua dịch vụ, production hoặc mở chat 12 | Phân biệt nghiệm thu LOCAL Drive–Office–Email của chat 01–10 với mục tiêu đủ chín nhóm; cần ma trận khoảng trống, kiến trúc và acceptance trước bước mới |
 | 2026-10-23 | Human xác nhận trực tiếp đưa đúng tệp thử ui03-renamed-chat03ui2.txt vào thùng rác local rồi khôi phục qua UI | Hoàn tất chat03, review đạt mở04 và tự chạy tiếp; không xoá vĩnh viễn |
 | 2026-10-23 | Chủ dự án giao tự động toàn bộ phát triển/nghiệm thu các task đã thống nhất; điều phối tự review, sửa lỗi, mở chat tuần tự, không hỏi lại quyền đã duyệt | Không mở rộng sang production, mua dịch vụ hoặc dữ liệu thật; hộp quyền công cụ vẫn theo cơ chế hệ thống |
@@ -58,6 +59,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 | 2026-10-19 | Dùng `SO_TAY_DU_AN.md` làm kênh trao đổi giữa các phiên | Giữ ngữ cảnh chung, tránh làm lại |
 
 ## 3. Việc đang làm / cần làm
+
+- [ ] **Giao diện Ant Design – bước 1 xong, chờ chủ dự án xem (2026-10-25), nhánh `vcworkspace/giao-dien-antd` cắt từ `vcworkspace/chat01-12b`:** đã cài `antd@6.6.7`, `@ant-design/icons`, `@ant-design/nextjs-registry`; `UiProvider` (ConfigProvider locale vi + token HD-VCPV-02) + `AntdRegistry` ở root layout; font Be Vietnam Pro qua `next/font/google` (build cần mạng tới Google Fonts một lần). Lớp nền đã đổi ruột sang antd, giữ nguyên API: `ui.tsx` (Button/LinkButton/Card/Badge→Tag/ErrorBox+Notice→Alert/Loading→Spin/Empty/Field+TextField→Form.Item+Input/SelectField→Select/Modal/Tabs/DefList→Descriptions), `AppShell` (Layout+Menu+Badge, Drawer trên điện thoại), `ToastProvider` (notification góc dưới phải), `DataTable` (Table sọc, header navy, thẻ trên điện thoại qua `data-label`) + `Pagination`, `ActionDialog`, `pickers` (DeptSelect/UserPicker/MultiUserPicker → Select showSearch). Test: `src/test/antd.ts` (chooseOption/findOption/selectedText), setup thêm matchMedia/ResizeObserver/getComputedStyle; 3 file test đổi thao tác select. Gate: typecheck đạt, FE 76/76, `next build` (`.next-antd`) đạt, `pnpm ai:check` đạt (BE 180, 9 skip; FE 76); xem bằng mắt trên QA giả (qa-api 14100 + qa-web 13100) các trang chủ, hồ sơ, lập hồ sơ, nhân sự, danh mục, cây thư mục, điện thoại. **Chưa làm:** các trang còn dùng `.btn`/`.field`/select gốc (trang đăng nhập, bộ lọc, email), DatePicker thay input date/month, bỏ emoji ở trang; chuyển từng module theo thứ tự đã chốt. Brand hiển thị đổi "VCdocs" → "VCworkspace" ở thanh trên và title; chữ "sổ VCdocs" trong trang để lại cho lúc chuyển module. First-load JS tăng lên ~400 kB/trang vì antd.
 
 - [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
 
@@ -214,6 +217,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 5. Lưu ý & bài học
 
+- antd 6 trong vitest/jsdom: cần mock `matchMedia`, `ResizeObserver`, bọc `getComputedStyle` bỏ tham số pseudo (Modal đo thanh cuộn bằng `::-webkit-scrollbar`); render test qua `UiProvider test` để tắt motion và danh sách ảo (khi đó mọi mục Select có `role="option"`, `aria-disabled`). `Input.TextArea autoSize` làm `userEvent.type` chậm tới timeout → dùng `rows`. Nhãn mục đã chọn của Select nằm ở `title` của `.ant-select-content`. antd 6 bỏ `cssVar: true` (mặc định bật), `Alert/Notification message`→`title`, `Tag bordered`→`variant`, `Drawer width`→`size`.
+- `next dev`/`next build` tự ghi lại `apps/web/tsconfig.json` (thêm `.next-*/types` vào include, định dạng lại): kiểm `git diff` và trả lại trước khi commit.
 - Máy local có `gh`, `gcloud` (kiểm 2026-10-22) và Docker (dùng cho PoC từ chat02, kiểm lại 2026-10-25). Ghi chú cũ "chưa có Docker" đã lỗi thời.
 - QA trình duyệt không cần Docker: `RUN_QA_FAKE_SERVER=1` chạy `apps/api/test/qa-fake-server.spec.ts` (API cổng 14100, mọi thứ giả) cùng web `NEXT_DIST_DIR=.next-qa API_ORIGIN=http://127.0.0.1:14100 next dev -p 13100`. Không chạy `node dist/main.js` vì nó nạp `.env` thật.
 - Repo chặn `git push` cho Claude (`.claude/settings.json`): chủ dự án tự push và mở PR.
@@ -226,6 +231,13 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Giao diện Ant Design bước 1 (lớp component nền)
+
+- Chủ dự án hỏi thư viện thiết kế; đề xuất và được duyệt Ant Design 6 (xem mục 2). Tạo nhánh `vcworkspace/giao-dien-antd`, cài gói bằng `pnpm add` (lockfile cập nhật theo pnpm, không sửa tay).
+- Viết lại `ui.tsx`, `AppShell`, `ToastProvider`, `DataTable`, `ActionDialog`, `pickers`, thêm `providers/UiProvider.tsx`, root layout dùng `AntdRegistry` + font; `globals.css` bỏ CSS khung/modal/toast/bảng/tabs cũ, giữ CSS trang email, việc nền, cây thư mục, đăng nhập và `.btn/.field` cho trang chưa chuyển.
+- Đã chạy: `pnpm --filter @vcdocs/web typecheck` đạt; `test` 76/76 (sửa 3 file test sang thao tác antd Select); `NEXT_DIST_DIR=.next-antd build` đạt; QA giả bằng trình duyệt (đăng nhập Trưởng phòng MKT mẫu) chụp các trang chính và điện thoại. `pnpm ai:check` đạt (guard 44, contract lint, BE 180/9 skip, FE 76/76).
+- Còn dở: chờ chủ dự án xem rồi mới đi từng module; chưa push (repo chặn), chưa PR.
 
 ### 2026-10-25 · Audit bảo mật theo Cloudflare security-audit skill
 

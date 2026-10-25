@@ -1,6 +1,7 @@
 'use client';
 
 import type { QueryKey } from '@tanstack/react-query';
+import { Typography } from 'antd';
 import { useState, type ReactNode } from 'react';
 import { useAction } from '@/api/queries';
 import { Button, ErrorBox, Modal, TextField } from './ui';
@@ -69,7 +70,7 @@ export function ActionDialog<R>({
         </>
       }
     >
-      {description && <div className="muted">{description}</div>}
+      {description && <Typography.Paragraph type="secondary">{description}</Typography.Paragraph>}
       {children}
       {textLabel && <TextField label={textLabel} value={text} onChange={setText} required={textRequired} multiline hint={textHint} />}
       <ErrorBox error={m.error} />
