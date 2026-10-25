@@ -129,6 +129,17 @@ export class AuthController {
     if (user.status === 'left' || user.isSuspended) return this.fail(res, 'locked');
     const roles = this.oidc.roles(claims.groups);
     const trustedEmail = claims.email_verified === true ? email : binding.email;
+    // Audit 8/12: sau khi lifecycle đã commit, app là nguồn sự thật cho email và vai trò. Token chưa hội tụ về
+    // projection (IdP chưa được cập nhật hoặc bị sửa ngoài coordinator) thì chặn, không âm thầm khôi phục quyền đã hạ.
+    if (binding.projectionRevision != null) {
+      const projectedRoles = this.oidc.roles(binding.groups || []);
+      const sameRoles = JSON.stringify([...roles].sort()) === JSON.stringify([...projectedRoles].sort());
+      if (trustedEmail !== binding.email || !sameRoles) {
+        this.log.warn(`OIDC login bị chặn: token lệch projection lifecycle r${binding.projectionRevision} của subject ${claims.sub}`);
+        await this.audit.write({ companyId, userId: String(user._id), email: user.email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, { action: 'auth.oidc.projection_mismatch', objectType: 'user', objectId: String(user._id), after: { subject: claims.sub, projectionRevision: binding.projectionRevision, emailMatches: trustedEmail === binding.email, rolesMatch: sameRoles } });
+        return this.fail(res, 'locked');
+      }
+    }
     await this.db.m.User.updateOne({ _id: user._id, companyId: cid }, { $set: { email: trustedEmail, name: claims.name || user.name, systemRoles: roles, lastLoginAt: new Date(), isSuspended: false } });
     await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid }, { $set: { email: trustedEmail, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() } });
     // Audit 7/12: user mới hoặc email vừa đổi lấy lại địa chỉ mail đang bị alias/hộp thư nhóm giữ.

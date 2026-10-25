@@ -47,6 +47,8 @@ const OidcIdentity = mk({
   active: { type: Boolean, default: true },
   lastSeenAt: { type: Date, required: true },
   projectionPendingRevision: Number,
+  /** Revision lifecycle cuối đã commit: từ đó email/vai trò ở app là nguồn sự thật, token IdP phải khớp (audit 8/12). */
+  projectionRevision: Number,
 });
 // Một danh tính upstream không bao giờ được bind sang hai tenant.
 OidcIdentity.index({ issuer: 1, subject: 1 }, { unique: true });

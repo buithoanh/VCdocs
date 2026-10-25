@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 8/12 — production không chạy lifecycle giả, OIDC không đè projection
+
+- Nhánh `claude/audit-fix-08-lifecycle-fake-prod-6561dc` (cắt từ nhánh 7/12). Fingerprint `m01-auth/identity-lifecycle/fake-port-allowed-in-production` **tái hiện được**: production OIDC không đặt `IDENTITY_LIFECYCLE_MODE` vẫn khởi động với cổng giả; R9 hạ quyền qua lifecycle báo `done`, đăng nhập OIDC lại với nhóm IdP cũ lấy lại R9; email đổi qua lifecycle bị token email cũ đè.
+- Sửa: mode `disabled` mới (mặc định production, route lifecycle trả 503 trước khi tạo operation); `fake` ở production ném lỗi khi khởi động; `commitApp` ghi `OidcIdentity.projectionRevision`, OIDC callback chặn `loi=locked` + audit `auth.oidc.projection_mismatch` khi token lệch email/vai trò đã commit. Test mới `test/identity-lifecycle-fake-prod.e2e-spec.ts` (trước 6 fail, sau 6 pass). Cập nhật hai file mẫu biến môi trường. Không đổi hợp đồng. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 4 đầu mối audit còn lại (phiên 9/12 cắt từ nhánh này); chủ dự án kiểm `AUTH_MODE`/`IDENTITY_LIFECYCLE_MODE` trên máy chủ; production chưa có cổng lifecycle thật; chưa chạy `ai:check:full`.
+
 ### 2026-10-25 · Sửa audit 7/12 — địa chỉ mail nội bộ không tự chiếm được
 
 - Nhánh `claude/audit-fix-07-address-claim-0a082f` (cắt từ nhánh 6/12). Fingerprint `mail-basic/self-service-address-claim` **tái hiện được**: `tp.mkt` tạo alias `newhire@`, người mới đăng nhập thì thư tới `newhire@` vào hộp `tp.mkt` và `tp.mkt` gửi được dưới tên `newhire@`; `nv.mkt` tạo được hộp nhóm `hr@`.

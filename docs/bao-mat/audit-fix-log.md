@@ -5,6 +5,54 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 8/12 — Production chấp nhận cổng identity-lifecycle giả
+
+- **Fingerprint:** `m01-auth/identity-lifecycle/fake-port-allowed-in-production`.
+- **Nhánh:** `claude/audit-fix-08-lifecycle-fake-prod-6561dc` (cắt từ `claude/audit-fix-07-address-claim-0a082f`, commit 0075629).
+- **Kết luận:** lỗi **có thật** ở mã nguồn, đã tái hiện bằng harness Jest với OIDC giả (JWKS ký RSA trong test) và cổng lifecycle giả. Chưa biết production có chạy `AUTH_MODE=oidc` không (không đọc file môi trường trên máy chủ); mẫu `deploy/api.env.example` dùng Google.
+
+### Tái hiện trước khi sửa
+
+Test hồi quy `apps/api/test/identity-lifecycle-fake-prod.e2e-spec.ts` (6 ca), trước khi sửa `Tests: 6 failed, 6 total`:
+
+1. `production OIDC không đặt IDENTITY_LIFECYCLE_MODE thì không rơi về cổng giả`: `loadConfig` với cấu hình production hợp lệ khác (OIDC, HTTPS, `COOKIE_SECURE=true`, storage nextcloud, mail stalwart, khoá editor 40 byte) **không ném lỗi**, mode = `fake`.
+2. `production đặt tường minh IDENTITY_LIFECYCLE_MODE=fake bị chặn khi khởi động`: không ném lỗi (cả OIDC lẫn Google).
+3. `production Google hiện tại vẫn khởi động được, lifecycle tắt`: mode = `fake` (mong `disabled`).
+4. `POST trả 503, không tạo operation…`: mode `disabled` chưa tồn tại, `loadConfig` từ chối.
+5. `R9 bị hạ quyền không lấy lại R9 khi đăng nhập lại với nhóm IdP cũ`: subject S đăng nhập với nhóm `vcw-admin` → `systemRoles ['R9']`; `it` (R9) `POST /identity/lifecycle-operations {groups: [], active: true}` → `status: done`, `systemRoles []`; S đăng nhập lại với cùng nhóm `vcw-admin` → **`systemRoles ['R9']`** và 302 về `/bo-nho`.
+6. `email đổi qua lifecycle không bị email cũ trong token đè lại`: operation đổi email thành `renamed.admin@` báo `done`; đăng nhập với token email cũ ghi lại **`demoted.admin@`**.
+
+### Cách sửa
+
+Giả định và lựa chọn:
+
+- **Mode mới `disabled`, mặc định ở production.** Chưa có cổng lifecycle dùng được ngoài máy local (`local` chỉ cho loopback/localtest.me). Ném lỗi khi thiếu biến sẽ làm production Google hiện tại không khởi động (mẫu deploy không đặt biến này), nên chọn mặc định an toàn: `NODE_ENV=production` không đặt biến → `disabled`. Đặt tường minh `fake` ở production → `loadConfig` ném lỗi (fail-fast, cùng khối với storage/mail giả). Dev/test giữ mặc định `fake`.
+- **`disabled` từ chối trước khi có tác dụng phụ.** `IdentityLifecycleService.create`/`reconcile` trả 503 `STORAGE_UNAVAILABLE` (đã có trong hợp đồng của hai route) trước khi tạo operation hay chạy `app-deny`, để không khoá user ở app rồi bỏ dở. `M01Module` cấp `DisabledIdentityLifecyclePort` (mọi bước upstream ném `IDENTITY_LIFECYCLE_DISABLED`) cho `disabled` và cả khi `fake` lọt vào production qua override: không đường nào báo `done` mà không chạm upstream.
+- **Sau khi lifecycle commit, app là nguồn sự thật; token phải khớp, lệch thì chặn.** `commitApp` ghi `OidcIdentity.projectionRevision` (trường mới). Ở `oidcCallback`, binding có `projectionRevision` mà email đã verified trong token khác `binding.email`, hoặc vai trò suy từ nhóm token khác vai trò suy từ `binding.groups`, thì trả `loi=locked`, không ghi gì vào `User`/binding, ghi audit `auth.oidc.projection_mismatch` (`emailMatches`, `rolesMatch`) và log cảnh báo. Chọn chặn thay vì lấy giao vì đơn giản, không âm thầm hạ hay nâng quyền, và với cổng thật thì token đã hội tụ (Authentik đọc lại khớp desired) nên không cản đăng nhập bình thường. So theo vai trò, không theo toàn bộ nhóm, để nhóm Authentik không map vai trò không khoá người dùng. Binding chưa từng qua lifecycle giữ hành vi cũ (IdP là nguồn).
+  - Hệ quả: nếu quản trị sửa nhóm/email thẳng trên Authentik sau một operation, người dùng bị khoá đăng nhập đến khi R9 tạo operation mới khớp IdP.
+
+### Biến môi trường
+
+`IDENTITY_LIFECYCLE_MODE` nhận `fake | local | disabled`. `deploy/api.env.example` thêm `IDENTITY_LIFECYCLE_MODE=disabled` kèm chú thích; `apps/api/.env.example` cập nhật chú thích. Không có giá trị bí mật.
+
+### Hợp đồng
+
+Không sửa `contract/openapi.yaml`: 503 đã khai báo cho `POST /identity/lifecycle-operations` và `/{id}/reconcile`.
+
+### Việc của chủ dự án
+
+- Kiểm trên máy chủ (không chia sẻ giá trị) `AUTH_MODE` và `IDENTITY_LIFECYCLE_MODE`. Nếu đã chạy OIDC với lifecycle giả: các operation `done` trước đây chưa chạm Authentik/Nextcloud, cần rà trong Authentik/Nextcloud tài khoản đã "khoá" hay "hạ quyền" còn hoạt động không. Binding commit trước bản sửa không có `projectionRevision`, nên chưa được bảo vệ cho tới operation kế tiếp.
+- Production muốn dùng lifecycle cần một cổng thật cho Authentik/Nextcloud ngoài localtest (chưa có; ngoài phạm vi phiên này).
+
+### Sau khi sửa
+
+- `test/identity-lifecycle-fake-prod.e2e-spec.ts`: `Tests: 6 passed, 6 total`.
+- `identity-lifecycle`, `identity-lifecycle-pagination`, `oidc-auth`, `review-fixes`, `m01-auth`, `mail-address-claim`: `Tests: 1 skipped, 48 passed, 49 total` (`oidc-browser-server.spec.ts` tự bỏ qua khi không bật biến chạy browser).
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 281 passed, 290 total`, độ phủ hợp đồng 145/145 (chạy trước khi viết tài liệu; sau đó chỉ sửa tài liệu).
+- Chưa chạy `pnpm ai:check:full`, chưa thử với Authentik/Nextcloud thật.
+
+---
+
 ## 2026-10-25 · Đầu mối 7/12 — Ai đăng nhập cũng chiếm được địa chỉ nội bộ bằng alias hoặc hộp thư nhóm
 
 - **Fingerprint:** `mail-basic/self-service-address-claim`.

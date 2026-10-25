@@ -26,6 +26,14 @@ export class FakeIdentityLifecyclePort implements IdentityLifecyclePort {
   async readNextcloud(subject: string) { const row = this.nextcloud.get(subject); if (!row) throw new Error('NEXTCLOUD_READBACK_MISSING'); return row; }
 }
 
+/** Không có cổng thật: mọi bước upstream fail-closed để không bước nào được đánh dấu done. */
+export class DisabledIdentityLifecyclePort implements IdentityLifecyclePort {
+  async applyAuthentik(): Promise<void> { throw new Error('IDENTITY_LIFECYCLE_DISABLED'); }
+  async readAuthentik(): Promise<never> { throw new Error('IDENTITY_LIFECYCLE_DISABLED'); }
+  async applyNextcloud(): Promise<void> { throw new Error('IDENTITY_LIFECYCLE_DISABLED'); }
+  async readNextcloud(): Promise<never> { throw new Error('IDENTITY_LIFECYCLE_DISABLED'); }
+}
+
 export class LocalIdentityLifecyclePort implements IdentityLifecyclePort {
   constructor(private readonly cfg: AppConfig['identityLifecycle']) {}
 

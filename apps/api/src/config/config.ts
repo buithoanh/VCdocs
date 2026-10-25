@@ -23,7 +23,8 @@ export interface AppConfig {
     projectionMaxAgeSeconds: number;
   };
   identityLifecycle: {
-    mode: 'fake' | 'local';
+    /** disabled: route lifecycle trả 503, không có cổng nào chạm Authentik/Nextcloud (mặc định production). */
+    mode: 'fake' | 'local' | 'disabled';
     authentikBaseUrl?: string;
     authentikToken?: string;
     nextcloudBaseUrl?: string;
@@ -157,7 +158,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       projectionMaxAgeSeconds: num(env.OIDC_PROJECTION_MAX_AGE_SECONDS, 300),
     },
     identityLifecycle: {
-      mode: (env.IDENTITY_LIFECYCLE_MODE || 'fake') as 'fake' | 'local',
+      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'disabled',
       authentikBaseUrl: env.IDENTITY_AUTHENTIK_BASE_URL,
       authentikToken: env.IDENTITY_AUTHENTIK_TOKEN,
       nextcloudBaseUrl: env.IDENTITY_NEXTCLOUD_BASE_URL,
@@ -241,7 +242,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       throw new Error('OIDC production bắt buộc HTTPS cho issuer/API/web và COOKIE_SECURE=true');
     }
   }
-  if (!['fake', 'local'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake hoặc local');
+  if (!['fake', 'local', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local hoặc disabled');
   if (cfg.identityLifecycle.mode === 'local') {
     const i = cfg.identityLifecycle;
     if (!i.authentikBaseUrl || !i.authentikToken || !i.nextcloudBaseUrl || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlUrl || !i.nextcloudControlToken) {
@@ -260,6 +261,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     // Bản giả/khoá mặc định chỉ dành cho local/test; production phải cấu hình tường minh.
     if (cfg.workspaceStorage.mode === 'fake') throw new Error('Không được chạy WORKSPACE_STORAGE_MODE=fake ở production');
     if (cfg.mailEngine.mode === 'fake') throw new Error('Không được chạy MAIL_ENGINE_MODE=fake ở production');
+    // Cổng giả báo done mà không chạm Authentik/Nextcloud; lần đăng nhập OIDC sau sẽ lấy lại quyền từ IdP (audit 8/12).
+    if (cfg.identityLifecycle.mode === 'fake') throw new Error('Không được chạy IDENTITY_LIFECYCLE_MODE=fake ở production');
     if (cfg.documentEditor.enabled && (cfg.documentEditor.jwtSecret === DEFAULT_EDITOR_SECRET || Buffer.byteLength(cfg.documentEditor.jwtSecret) < 32)) {
       throw new Error('DOCUMENT_EDITOR_JWT_SECRET phải đặt riêng, tối thiểu 32 byte ở production');
     }

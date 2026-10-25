@@ -4,6 +4,7 @@ import { AuditService } from '../../audit/audit.service';
 import { Ctx } from '../../common/context';
 import { Errors } from '../../common/errors';
 import { randomToken, sha256 } from '../../common/util';
+import { APP_CONFIG, AppConfig } from '../../config/config';
 import { Db } from '../../db/db.service';
 import { OidcService } from './oidc.service';
 import { MailBasicService } from '../mail-basic/mail-basic.service';
@@ -13,13 +14,19 @@ const STEP_NAMES = ['app-deny', 'authentik', 'nextcloud', 'app-commit'] as const
 
 @Injectable()
 export class IdentityLifecycleService {
-  constructor(private readonly db: Db, private readonly oidc: OidcService, private readonly audit: AuditService, @Inject(IDENTITY_LIFECYCLE_PORT) private readonly port: IdentityLifecyclePort, private readonly mail: MailBasicService) {}
+  constructor(private readonly db: Db, private readonly oidc: OidcService, private readonly audit: AuditService, @Inject(IDENTITY_LIFECYCLE_PORT) private readonly port: IdentityLifecyclePort, private readonly mail: MailBasicService, @Inject(APP_CONFIG) private readonly cfg: AppConfig) {}
+
+  /** Không có cổng thật thì từ chối trước khi app-deny khoá user, thay vì báo done chỉ ở app (audit 8/12). */
+  private assertEnabled() {
+    if (this.cfg.identityLifecycle.mode === 'disabled') throw Errors.storageUnavailable('Identity lifecycle chưa cấu hình cổng Authentik/Nextcloud; thao tác tại IdP rồi người dùng đăng nhập lại');
+  }
 
   private api(row: any) {
     return { id: String(row._id), subject: row.subject, subjectRevision: row.subjectRevision, desired: row.desired, status: row.status, steps: row.steps, version: row.version, ...(row.lastError ? { lastError: row.lastError } : {}), ...(row.completedAt ? { completedAt: row.completedAt } : {}), createdAt: row.createdAt, updatedAt: row.updatedAt };
   }
 
   async create(ctx: Ctx, input: any, idempotencyKey?: string) {
+    this.assertEnabled();
     if (!idempotencyKey || idempotencyKey.length < 8 || idempotencyKey.length > 128) throw Errors.validation('Idempotency-Key không hợp lệ');
     const subject = String(input?.subject || '').trim();
     const email = String(input?.email || '').trim().toLowerCase();
@@ -98,6 +105,7 @@ export class IdentityLifecycleService {
   }
 
   async reconcile(ctx: Ctx, id: string) {
+    this.assertEnabled();
     const row = await this.run(ctx, id);
     await this.audit.record(ctx, { action: 'identity.lifecycle.retry', objectType: 'identity_lifecycle_operation', objectId: id, after: { status: row.status } });
     return this.api(row);
@@ -200,7 +208,7 @@ export class IdentityLifecycleService {
     await this.db.m.User.updateOne({ _id: binding.userId, companyId: cid }, { $set: { email: desired.email, systemRoles: roles, isSuspended: !desired.active } });
     if (before?.email !== desired.email) await this.mail.releaseAddressFor({ companyId: String(cid), userId: String(binding.userId) }, desired.email);
     await this.assertFence(cid, desired.subject, revision, leaseToken);
-    const committed = await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid, projectionPendingRevision: revision }, { $set: { email: desired.email, groups: desired.groups, active: desired.active, lastSeenAt: new Date() }, $unset: { projectionPendingRevision: 1 } });
+    const committed = await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid, projectionPendingRevision: revision }, { $set: { email: desired.email, groups: desired.groups, active: desired.active, lastSeenAt: new Date(), projectionRevision: revision }, $unset: { projectionPendingRevision: 1 } });
     if (committed.matchedCount !== 1) throw new Error('APP_BINDING_PENDING_REVISION_MISMATCH');
   }
 }
