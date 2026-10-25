@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-10-25T08:07:48.212Z",
+  "leaverLogin": "BLOCKED",
+  "leaverPage": "ak13.localtest.me:18131/if/flow/default-authentication-flow/",
+  "successorLogin": 200,
+  "deck": {
+    "uiShowsMarker": true,
+    "sessionApiStatus": 200
+  },
+  "tables": {
+    "uiShowsMarker": true,
+    "sessionApiStatus": 200
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

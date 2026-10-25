@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-25T07:20:40.853Z",
+  "marker": "work13-wiki-1792912839221",
+  "resources": {
+    "collectiveId": 2,
+    "circleId": "dR9CpMSAvHJCgRRyVgmFZ1OgVoscnGF",
+    "landingPageId": 524,
+    "pageId": 525,
+    "attachmentId": 527,
+    "memberPagePath": ".Collectives/Team A wiki work13-wiki-1792912839221/Runbook work13-wiki-1792912839221.md"
+  },
+  "manager": {
+    "teamMemberType": "group (federated vcw-team-a)",
+    "teamMemberAdded": true,
+    "sawMemberPage": true,
+    "attachments": 1
+  },
+  "member": {
+    "createdPage": 525,
+    "webdavWrite": true,
+    "attachment": true,
+    "filesComment": 201
+  },
+  "deny": {
+    "manager-b": {
+      "listPages": 404,
+      "readPage": 404,
+      "createPage": 404,
+      "listAttachments": 500,
+      "uploadAttachment": 404,
+      "contentSearch": 404,
+      "webdavMemberPath": 404,
+      "filesComment": 404,
+      "addSelfToTeam": 403,
+      "createShareLink": 404,
+      "listContainsCollective": false
+    },
+    "outsider": {
+      "listPages": 404,
+      "readPage": 404,
+      "createPage": 404,
+      "listAttachments": 500,
+      "uploadAttachment": 404,
+      "contentSearch": 404,
+      "webdavMemberPath": 404,
+      "filesComment": 404,
+      "addSelfToTeam": 403,
+      "createShareLink": 404,
+      "listContainsCollective": false
+    }
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-10-25T08:02:23.953Z",
+  "browser": "Google Chrome headless via CDP, OIDC through Authentik form",
+  "matrix": {
+    "manager-a": {
+      "loginStatus": 200,
+      "uid": "732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622",
+      "collectives": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "deck": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "notes": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "forms": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "tables": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      }
+    },
+    "member-a": {
+      "loginStatus": 200,
+      "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+      "collectives": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "deck": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "notes(files)": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "forms": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      },
+      "tables": {
+        "uiShowsMarker": true,
+        "sessionApiStatus": 200
+      }
+    },
+    "manager-b": {
+      "loginStatus": 200,
+      "uid": "67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2",
+      "collectives": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      },
+      "deck": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 403
+      },
+      "notes": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      },
+      "forms": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 403
+      },
+      "tables": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      }
+    },
+    "outsider": {
+      "loginStatus": 200,
+      "uid": "d165c8b876f880629e77212f98d0fe0e3e478764330a0adc3910e693fd164f80",
+      "collectives": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      },
+      "deck": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 403
+      },
+      "notes": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      },
+      "forms": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 403
+      },
+      "tables": {
+        "uiShowsMarker": false,
+        "sessionApiStatus": 404
+      }
+    }
+  },
+  "screenshots": [
+    "browser-manager-a-deck.png",
+    "browser-manager-a-forms.png",
+    "browser-member-a-deck.png",
+    "browser-member-a-forms.png",
+    "browser-outsider-deck.png",
+    "browser-outsider-forms.png"
+  ],
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

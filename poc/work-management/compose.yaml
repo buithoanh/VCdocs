@@ -1,0 +1,166 @@
+name: vcworkspace-work13
+# Chat 13 Work management PoC. Same pinned digests as chat 12, but new project,
+# volumes, ports and hostnames so chat 02–12B runtimes stay untouched.
+services:
+  nc-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+    secrets: [nc_db_password]
+    volumes: [nc_db:/var/lib/postgresql]
+    networks: [work13]
+
+  nextcloud:
+    image: nextcloud@sha256:431d389fd8e28b2421149cc877df6c54105f1baaee8c77a3c66ff6cf87d7df33
+    platform: linux/arm64
+    restart: "no"
+    depends_on: [nc-db, redis]
+    environment:
+      POSTGRES_HOST: nc-db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+      NEXTCLOUD_ADMIN_USER: admin13
+      NEXTCLOUD_ADMIN_PASSWORD_FILE: /run/secrets/nc_admin_password
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost nextcloud nc13.localtest.me
+      REDIS_HOST: redis
+      PHP_MEMORY_LIMIT: 512M
+    secrets: [nc_db_password, nc_admin_password, oidc_nc_client_secret]
+    volumes:
+      - nextcloud:/var/www/html
+      - ./apache-keepalive-off.conf:/etc/apache2/conf-enabled/zz-work13-keepalive-off.conf:ro
+    networks: [work13]
+    cpus: 2.0
+    mem_limit: 2g
+
+  redis:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["--save", "60", "1", "--loglevel", "warning"]
+    volumes: [redis:/data]
+    networks: [work13]
+
+  ak-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD_FILE: /run/secrets/ak_db_password
+    secrets: [ak_db_password]
+    volumes: [ak_db:/var/lib/postgresql]
+    networks: [work13]
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server@sha256:c0ce79a3fc4533045bfd203254d0c2f71a871d8607a3412f181da247b542e3a1
+    platform: linux/arm64
+    restart: "no"
+    command: server
+    depends_on: [ak-db, redis]
+    environment: &ak_env
+      AUTHENTIK_POSTGRESQL__HOST: ak-db
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/ak_db_password
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_REDIS__DB: "1"
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/ak_secret_key
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_LISTEN__HTTP: 0.0.0.0:18131
+    secrets: [ak_db_password, ak_secret_key]
+    volumes: [ak_media:/media, ak_templates:/templates]
+    networks:
+      work13:
+        aliases: [ak13.localtest.me]
+    cpus: 2.0
+    mem_limit: 1536m
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server@sha256:c0ce79a3fc4533045bfd203254d0c2f71a871d8607a3412f181da247b542e3a1
+    platform: linux/arm64
+    restart: "no"
+    command: worker
+    depends_on: [ak-db, redis]
+    environment: *ak_env
+    env_file: ./secrets/authentik-bootstrap.env
+    secrets: [ak_db_password, ak_secret_key]
+    volumes: [ak_media:/media, ak_templates:/templates, ak_certs:/certs]
+    networks: [work13]
+    cpus: 1.0
+    mem_limit: 1536m
+
+  # Webhook sink for the chat 14 event probe: internal network only, writes the
+  # raw HTTP requests it receives to tmpfs, answers 200 and carries no secret.
+  hook-sink:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    # busybox nc -lk -e: one handler per connection; it logs headers + body
+    # (Content-Length bytes) and answers 200. $$ escapes compose interpolation.
+    entrypoint:
+      - nc
+      - -lk
+      - -p
+      - "8080"
+      - -e
+      - sh
+      - -c
+      - >-
+        f=/sink/requests.log; len=0;
+        while IFS= read -r line; do printf '%s\n' "$$line" >> $$f; l=$$(printf '%s' "$$line" | tr -d '\r');
+        [ -z "$$l" ] && break; case "$$l" in [Cc]ontent-[Ll]ength:*) len=$${l#*: };; esac; done;
+        [ "$$len" -gt 0 ] && head -c "$$len" >> $$f; printf '\n--END--\n' >> $$f;
+        printf 'HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok'
+    tmpfs: [/sink]
+    read_only: true
+    cap_drop: [ALL]
+    networks: [work13]
+
+  nextcloud-loopback-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18130", "-e", "nc", "nextcloud", "80"]
+    depends_on: [nextcloud]
+    ports: ["127.0.0.1:18130:18130"]
+    # Alias on the relay so in-network callers (circles loopback, cron) reach
+    # the same public URL nc13.localtest.me:18130 as the browser.
+    networks:
+      work13:
+        aliases: [nc13.localtest.me]
+      host_edge: {}
+    read_only: true
+    cap_drop: [ALL]
+
+  authentik-loopback-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18131", "-e", "nc", "authentik-server", "18131"]
+    depends_on: [authentik-server]
+    ports: ["127.0.0.1:18131:18131"]
+    networks: [work13, host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+networks:
+  work13:
+    internal: true
+  host_edge: {}
+
+volumes:
+  nc_db: {name: vcworkspace_work13_nc_db_pg18}
+  nextcloud: {name: vcworkspace_work13_nextcloud}
+  redis: {name: vcworkspace_work13_redis}
+  ak_db: {name: vcworkspace_work13_ak_db_pg18}
+  ak_media: {name: vcworkspace_work13_ak_media}
+  ak_templates: {name: vcworkspace_work13_ak_templates}
+  ak_certs: {name: vcworkspace_work13_ak_certs}
+
+secrets:
+  nc_db_password: {file: ./secrets/nc_db_password}
+  nc_admin_password: {file: ./secrets/nc_admin_password}
+  ak_db_password: {file: ./secrets/ak_db_password}
+  ak_secret_key: {file: ./secrets/ak_secret_key}
+  oidc_nc_client_secret: {file: ./secrets/oidc_nc_client_secret}

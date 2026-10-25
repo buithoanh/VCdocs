@@ -26,7 +26,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BE mới: `drive-basic` (Drive, version/trash/restore, DOCX/XLSX/PPTX qua ONLYOFFICE), `mail-basic` (Stalwart: gửi/nhận, MIME, nhãn/lọc/alias/hộp chung, offboard), `workspace-interop` (đính kèm mail → Drive, gửi bản Drive), `m01-auth` thêm OIDC + identity lifecycle (journal/CAS/Idempotency-Key, app→Authentik→Nextcloud). FE mới: `/drive`, `/email` (bố cục kiểu Outlook), `/bo-nho`; đăng nhập OIDC. Google cũ vẫn giữ.
   - PoC chạy local: Nextcloud 33, ONLYOFFICE 9.4, Stalwart 0.16, Authentik 2026.8 (`poc/`).
   - Gate cuối 2026-10-25 sau sửa review (chạy trên `vcworkspace/chat01-12b`): guard 44, BE 180 (9 skip), endpoint 145/145, FE đạt, typecheck/build đạt.
-  - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần) và Admin/SSO; **chưa làm** Sync desktop/mobile, Talk, Work management (chat13 chờ duyệt), Flow, Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
+  - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần), Admin/SSO và Work management (chat13, 2026-10-25); **chưa làm** Sync desktop/mobile, Talk, Flow (chat14 kế tiếp), Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
 - **Trạng thái VCdocs cũ:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (API kiểm 2026-10-23: public; tên repo chưa đổi), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
@@ -65,7 +65,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 - [ ] **Sửa 15 lỗi còn mở sau review (O1–O15):** ưu tiên O1–O4 (lưu ONLYOFFICE, OIDC đăng xuất sau 5 phút, quyền hộp thư) trước pilot; cần runtime thật trên Docker.
 
-- [ ] **Chat13 Work management (chủ dự án giao mở 2026-10-25; chat 14–21 mở lần lượt sau):** Deck/Notes/Forms/Tables/Collectives trong stack thử riêng, hai nhóm giả, kiểm quyền/ownership/export/restore/browser/API. Chưa có chat13 đang làm; không deploy hoặc chuyển Google thật.
+- [x] **Chat13 Work management LOCAL PASS (2026-10-25):** nhánh `claude/chat13-work-management-d67500`, stack riêng `poc/work-management/` (NC 33.0.10, Deck 1.17.8, Notes 6.1.0, Forms 5.4.1, Tables 2.3.2, Collectives 4.7.1, OIDC Authentik, 6 persona hai phòng + outsider). Share/ACL/comment/attachment, deny UI+API, tìm kiếm, export, chuyển sở hữu/offboard, restart, backup/restore có ACL đều LOCAL PASS (N/A: comment Forms/Tables, attachment Tables). Event cho Flow: Forms/Tables/Files có, Deck không; `userIdFilter` không bắn với API app password. Bàn giao `docs/ke-hoach/vcworkspace-13-ban-giao-work-management.md`. Chưa push.
+- [ ] **Chat14 Flow (chờ điều phối mở):** đề xuất phạm vi ở mục 9 bàn giao chat13: receiver NestJS cho `webhook_listeners` (eventFilter, idempotency, readback), ba flow Form→Deck / Tables→thông báo / file→tag, Deck chỉ làm đích hoặc polling.
 
 - [x] **Chat12B tích hợp OIDC vào app thật hoàn tất LOCAL sau review (2026-10-24):** OpenAPI
   `2.3.0-gd2`; `apps/web`→Authentik→`apps/api` browser tạo session manager R4,
@@ -215,6 +216,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - (Audit 11/12, 2026-10-25) Đăng ký ngược (`/records/claim`) sang drive khác giờ chỉ cho trưởng phòng nguồn hoặc Quản lý drive nguồn (theo BA dòng 528); người tạo là Đóng góp phải nhờ trưởng phòng. Giữ vậy? Và trên Workspace thử: phiên bản đầu (`revisions.list`) của file shared drive có đúng người tạo không (Docs và file tải lên), lệch bao lâu so với `createdTime`.
 - (Audit 12/12, 2026-10-25) Mail engine production có nhận thư vào hộp `@vcworkspace.test` từ ngoài API không (SMTP internet, SMTP/IMAP APPEND từ client khác)? Engine có tự thêm Message-ID không? Hiện thư thiếu Message-ID ở header bị bỏ qua, không hiện trong VCworkspace.
 
+- (Chat13, 2026-10-25) Flow có cần Deck làm **nguồn** sự kiện (thẻ mới/đổi cột kích hoạt việc khác) không? Deck 1.17.8 không phát event webhook; nếu cần phải polling API/Activity hoặc viết app riêng. Nếu chỉ cần Deck làm đích (Form → thẻ) thì chat14 không vướng.
+- (Chat13, 2026-10-25) Note dùng chung của phòng nên đặt ở Notes cá nhân + share (người nhận không thấy trong app Notes, chỉ thấy qua Files), hay chuyển sang Collectives làm wiki phòng? Đề xuất: Collectives cho tài liệu chung, Notes cho ghi chú cá nhân.
+
 ## 5. Lưu ý & bài học
 
 - Máy local có `gh`, `gcloud` (kiểm 2026-10-22) và Docker (dùng cho PoC từ chat02, kiểm lại 2026-10-25). Ghi chú cũ "chưa có Docker" đã lỗi thời.
@@ -228,7 +232,19 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `vcdocs_that` (2026-10-20) mới có bản ghi công ty và 1 người: chưa chạy `nap-so-do` nên chưa có phòng. Mongo local của phiên chính chạy ở cổng 27019.
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
+- Probe deny hàng loạt kích hoạt brute-force protection của Nextcloud (cuối cùng HTTP 500). Test reset bằng `occ security:bruteforce:reset <IP relay>`; production sau reverse proxy phải có `trusted_proxies`.
+- Relay busybox `nc` của PoC làm Chrome treo với keep-alive; PoC chat13 tắt KeepAlive. Không dùng relay này cho môi trường thật.
+- Restore Nextcloud từ `pg_dump`: phải tạo lại role DB `oc_admin` do installer sinh (role nằm ngoài dump).
+
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Chat13 Work management — LOCAL PASS
+
+- Nhánh `claude/chat13-work-management-d67500` (cắt từ 98f8025, audit 12/12). Stack mới `vcworkspace-work13` cổng 18130/18131 (restore 18133), volume riêng, mạng internal, không đụng runtime chat02–12B. Kiểm App Store API cho NC 33.0.10 ngay trước cài: Forms stable mới là 5.4.1 (lộ trình ghi 5.3.6), user_oidc 8.11.0; integrity PASS.
+- 6 persona OIDC qua Chrome headless (manager-a, member-a, successor-a, manager-b, member-b, outsider). Acceptance 5 app bằng API (app password) và UI trình duyệt; tìm kiếm 14 provider không lộ chéo; event probe; restart 9 container; export; backup/restore sang stack riêng có readback ACL; offboard manager-a → successor-a. Bằng chứng `poc/work-management/evidence/`, bàn giao `docs/ke-hoach/vcworkspace-13-ban-giao-work-management.md`.
+- Phát hiện: Deck không có event webhook; `userIdFilter` không bắn với API app password (dùng `eventFilter`); Forms webhook không kèm câu trả lời; Tables lộ tồn tại row ID (403/404); Collectives trả 500 cho người ngoài liệt kê attachment; brute-force throttle khi probe; relay keep-alive.
+- Không sửa `apps/`, không đổi hợp đồng. `pnpm ai:check` PASS (changed gate 65 file, guard 44/44; không có mã `apps/` đổi nên gate không chạy BE/FE). Chưa chạy `ai:check:full` (không cần cho thay đổi PoC/tài liệu).
+- Còn dở: OIDC login trên bản restore NOT_TESTED; manager-a để ở trạng thái đã offboard; chưa push. Stack work13 còn chạy, restore đã stop (giữ volume).
 
 ### 2026-10-25 · Sửa audit 12/12 — client IMAP tách phản hồi theo literal `{N}`
 

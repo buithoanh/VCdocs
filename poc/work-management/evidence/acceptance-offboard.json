@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-10-25T08:06:45.084Z",
+  "leaver": "manager-a",
+  "successor": "successor-a",
+  "steps": {
+    "before": {
+      "successorEditsBoardTitle": 403,
+      "successorReadsAllFormResults": false
+    },
+    "transfer": {
+      "deck": "occ deck:transfer-ownership --remap",
+      "tables": "occ tables:owner",
+      "forms": "owner API PATCH ownerId",
+      "collectives": "team member + level 9 (owner) via circles API",
+      "files": [
+        "",
+        "Transferred folder have a size difference of: 752 Bytes which means the transfer may be incomplete. Please check the logs if there was any issue during the transfer operation."
+      ]
+    },
+    "offboard": {
+      "authentikDisabled": true,
+      "authentikSessionsDeleted": 0,
+      "nextcloudDisabled": true,
+      "tokensRevoked": 27,
+      "tokensRemaining": 0
+    }
+  },
+  "readback": {
+    "leaver": {
+      "appPasswordApi": 401,
+      "deckBoard": 401
+    },
+    "successor": {
+      "deckOwner": true,
+      "deckEditBoard": 200,
+      "tablesOwner": true,
+      "formsOwner": true,
+      "formsSeesAllResults": true,
+      "wikiPageRead": true,
+      "teamOwner": true,
+      "noteTransferredPath": "Chuyển từ 732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622 tại 2026-10-25 08-06-36/Ghi chép/TeamA-work13-notes-1792912618251/Meeting work13-notes-1792912618251.md",
+      "noteRead": 200,
+      "noteContent": true
+    },
+    "member": {
+      "deck": 200,
+      "sharedNote": 200,
+      "form": 200,
+      "tableRows": 200,
+      "wikiPage": 200
+    },
+    "outsider": {
+      "deck": 403,
+      "form": 403,
+      "table": 404,
+      "wikiPage": 404
+    }
+  },
+  "problems": [],
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

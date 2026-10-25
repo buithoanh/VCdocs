@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-10-25T07:19:01.058Z",
+  "marker": "work13-forms-1792912739432",
+  "resources": {
+    "formId": 4,
+    "hash": "FRFDdseeTr8GSmX4",
+    "textQuestionId": 7,
+    "fileQuestionId": 8,
+    "shareId": 4
+  },
+  "manager": {
+    "shareTo": "vcw-team-a (federated id)",
+    "sharePermissions": [
+      "submit"
+    ],
+    "resultsCount": 2,
+    "csvExportBytes": 517
+  },
+  "member": {
+    "readForm": 200,
+    "uploadedFiles": 1,
+    "submit": 201,
+    "listSubmissionsScopedToOwn": true,
+    "exportCsv": 403
+  },
+  "deny": {
+    "manager-b": {
+      "readForm": 403,
+      "readQuestions": 403,
+      "submit": 403,
+      "upload": 403,
+      "readResults": 403,
+      "exportCsv": 403,
+      "editForm": 403,
+      "addShare": 403,
+      "sharedListContainsForm": false
+    },
+    "outsider": {
+      "readForm": 403,
+      "readQuestions": 403,
+      "submit": 403,
+      "upload": 403,
+      "readResults": 403,
+      "exportCsv": 403,
+      "editForm": 403,
+      "addShare": 403,
+      "sharedListContainsForm": false
+    }
+  },
+  "comments": "N/A: Forms has no comment feature; collaboration is through result sharing permissions.",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

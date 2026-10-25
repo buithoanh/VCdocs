@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-10-25T07:21:18.632Z",
+  "providers": [
+    "collectives",
+    "collectives-pages",
+    "collectives-page-content",
+    "notes",
+    "files",
+    "systemtags",
+    "circles",
+    "comments",
+    "search-deck-card-board",
+    "search-deck-comment",
+    "tables-search-tables",
+    "forms",
+    "settings_apps",
+    "settings"
+  ],
+  "matrix": {
+    "manager-a": {
+      "deck": [
+        "files:1",
+        "search-deck-card-board:2",
+        "search-deck-comment:1"
+      ],
+      "notes": [
+        "notes:1",
+        "files:3",
+        "comments:1"
+      ],
+      "forms": [
+        "files:3",
+        "forms:1"
+      ],
+      "tables": [
+        "tables-search-tables:1"
+      ],
+      "collectives": [
+        "collectives:1",
+        "collectives-pages:1",
+        "collectives-page-content:2",
+        "files:2",
+        "circles:1",
+        "comments:1"
+      ]
+    },
+    "member-a": {
+      "deck": [
+        "files:1",
+        "search-deck-card-board:2",
+        "search-deck-comment:1"
+      ],
+      "notes": [
+        "files:3",
+        "comments:1"
+      ],
+      "forms": [
+        "forms:1"
+      ],
+      "tables": [
+        "tables-search-tables:1"
+      ],
+      "collectives": [
+        "collectives:1",
+        "collectives-pages:1",
+        "collectives-page-content:2",
+        "files:2",
+        "circles:1",
+        "comments:1"
+      ]
+    },
+    "manager-b": {
+      "deck": [],
+      "notes": [],
+      "forms": [],
+      "tables": [],
+      "collectives": []
+    },
+    "outsider": {
+      "deck": [],
+      "notes": [],
+      "forms": [],
+      "tables": [],
+      "collectives": []
+    }
+  },
+  "coverage": {
+    "deck": {
+      "owner": true,
+      "member": true
+    },
+    "notes": {
+      "owner": true,
+      "member": true
+    },
+    "forms": {
+      "owner": true,
+      "member": true
+    },
+    "tables": {
+      "owner": true,
+      "member": true
+    },
+    "collectives": {
+      "owner": true,
+      "member": true
+    }
+  },
+  "denyLeaks": [],
+  "result": "LOCAL PASS for no cross-team leak; coverage per app is reported, not assumed",
+  "secretsIncluded": false
+}
