@@ -1,0 +1,44 @@
+name: vcworkspace-flow14
+# Chat 14 Flow overlay on the running chat13 stack (project vcworkspace-work13).
+# Adds no volume of its own and never recreates work13 services:
+# - webhook-worker: dedicated `occ background-job:worker` for webhook_listeners
+#   (WebhookCall jobs) instead of waiting for cron.php; same image digest and
+#   same Nextcloud volume, internal network only, no secret mounted.
+# - flow-receiver-relay: the only path from the internal network to the NestJS
+#   receiver, which listens on the host loopback 127.0.0.1:18140.
+services:
+  webhook-worker:
+    image: nextcloud@sha256:431d389fd8e28b2421149cc877df6c54105f1baaee8c77a3c66ff6cf87d7df33
+    platform: linux/arm64
+    restart: unless-stopped
+    user: www-data
+    # Not apache2-foreground/php-fpm, so the image entrypoint skips install/upgrade.
+    entrypoint: ["php", "/var/www/html/occ", "--no-ansi", "background-job:worker", "--interval=1", "--stop_after=12h", "OCA\\WebhookListeners\\BackgroundJobs\\WebhookCall"]
+    volumes: [work13_nextcloud:/var/www/html]
+    networks: [work13]
+    cpus: 0.5
+    mem_limit: 512m
+
+  flow-receiver-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "8080", "-e", "nc", "host.docker.internal", "18140"]
+    networks:
+      work13:
+        aliases: [flow-receiver-relay]
+      host_edge: {}
+    read_only: true
+    cap_drop: [ALL]
+
+networks:
+  work13:
+    external: true
+    name: vcworkspace-work13_work13
+  host_edge:
+    external: true
+    name: vcworkspace-work13_host_edge
+
+volumes:
+  work13_nextcloud:
+    external: true
+    name: vcworkspace_work13_nextcloud

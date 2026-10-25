@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-10-25T08:20:05.951Z",
+  "apps": {
+    "workflowengine": "2.15.0",
+    "webhook_listeners": "1.5.0",
+    "systemtags": "1.23.0",
+    "forms_deck": "0.7.0",
+    "files_automatedtagging": "4.0.1",
+    "files_accesscontrol": "4.0.2"
+  },
+  "pinnedFromPreflight": {
+    "forms_deck": "0.7.0",
+    "files_automatedtagging": "4.0.1",
+    "files_accesscontrol": "4.0.2"
+  },
+  "integrity": {
+    "forms_deck": "PASS",
+    "files_automatedtagging": "PASS",
+    "files_accesscontrol": "PASS"
+  },
+  "workflowScript": "NOT_INSTALLED",
+  "deprecated": {
+    "externalAppFlow": "không dùng",
+    "windmill": "không dùng"
+  },
+  "secretsIncluded": false
+}

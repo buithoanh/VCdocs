@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-10-25T08:26:00.263Z",
+  "tags": {
+    "flow14-hoso": {
+      "id": 1,
+      "access": "restricted"
+    },
+    "flow14-mat": {
+      "id": 2,
+      "access": "restricted"
+    }
+  },
+  "reviewersGroup": {
+    "name": "flow14-reviewers",
+    "members": [
+      "successor-a"
+    ]
+  },
+  "rules": [
+    {
+      "id": 1,
+      "name": "flow14-tag-hoso",
+      "class": "OCA\\FilesAutomatedTagging\\Operation",
+      "operation": "1",
+      "checks": [
+        {
+          "class": "OCA\\WorkflowEngine\\Check\\RequestURL",
+          "operator": "matches",
+          "value": "/\\/Flow14-HoSo\\//"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "flow14-tag-mat",
+      "class": "OCA\\FilesAutomatedTagging\\Operation",
+      "operation": "2",
+      "checks": [
+        {
+          "class": "OCA\\WorkflowEngine\\Check\\FileName",
+          "operator": "matches",
+          "value": "/-mat\\.[a-z0-9]+$/i"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "flow14-deny-mat",
+      "class": "OCA\\FilesAccessControl\\Operation",
+      "operation": "deny",
+      "checks": [
+        {
+          "class": "OCA\\WorkflowEngine\\Check\\FileSystemTags",
+          "operator": "is",
+          "value": "2"
+        },
+        {
+          "class": "OCA\\WorkflowEngine\\Check\\UserGroupMembership",
+          "operator": "!is",
+          "value": "flow14-reviewers"
+        }
+      ]
+    }
+  ],
+  "created": {
+    "flow14-tag-hoso": {
+      "id": 1,
+      "reused": false
+    },
+    "flow14-tag-mat": {
+      "id": 2,
+      "reused": false
+    },
+    "flow14-deny-mat": {
+      "id": 3,
+      "reused": false
+    }
+  },
+  "secretsIncluded": false
+}

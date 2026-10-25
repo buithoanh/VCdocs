@@ -5039,6 +5039,165 @@ export interface paths {
         };
         trace?: never;
     };
+    "/flow/nextcloud/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nhận event từ Nextcloud webhook_listeners (endpoint nội bộ)
+         * @description Chỉ Nextcloud gọi, qua mạng nội bộ. Xác thực bằng header bí mật X-VCW-Flow-Token
+         *     (so thời gian hằng; nhiều bí mật còn hiệu lực trong lúc xoay vòng), không dùng phiên
+         *     hay CSRF. Thân là payload webhook_listeners nguyên bản; Nextcloud gửi không kèm
+         *     Content-Type nên máy chủ đọc mọi kiểu thân là JSON (tối đa 256 KB).
+         *
+         *     Allowlist lớp event: OCA\Forms\Events\FormSubmittedEvent; OCA\Tables\Event\Row{Added,Updated,Deleted}Event;
+         *     OCP\Files\Events\Node\Node{Created,Written,Deleted,Renamed}Event. Lớp khác → 422 RULE_VIOLATION (rule FLOW-01).
+         *     Máy chủ chỉ lấy lớp event, id số nguyên, time và user.uid để định tuyến; dữ liệu nghiệp vụ
+         *     luôn đọc lại qua API bằng quyền người chạy flow, không tin payload, không tải URL trong payload.
+         *
+         *     Idempotency theo (lớp event, tài nguyên, time): gửi lại/replay trả 202 duplicate=true, không tạo
+         *     việc mới. Xử lý chạy nền theo thứ tự từng tài nguyên; companyId lấy từ cấu hình máy chủ.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-VCW-Flow-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FlowNextcloudWebhook"];
+                };
+            };
+            responses: {
+                /** @description Đã ghi journal (hoặc đã có từ trước nếu duplicate=true); xử lý chạy nền */
+                202: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlowWebhookAccepted"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                413: components["responses"]["PayloadTooLarge"];
+                422: components["responses"]["RuleViolation"];
+                /** @description Flow chưa bật trên máy chủ (MAINTENANCE) */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/flow/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** R9 xem journal event Flow (trạng thái, số lần thử, replay, độ trễ, kết quả từng rule) */
+        get: {
+            parameters: {
+                query?: {
+                    page?: components["parameters"]["Page"];
+                    limit?: components["parameters"]["Limit"];
+                    /** @description Ví dụ -createdAt,title (dấu trừ = giảm dần) */
+                    sort?: components["parameters"]["Sort"];
+                    status?: components["schemas"]["FlowEventStatus"];
+                    ruleId?: string;
+                    resourceKey?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlowEventPage"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/flow/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        /** R9 đọc một event Flow và id tương quan audit */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlowEvent"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs": {
         parameters: {
             query?: never;
@@ -6967,6 +7126,66 @@ export interface components {
             startedAt?: components["schemas"]["DateTime"];
             finishedAt?: components["schemas"]["DateTime"];
             requestedBy: components["schemas"]["Id"];
+        };
+        /** @description Payload webhook_listeners nguyên bản (giữ trường lạ để băm và đối chiếu replay); máy chủ chỉ dùng class, id số nguyên, time, user.uid */
+        FlowNextcloudWebhook: {
+            event: {
+                class: string;
+            } & {
+                [key: string]: unknown;
+            };
+            user?: {
+                uid?: string;
+                displayName?: string;
+            } | null;
+            /** @description Giây Unix do Nextcloud đặt lúc phát event */
+            time: number;
+            /** @description Token tạm của webhook_listeners; máy chủ bỏ qua, không lưu */
+            authentication?: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        FlowWebhookAccepted: {
+            journalId: components["schemas"]["Id"];
+            /** @description true khi (lớp event, tài nguyên, time) đã có trong journal */
+            duplicate: boolean;
+            status: components["schemas"]["FlowEventStatus"];
+        };
+        /** @enum {string} */
+        FlowEventStatus: "queued" | "running" | "done" | "skipped" | "failed";
+        FlowEvent: {
+            id: components["schemas"]["Id"];
+            /** @enum {string} */
+            source: "webhook" | "reconcile";
+            eventClass: string;
+            /** @description Ví dụ forms:submission:5:10, tables:row:5:29, files:node:643 */
+            resourceKey: string;
+            ruleIds: string[];
+            status: components["schemas"]["FlowEventStatus"];
+            attempts: number;
+            replayCount: number;
+            /** @description uid theo payload; chỉ ghi nhận, không dùng cấp quyền */
+            claimedActorUid?: string | null;
+            /** @description requestId gắn vào mọi dòng audit_logs của event này */
+            correlationId: string;
+            eventTime: components["schemas"]["DateTime"];
+            receivedAt: components["schemas"]["DateTime"];
+            finishedAt?: components["schemas"]["DateTime"] | null;
+            /** @description receivedAt − eventTime (eventTime chỉ chính xác tới giây) */
+            deliveryLagMs: number;
+            processingMs?: number | null;
+            results: ({
+                ruleId?: string | null;
+                /** @description card_created, card_recovered, already_done, notified, no_recipient, tag_verified, no_rule, runner_forbidden, not_found, board_wider_than_results, … */
+                outcome: string;
+                message?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            lastError?: string | null;
+        };
+        FlowEventPage: components["schemas"]["PageMeta"] & {
+            items: components["schemas"]["FlowEvent"][];
         };
         JobPage: components["schemas"]["PageMeta"] & {
             items: components["schemas"]["Job"][];

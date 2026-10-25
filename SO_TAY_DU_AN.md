@@ -26,7 +26,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
   - BE mới: `drive-basic` (Drive, version/trash/restore, DOCX/XLSX/PPTX qua ONLYOFFICE), `mail-basic` (Stalwart: gửi/nhận, MIME, nhãn/lọc/alias/hộp chung, offboard), `workspace-interop` (đính kèm mail → Drive, gửi bản Drive), `m01-auth` thêm OIDC + identity lifecycle (journal/CAS/Idempotency-Key, app→Authentik→Nextcloud). FE mới: `/drive`, `/email` (bố cục kiểu Outlook), `/bo-nho`; đăng nhập OIDC. Google cũ vẫn giữ.
   - PoC chạy local: Nextcloud 33, ONLYOFFICE 9.4, Stalwart 0.16, Authentik 2026.8 (`poc/`).
   - Gate cuối 2026-10-25 sau sửa review (chạy trên `vcworkspace/chat01-12b`): guard 44, BE 180 (9 skip), endpoint 145/145, FE đạt, typecheck/build đạt.
-  - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần), Admin/SSO và Work management (chat13, 2026-10-25); **chưa làm** Sync desktop/mobile, Talk, Flow (chat14 kế tiếp), Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
+  - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần), Admin/SSO, Work management (chat13) và Flow (chat14, nhánh `claude/chat14-flow`, OpenAPI 2.4.0-gd2 trên nhánh đó), 2026-10-25; **chưa làm** Sync desktop/mobile (chat15 đề xuất cùng NAS), Talk, Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
 - **Trạng thái VCdocs cũ:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
 - **Kho mã:** https://github.com/buithoanh/VCdocs (API kiểm 2026-10-23: public; tên repo chưa đổi), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
@@ -66,7 +66,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - [ ] **Sửa 15 lỗi còn mở sau review (O1–O15):** ưu tiên O1–O4 (lưu ONLYOFFICE, OIDC đăng xuất sau 5 phút, quyền hộp thư) trước pilot; cần runtime thật trên Docker.
 
 - [x] **Chat13 Work management LOCAL PASS (2026-10-25):** nhánh `claude/chat13-work-management-d67500`, stack riêng `poc/work-management/` (NC 33.0.10, Deck 1.17.8, Notes 6.1.0, Forms 5.4.1, Tables 2.3.2, Collectives 4.7.1, OIDC Authentik, 6 persona hai phòng + outsider). Share/ACL/comment/attachment, deny UI+API, tìm kiếm, export, chuyển sở hữu/offboard, restart, backup/restore có ACL đều LOCAL PASS (N/A: comment Forms/Tables, attachment Tables). Event cho Flow: Forms/Tables/Files có, Deck không; `userIdFilter` không bắn với API app password. Bàn giao `docs/ke-hoach/vcworkspace-13-ban-giao-work-management.md`. Chưa push.
-- [ ] **Chat14 Flow (chờ điều phối mở):** đề xuất phạm vi ở mục 9 bàn giao chat13: receiver NestJS cho `webhook_listeners` (eventFilter, idempotency, readback), ba flow Form→Deck / Tables→thông báo / file→tag, Deck chỉ làm đích hoặc polling.
+- [x] **Chat14 Flow LOCAL PASS (2026-10-25):** nhánh `claude/chat14-flow` (cắt từ chat13 aed52ad). Module BE `apps/api/src/modules/flow/` + OpenAPI **2.4.0-gd2** (`POST /flow/nextcloud/webhooks` header bí mật xoay vòng, `GET /flow/events[/{id}]` R9). Ba flow Form→Deck, Tables→thông báo trong ứng dụng, file→tag/chặn truy cập bằng Flow core; replay, xoay vòng bí mật, restart SIGKILL giữa chừng, receiver tắt + đối soát đều LOCAL PASS; độ trễ p50 ≈ 1,05 s với worker riêng. Deck chỉ làm đích. Bàn giao `docs/ke-hoach/vcworkspace-14-ban-giao-flow.md`. Chưa push.
+- [ ] **Chat15 Sync + NAS (chờ điều phối mở):** đề xuất ở mục 10 bàn giao chat14 (desktop/mobile client thật, Samba cô lập + External Storage, event/tag Flow trên mount SMB, đối soát Files).
 
 - [x] **Chat12B tích hợp OIDC vào app thật hoàn tất LOCAL sau review (2026-10-24):** OpenAPI
   `2.3.0-gd2`; `apps/web`→Authentik→`apps/api` browser tạo session manager R4,
@@ -216,7 +217,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - (Audit 11/12, 2026-10-25) Đăng ký ngược (`/records/claim`) sang drive khác giờ chỉ cho trưởng phòng nguồn hoặc Quản lý drive nguồn (theo BA dòng 528); người tạo là Đóng góp phải nhờ trưởng phòng. Giữ vậy? Và trên Workspace thử: phiên bản đầu (`revisions.list`) của file shared drive có đúng người tạo không (Docs và file tải lên), lệch bao lâu so với `createdTime`.
 - (Audit 12/12, 2026-10-25) Mail engine production có nhận thư vào hộp `@vcworkspace.test` từ ngoài API không (SMTP internet, SMTP/IMAP APPEND từ client khác)? Engine có tự thêm Message-ID không? Hiện thư thiếu Message-ID ở header bị bỏ qua, không hiện trong VCworkspace.
 
-- (Chat13, 2026-10-25) Flow có cần Deck làm **nguồn** sự kiện (thẻ mới/đổi cột kích hoạt việc khác) không? Deck 1.17.8 không phát event webhook; nếu cần phải polling API/Activity hoặc viết app riêng. Nếu chỉ cần Deck làm đích (Form → thẻ) thì chat14 không vướng.
+- (Chat13→14, 2026-10-25) Flow có cần Deck làm **nguồn** sự kiện không? Chat14 đã thử: không có webhook; polling quyền chủ board phát hiện trong ≈ nhịp poll (1 s) nhưng tốn 2 request/giây/board. Mặc định chat14: Deck chỉ làm đích. Cần nguồn thì duyệt poller NestJS (nhịp đề xuất ≥ 30 s).
+- (Chat14, 2026-10-25) Tạo thẻ Deck từ Form bằng `forms_deck` (đồng bộ, app cộng đồng một người duy trì, **chép câu trả lời cả khi board rộng hơn quyền xem kết quả**) hay bằng receiver NestJS (từ chối board rộng, có journal/audit, chưa có tag/đính kèm)? Đề xuất: receiver; `forms_deck` chỉ cho board riêng của chủ form.
+- (Chat14, 2026-10-25) Thông báo từ Tables có cần gửi cho người chỉ có quyền qua **share nhóm** không? Receiver hiện đóng an toàn (chỉ chủ bảng và share trực tiếp) vì runner không đọc được thành viên nhóm; muốn mở cần nguồn membership (Authentik/LDAP).
 - (Chat13, 2026-10-25) Note dùng chung của phòng nên đặt ở Notes cá nhân + share (người nhận không thấy trong app Notes, chỉ thấy qua Files), hay chuyển sang Collectives làm wiki phòng? Đề xuất: Collectives cho tài liệu chung, Notes cho ghi chú cá nhân.
 
 ## 5. Lưu ý & bài học
@@ -235,8 +238,18 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Probe deny hàng loạt kích hoạt brute-force protection của Nextcloud (cuối cùng HTTP 500). Test reset bằng `occ security:bruteforce:reset <IP relay>`; production sau reverse proxy phải có `trusted_proxies`.
 - Relay busybox `nc` của PoC làm Chrome treo với keep-alive; PoC chat13 tắt KeepAlive. Không dùng relay này cho môi trường thật.
 - Restore Nextcloud từ `pg_dump`: phải tạo lại role DB `oc_admin` do installer sinh (role nằm ngoài dump).
+- Nextcloud `webhook_listeners` (1.5.0): gửi JSON **không có Content-Type**, **không gửi lại** khi receiver lỗi (job bắt exception), `eventFilter` không có `$regex` (toán tử lạ ném exception). Chạy `occ background-job:worker ... WebhookCall` riêng thì giao ≈ 1 s; chỉ cron thì chờ tới lượt cron.
+- Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Chat14 Flow — LOCAL PASS
+
+- Nhánh `claude/chat14-flow` (cắt từ chat13 aed52ad), worktree riêng; `pnpm install --offline --frozen-lockfile`. Dùng lại stack `vcworkspace-work13` đang chạy; thêm overlay `poc/flow/compose.flow.yaml` (project `vcworkspace-flow14`: worker `background-job:worker` cho WebhookCall + relay tới receiver loopback 18140), không volume mới. Cài forms_deck 0.7.0, files_automatedtagging 4.0.1, files_accesscontrol 4.0.2 (preflight App Store, integrity PASS, egress tạm rồi ngắt); không cài workflow_script.
+- BE: module `flow` (guard header bí mật nhiều bản, allowlist, journal `flow_events` + `flow_effects` + `flow_cursors`, worker lease/thứ tự/retry, readback quyền runner, đối soát, audit theo correlationId); cấu hình `FLOW_*` kiểm khi khởi động, mặc định tắt. Hợp đồng 2.4.0-gd2 (`contract/NGUON.md`), FE `schema.d.ts` sinh lại. E2E `flow-receiver.e2e-spec.ts` 13/13 với Nextcloud giả; receiver thật chạy qua spec có cổng `flow-nextcloud-server.spec.ts` (Google giả, mongod local 127.0.0.1:18141 trong `poc/flow/.runtime`).
+- Nghiệm thu LOCAL: (a) 10 phiếu → 10 thẻ, ACL thẻ chỉ chủ board, board chia sẻ → receiver từ chối còn forms_deck lộ câu trả lời; (b) 10 dòng → thông báo 2 người có quyền, 2 người ngoài bị từ chối, không email; (c) tag/chặn file `*-mat` bằng Flow core, receiver `tag_verified`; replay body thật, xoay vòng bí mật, SIGKILL giữa chừng, receiver tắt + đối soát, cron vs worker, polling Deck. Bằng chứng `poc/flow/evidence/`, bàn giao `docs/ke-hoach/vcworkspace-14-ban-giao-flow.md`.
+- `pnpm ai:check:full` PASS (guard 44/44, BE 314 passed/10 skipped, hợp đồng 148/148, FE 84, build); `pnpm ai:check` PASS bản cuối. `scan-secrets` PASS.
+- Còn dở/NOT_TESTED: nhiều instance receiver, tải, đối soát Files, Row Updated/Deleted và Node Deleted/Renamed chưa có rule, UI FE cho thông báo/journal, HTTPS giữa Nextcloud và receiver, production. Stack work13 + overlay flow14 còn chạy (mongod thử đã dừng, dữ liệu ở `poc/flow/.runtime`); webhook Nextcloud vẫn trỏ relay (receiver tắt thì log lỗi). Chưa push.
 
 ### 2026-10-25 · Chat13 Work management — LOCAL PASS
 
