@@ -27,6 +27,8 @@ export class MailBasicController {
   @Get('messages/:id/raw') @Header('Cache-Control', 'private, no-store') async raw(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Query('mailbox') mailbox: string | undefined, @Res() res: Response) {
     const raw = await this.service.raw(ctx, id, mailbox); res.type('message/rfc822').setHeader('Content-Disposition', 'attachment; filename="message.eml"'); res.send(raw);
   }
+  /** Nội dung đã lọc cho khung đọc; cùng quyền mailbox như raw. */
+  @Get('messages/:id/body') @Header('Cache-Control', 'private, no-store') body(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Query('mailbox') mailbox?: string) { return this.service.body(ctx, id, mailbox); }
   @Get('labels') labels(@CurrentCtx() ctx: Ctx, @Query('mailbox') mailbox?: string) { return this.service.labels(ctx, mailbox); }
   @Post('labels') @HttpCode(201) createLabel(@CurrentCtx() ctx: Ctx, @Body() body: any, @Query('mailbox') mailbox?: string) { return this.service.createLabel(ctx, body, mailbox); }
   @Patch('messages/:id/labels') setLabels(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Query('mailbox') mailbox: string | undefined, @Body() body: any) { return this.service.setLabels(ctx, id, body, mailbox); }

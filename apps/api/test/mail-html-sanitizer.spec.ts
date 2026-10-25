@@ -1,4 +1,4 @@
-import { htmlToText, safeLinkHref, sanitizeHtml } from '../src/modules/mail-basic/html-sanitizer';
+import { hasRemoteResources, htmlToText, safeLinkHref, sanitizeHtml } from '../src/modules/mail-basic/html-sanitizer';
 
 const LINK = (href: string, text: string) => `<a href="${href}" rel="noopener noreferrer" target="_blank">${text}</a>`;
 
@@ -81,5 +81,13 @@ describe('sanitizeHtml allowlist (thay regex, review O14)', () => {
 
   it('htmlToText lấy văn bản, bỏ nội dung script/style', () => {
     expect(htmlToText('<p>Xin <b>chào</b></p><script>bad()</script><style>x</style>&amp;').replace(/\s+/g, ' ').trim()).toBe('Xin chào &');
+  });
+
+  it('hasRemoteResources nhận ảnh/CSS/media từ xa, không tính cid:, data: hay link thường', () => {
+    for (const remote of ['<img src="https://t.test/p.gif">', '<img SRC="//t.test/p.gif">', '<img srcset="a.png 1x, https://t.test/b.png 2x">', '<table background="http://t.test/bg.png">',
+      `<div style="background:url( 'https://t.test/x')">`, '<style>@import "x.css";</style>', '<style>p{background:url(//t.test/y)}</style>', '<link rel="stylesheet" href="https://t.test/s.css">', '<video poster="https://t.test/v.jpg">'])
+      expect({ remote, found: hasRemoteResources(remote) }).toEqual({ remote, found: true });
+    for (const local of ['<img src="cid:logo@x">', '<img src="data:image/png;base64,AA==">', '<a href="https://vcworkspace.test/">link</a>', '<p>https://t.test/chỉ-là-chữ</p>', ''])
+      expect({ local, found: hasRemoteResources(local) }).toEqual({ local, found: false });
   });
 });

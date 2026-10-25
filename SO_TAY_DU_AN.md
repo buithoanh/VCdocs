@@ -59,7 +59,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
-- [ ] **Push + PR `claude/mail-compose-cc-bcc-richtext` vào `dev` (chủ dự án tự chạy):** Cc/Bcc + soạn thư định dạng, OpenAPI 2.5.0-gd2, full gate PASS local 2026-10-25; còn cần xem UI trên trình duyệt và thử Stalwart thật.
+- [ ] **Push + PR `claude/mail-compose-cc-bcc-richtext` vào `dev` (chủ dự án tự chạy):** Cc/Bcc + soạn thư định dạng (2.5.0-gd2) và đọc nội dung thư an toàn trong khung đọc (`GET /mail/messages/{id}/body`, 2.6.0-gd2), full gate PASS local 2026-10-26; commit đọc nội dung nằm trên nhánh tạm `tmp-reader` (trên 29a0ef4), cần đẩy vào cùng nhánh PR #8. Còn cần xem UI trên trình duyệt và thử Stalwart thật (thư HTML từ client ngoài).
 
 - [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
 
@@ -263,6 +263,14 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-26 · Email: hiển thị an toàn nội dung thư trong khung đọc (OpenAPI 2.6.0-gd2)
+
+- Nhánh `tmp-reader` cắt từ `origin/claude/mail-compose-cc-bcc-richtext` (29a0ef4, PR #8), worktree `.claude/worktrees/agent-aa3522b43b9f25d02`; `pnpm install --offline --frozen-lockfile`. Chủ dự án giao thay đổi hợp đồng: thêm `GET /mail/messages/{id}/body` + schema `MailMessageBody`, ghi `contract/NGUON.md`, sinh lại `schema.d.ts`.
+- BE: `MailBasicService.body` dùng lại `raw` (cùng ACL/404, `?mailbox=` cần quyền `read`, 403 như raw), phân tích bằng `simpleParser`; `html` luôn lọc lại bằng allowlist `sanitizeHtml` (cả thư đến), không ảnh; `hasRemoteResources` (mới, htmlparser2) báo ảnh/CSS/media từ xa; giới hạn HTML gốc 2 MiB, text 256 Ki, 100 tệp → `truncated`; `attachments[].part` khớp save-to-drive. `Cache-Control: private, no-store`; không log nội dung.
+- FE `/email`: `MessageBody.tsx` thay khối "Thư đã được lưu an toàn"; HTML trong `<iframe sandbox="allow-popups allow-popups-to-escape-sandbox">` (không allow-scripts/allow-same-origin), `srcDoc` có CSP `default-src 'none'; style-src 'unsafe-inline'`, `<base target="_blank">`, style đọc, lọc lại bằng `cleanHtml`; chiều cao ước lượng theo độ dài chữ (260–900px, cuộn trong). Không có html → chữ thuần `white-space: pre-wrap` (React text). Danh sách tệp (tên/kích thước/loại) với nút "Lưu vào Drive" theo `part`, bỏ ô nhập số thứ tự/SHA-256 thủ công. Có trạng thái đang tải/lỗi + Thử lại; báo chặn nội dung từ xa/cắt bớt.
+- Test mới: `apps/api/test/mail-body.e2e-spec.ts` (4 ca: chủ thư/người khác 404, HTML độc hại script/onerror/javascript:/style/iframe/svg/form, chữ thuần không html, hộp nhóm read/manage-only/người ngoài), 1 ca `hasRemoteResources` trong `mail-html-sanitizer.spec.ts`, 3 ca FE (iframe sandbox + CSP + lưu Drive theo part, chữ thuần, lỗi + thử lại).
+- `pnpm ai:check:full` PASS: guard 44/44, OpenAPI hợp lệ (194 warning), API 367 pass/10 skip + độ phủ hợp đồng 149/149, FE 96/96, typecheck/build đạt. Chưa chạy: trình duyệt thật, Stalwart thật, thư HTML từ client mail ngoài. Không đọc `.env`, không gửi thư thật, không deploy/push.
 
 ### 2026-10-25 · Soạn thư Email: Cc/Bcc + định dạng nội dung (OpenAPI 2.5.0-gd2)
 

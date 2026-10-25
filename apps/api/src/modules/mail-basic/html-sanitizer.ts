@@ -94,3 +94,33 @@ export function htmlToText(html: string) {
   parser.write(String(html ?? '')); parser.end();
   return text.join('');
 }
+
+/** Thuộc tính có thể khiến trình đọc thư tải tài nguyên ngoài (ảnh theo dõi, CSS, font, media). */
+const RESOURCE_ATTRS = ['src', 'srcset', 'background', 'poster', 'data', 'action', 'formaction', 'xlink:href', 'lowsrc', 'dynsrc'];
+const REMOTE_URL = /^\s*(?:https?:)?\/\//i;
+const CSS_REMOTE = /url\(\s*['"]?\s*(?:https?:)?\/\/|@import/i;
+
+/**
+ * Thư gốc có tài nguyên từ xa không (chỉ để báo người đọc rằng đã chặn).
+ * `cid:` (ảnh nhúng trong thư) và data: không tính là từ xa; bộ lọc vẫn bỏ toàn bộ ảnh.
+ */
+export function hasRemoteResources(html: string): boolean {
+  let found = false, inStyle = 0;
+  const parser = new Parser({
+    onopentag(name, attribs) {
+      if (found) return;
+      if (name === 'style') inStyle++;
+      if (name === 'link' && attribs.href && REMOTE_URL.test(attribs.href)) { found = true; return; }
+      for (const attr of RESOURCE_ATTRS) {
+        const value = attribs[attr];
+        if (value && (attr === 'srcset' ? value.split(',').some((x) => REMOTE_URL.test(x)) : REMOTE_URL.test(value))) { found = true; return; }
+      }
+      if (attribs.style && CSS_REMOTE.test(attribs.style)) found = true;
+    },
+    ontext(text) { if (!found && inStyle && CSS_REMOTE.test(text)) found = true; },
+    onclosetag(name) { if (name === 'style' && inStyle) inStyle--; },
+  }, { decodeEntities: true, lowerCaseTags: true, lowerCaseAttributeNames: true });
+  parser.write(String(html ?? ''));
+  parser.end();
+  return found;
+}

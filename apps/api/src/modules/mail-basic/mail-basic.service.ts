@@ -8,13 +8,17 @@ import { Errors } from '../../common/errors';
 import { toApi } from '../../common/util';
 import { MAIL_PORT, MailAttachment, MailDeliveryError, MailPort, attachmentHash } from './mail.port';
 import { buildMime, safePreview, sanitizeHtml } from './mime';
-import { htmlToText } from './html-sanitizer';
+import { hasRemoteResources, htmlToText } from './html-sanitizer';
 import { simpleParser } from 'mailparser';
 
 /** Tổng To + Cc + Bcc sau khi bỏ trùng. */
 export const MAX_RECIPIENTS = 50;
 /** HTML soạn thư trước khi lọc; thân JSON tối đa 1 MB theo hợp đồng mục 7. */
 const MAX_HTML_INPUT = 512 * 1024;
+/** Khung đọc: HTML gốc tối đa trước khi lọc, chữ thuần tối đa trả về và số tệp đính kèm liệt kê. */
+const BODY_HTML_SOURCE_MAX = 2 * 1024 * 1024;
+const BODY_TEXT_MAX = 256 * 1024;
+const BODY_ATTACHMENTS_MAX = 100;
 
 /** Hộp thư chỉ cấp cho email đúng tên miền công ty; email unique theo công ty nên local-part cũng duy nhất. */
 export function mailboxAddress(email: string, companyDomain: string) {
@@ -124,6 +128,25 @@ export class MailBasicService {
     }catch(e){const preAck=e instanceof MailDeliveryError&&e.accepted==='no';await this.db.m.WorkspaceMailSend.updateOne({_id:attempt._id,companyId:this.cid(ctx),leaseToken},{$set:{state:preAck?'failed':'reconciling',errorCode:preAck?'PRE_ACK_RETRYABLE':'RECONCILE_REQUIRED'},$unset:{leaseToken:1,leaseUntil:1}});if((e as any)?.code&&(e as any).status)throw e;throw Errors.storageUnavailable(preAck?'Mail chưa được engine nhận; có thể thử lại cùng Idempotency-Key':'Chưa thể xác nhận bền vững trạng thái gửi; có thể thử lại cùng Idempotency-Key');}
   }
   async raw(ctx:Ctx,id:string,mailbox?:string){const mailboxOwner=await this.readableMailbox(ctx,mailbox),row=await this.db.m.WorkspaceMailMessage.findOne({_id:this.oid(id),companyId:this.cid(ctx),mailboxOwner}).lean<any>();if(!row)throw Errors.notFound('Không tìm thấy thư');return this.mail.raw((await this.owner(ctx)),row.engineId,row.folder,row.engineOwner);}
+  /**
+   * Nội dung để hiển thị trong khung đọc. Cùng quyền/404 như raw. HTML luôn lọc lại bằng allowlist
+   * (kể cả thư đến không soạn trong app): không ảnh, không style, không script; tài nguyên từ xa chỉ
+   * được báo qua `hasRemoteContent`. `part` của đính kèm khớp chỉ số dùng cho save-to-drive.
+   * Không ghi log nội dung thư.
+   */
+  async body(ctx:Ctx,id:string,mailbox?:string){
+    const parsed=await simpleParser(await this.raw(ctx,id,mailbox));
+    const source=typeof parsed.html==='string'?parsed.html:'';
+    const clipped=source.length>BODY_HTML_SOURCE_MAX;
+    const html=source?sanitizeHtml(source.slice(0,BODY_HTML_SOURCE_MAX)):'';
+    const hasHtml=!!html&&htmlToText(html).trim().length>0;
+    let text=String(parsed.text??'')||(hasHtml?htmlToText(html):'');
+    text=text.replace(/\r\n?/g,'\n');
+    const textClipped=text.length>BODY_TEXT_MAX;if(textClipped)text=text.slice(0,BODY_TEXT_MAX);
+    const all=parsed.attachments??[];
+    const attachments=all.slice(0,BODY_ATTACHMENTS_MAX).map((a,part)=>({part,filename:String(a.filename||`attachment-${part}.bin`).slice(0,255),contentType:String(a.contentType||'application/octet-stream').toLowerCase().slice(0,255),size:a.size??a.content?.length??0}));
+    return{text,...(hasHtml?{html}:{}),hasRemoteContent:!!source&&hasRemoteResources(source),truncated:clipped||textClipped||all.length>BODY_ATTACHMENTS_MAX,attachments};
+  }
   async labels(ctx:Ctx,mailbox?:string){const ownerEmail=await this.readableMailbox(ctx,mailbox),rows=await this.db.m.WorkspaceMailLabel.find({companyId:this.cid(ctx),ownerEmail}).sort({name:1}).lean<any[]>();return{items:rows.map(r=>toApi(r,['companyId']))};}
   async createLabel(ctx:Ctx,input:any,mailbox?:string){const ownerEmail=await this.readableMailbox(ctx,mailbox),name=this.clean(input.name,60);if(!name)throw Errors.validation('Tên nhãn là bắt buộc');let row:any;try{row=await this.db.m.WorkspaceMailLabel.create({companyId:this.cid(ctx),ownerEmail,name,color:this.clean(input.color??'',20),createdBy:this.uid(ctx),updatedBy:this.uid(ctx)});}catch(e:any){if(e?.code===11000)throw Errors.duplicate('Nhãn đã tồn tại');throw e;}await this.audit.record(ctx,{action:'workspace_mail.label.create',objectType:'workspace_mail_label',objectId:String(row._id)});return toApi(row.toObject(),['companyId']);}
   async setLabels(ctx:Ctx,id:string,input:any,mailbox?:string){const mailboxOwner=await this.readableMailbox(ctx,mailbox),labels=[...new Set((input.labels??[]).map((x:any)=>this.clean(x,80)))] as string[];const count=await this.db.m.WorkspaceMailLabel.countDocuments({companyId:this.cid(ctx),ownerEmail:mailboxOwner,name:{$in:labels}});if(count!==labels.length)throw Errors.validation('Nhãn không thuộc hộp thư');const current=await this.db.m.WorkspaceMailMessage.findOne({_id:this.oid(id),companyId:this.cid(ctx),mailboxOwner}).lean<any>();if(!current)throw Errors.notFound();try{await this.mail.setLabels((await this.owner(ctx)),current.engineId,labels,current.labels??[],current.folder,current.engineOwner);}catch{throw Errors.storageUnavailable('Máy chủ mail chưa xác nhận nhãn');}const row=await this.db.m.WorkspaceMailMessage.findOneAndUpdate({_id:current._id,companyId:this.cid(ctx),mailboxOwner},{$set:{labels,updatedBy:this.uid(ctx)}},{new:true}).lean<any>();await this.audit.record(ctx,{action:'workspace_mail.message.labels',objectType:'workspace_mail_message',objectId:id,after:{labels}});return toApi(row,['companyId','engineId','engineOwner','searchText','searchBody']);}

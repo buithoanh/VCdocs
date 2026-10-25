@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
+import { MessageBody, type MailBodyAttachment } from './MessageBody';
 import { RichTextEditor } from './RichTextEditor';
 import { cleanHtml, htmlToPlainText, parseAddressList, textToHtml } from './rich-text';
 
@@ -57,8 +58,6 @@ export default function EmailPage() {
   const [sharedAddress, setSharedAddress] = useState('');
   const [sharedName, setSharedName] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
-  const [attachmentPart, setAttachmentPart] = useState('0');
-  const [attachmentHash, setAttachmentHash] = useState('');
   const spaces = useQuery({ queryKey: ['interop-spaces'], queryFn: () => json('/spaces').then((value) => value.items as { id:string; name:string; role:string }[]) });
   const labels = useQuery({ queryKey: ['mail-labels', mailbox], queryFn: () => json(`/mail/labels${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`).then((value) => value.items as Label[]) });
   const aliases = useQuery({ queryKey: ['mail-aliases'], queryFn: () => json('/mail/aliases').then((value) => value.items as { id: string; address: string }[]) });
@@ -114,11 +113,12 @@ export default function EmailPage() {
   async function createAlias() { await post('/mail/aliases', { address: aliasAddress, displayName: aliasAddress.split('@')[0] }); setAliasAddress(''); setNotice('Đã tạo alias gửi; alias không phải hộp thư nhóm.'); await aliases.refetch(); }
   async function createShared() { await post('/mail/shared-mailboxes', { address: sharedAddress, name: sharedName }); setSharedAddress(''); setSharedName(''); setNotice('Đã tạo hộp thư nhóm với quyền tách biệt.'); await shared.refetch(); }
   async function setMember(box: SharedMailbox, roles: string[]) { await json(`/mail/shared-mailboxes/${box.id}/members`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ email: memberEmail, roles }) }); setNotice(roles.length ? 'Đã cập nhật quyền thành viên.' : 'Đã thu hồi quyền thành viên ngay.'); await shared.refetch(); }
-  async function saveAttachmentToDrive() {
+  /** `part` lấy từ GET /body, cùng chỉ số với save-to-drive. */
+  async function saveAttachmentToDrive(item: MailBodyAttachment) {
     if (!selected) return;
-    const target=(spaces.data ?? []).find((item)=>item.role==='manager');
+    const target=(spaces.data ?? []).find((space)=>space.role==='manager');
     if (!target) throw new Error('Bạn chưa có không gian Drive được phép ghi.');
-    const row=await post(`/mail/messages/${selected.id}/attachments/${Number(attachmentPart)}/save-to-drive${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { spaceId:target.id, ...(attachmentHash ? { expectedSha256:attachmentHash } : {}) });
+    const row=await post(`/mail/messages/${selected.id}/attachments/${item.part}/save-to-drive${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { spaceId:target.id });
     setNotice(`Đã lưu ${row.name} vào ${target.name}; hash ${row.contentSha256.slice(0,12)}…`);
   }
   function openFolder(next: Folder) { setFolder(next); setMailbox(''); setSelectedId(''); setComposing(false); setManaging(false); setNotice(''); }
@@ -178,8 +178,8 @@ export default function EmailPage() {
         </section> : selected ? <article className="mail-reader">
           <div className="mail-pane-toolbar"><div><p className="mail-eyebrow">{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</p><h2>{selected.subject || '(Không có tiêu đề)'}</h2></div><div className="mail-reader-actions"><button className="mail-download-button" type="button" onClick={() => void run(forwardSelected)}><Icon name="sent"/>Chuyển tiếp</button><a className="mail-download-button" href={`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`}><Icon name="download"/>Tải MIME</a></div></div>
           <div className="mail-sender"><span className="mail-avatar">{selected.from.slice(0, 2).toUpperCase()}</span><div><strong>{selected.from}</strong><p>Đến {selected.to.join(', ')}</p>{selected.cc?.length ? <p>Cc {selected.cc.join(', ')}</p> : null}{selected.bcc?.length ? <p>Bcc {selected.bcc.join(', ')}</p> : null}</div><time>{new Date(selected.sentAt).toLocaleString('vi-VN')}</time></div>
-          <div className="mail-content-placeholder"><div className="mail-content-mark">VC</div><h3>Thư đã được lưu an toàn</h3><p>Bản email gốc được giữ nguyên trên mail server. Tải MIME để xem đầy đủ nội dung và tệp đính kèm.</p>{selected.labels?.length ? <div className="mail-chips">{selected.labels.map((label) => <span key={label}>{label}</span>)}</div> : null}<span className={`mail-delivery ${selected.deliveryStatus === 'accepted' ? 'is-success' : 'is-error'}`}>{selected.deliveryStatus === 'accepted' ? 'Đã được mail server nhận' : 'Gửi chưa thành công'}</span></div>
-          <div className="mail-compose-actions"><input aria-label="Số thứ tự attachment" type="number" min="0" value={attachmentPart} onChange={(event)=>setAttachmentPart(event.target.value)}/><input aria-label="SHA-256 attachment dự kiến" value={attachmentHash} onChange={(event)=>setAttachmentHash(event.target.value)} placeholder="SHA-256 (khuyến nghị)"/><button type="button" onClick={()=>void run(saveAttachmentToDrive)}>Lưu attachment vào Drive</button></div>
+          {selected.labels?.length || selected.deliveryStatus !== 'accepted' ? <div className="mail-chips mail-reader-labels">{selected.labels?.map((label) => <span key={label}>{label}</span>)}{selected.deliveryStatus !== 'accepted' && <span className="mail-delivery is-error">Gửi chưa thành công</span>}</div> : null}
+          <MessageBody key={`${selected.id}:${mailbox}`} messageId={selected.id} mailbox={mailbox} onSaveAttachment={(item) => void run(() => saveAttachmentToDrive(item))}/>
           {(notice || error) && <p className={`mail-notice ${error ? 'is-error' : ''}`} role="status">{error || notice}</p>}
         </article> : <div className="mail-empty-reader"><div className="mail-empty-illustration"><Icon name="inbox"/></div><h2>Chọn một thư để đọc</h2><p>Hoặc bắt đầu cuộc trò chuyện mới với đồng nghiệp.</p><button className="mail-compose-button" type="button" onClick={() => { setManaging(false); setComposing(true); }}><Icon name="compose"/>Thư mới</button></div>}
       </main>

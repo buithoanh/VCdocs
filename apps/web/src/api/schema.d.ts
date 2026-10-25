@@ -5596,6 +5596,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mail/messages/{id}/body": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nội dung thư đã lọc an toàn để hiển thị trong khung đọc
+         * @description Cùng quyền với `/raw`: thư không thuộc mailbox được đọc trả 404; `mailbox` là shared mailbox
+         *     thì cần quyền `read`. Server phân tích MIME gốc và **luôn lọc lại `html` bằng allowlist**
+         *     (kể cả thư đến không soạn trong app): bỏ script/style/iframe/svg/thuộc tính sự kiện, chỉ giữ
+         *     link http/https/mailto, không có ảnh (cả `cid:` lẫn ảnh từ xa). `hasRemoteContent` = thư gốc
+         *     có tài nguyên từ xa đã bị chặn. Không có `html` khi thư chỉ có chữ thuần hoặc HTML lọc xong rỗng.
+         *     Giới hạn: HTML gốc 2 MiB, HTML sau lọc 256 KiB, `text` 256 Ki ký tự, 100 tệp; vượt thì `truncated`.
+         *     `attachments[].part` là chỉ số dùng cho `/mail/messages/{messageId}/attachments/{part}/save-to-drive`.
+         *     Client phải hiển thị `html` trong iframe sandbox không có allow-scripts/allow-same-origin.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Bắt buộc khi đọc shared mailbox */
+                    mailbox?: string;
+                };
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        "Cache-Control"?: "private, no-store";
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailMessageBody"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/mail/messages/{id}/labels": {
         parameters: {
             query?: never;
@@ -6313,6 +6367,22 @@ export interface components {
             inReplyTo?: string;
             preview?: string;
             attachmentCount?: number;
+        };
+        MailMessageBody: {
+            /** @description Chữ thuần (dòng phân cách bằng \n); hiển thị như văn bản, không như HTML */
+            text: string;
+            /** @description HTML đã lọc allowlist phía server; chỉ hiển thị trong iframe sandbox */
+            html?: string;
+            /** @description Thư gốc có ảnh/CSS/tài nguyên từ xa (đã bị loại) */
+            hasRemoteContent: boolean;
+            /** @description Có phần nội dung hoặc danh sách tệp bị cắt do vượt giới hạn */
+            truncated: boolean;
+            attachments: {
+                part: number;
+                filename: string;
+                contentType: string;
+                size: number;
+            }[];
         };
         MailLabel: {
             id: components["schemas"]["Id"];

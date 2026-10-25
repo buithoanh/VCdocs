@@ -15,6 +15,7 @@ describe('Email workspace', () => {
         to: ['tp.mkt@vcworkspace.test'], subject: 'Báo cáo tuần',
         sentAt: '2026-10-23T08:00:00.000Z', deliveryStatus: 'accepted',
       }] })),
+      http.get(`${API}/mail/messages/mail-1/body`, () => HttpResponse.json({ text: 'Nội dung gốc', hasRemoteContent: false, truncated: false, attachments: [] })),
       http.get(`${API}/mail/messages/mail-1/raw`, () => new HttpResponse(
         'From: nv.mkt@vcworkspace.test\r\nSubject: Báo cáo tuần\r\n\r\nNội dung gốc',
         { headers: { 'Content-Type': 'message/rfc822' } },
@@ -55,8 +56,9 @@ describe('Email workspace', () => {
     expect(created).toBe('Ưu tiên');
     expect(await screen.findByText('Đã tạo nhãn Ưu tiên.')).toBeInTheDocument();
   });
-  function mailboxHandlers(items: unknown[] = []) {
+  function mailboxHandlers(items: unknown[] = [], body: Record<string, unknown> = { text: '', hasRemoteContent: false, truncated: false, attachments: [] }) {
     return [
+      http.get(`${API}/mail/messages/:id/body`, () => HttpResponse.json(body)),
       http.get(`${API}/mail/messages`, () => HttpResponse.json({ items })),
       http.get(`${API}/mail/labels`, () => HttpResponse.json({ items: [] })),
       http.get(`${API}/mail/aliases`, () => HttpResponse.json({ items: [] })),
@@ -154,7 +156,63 @@ describe('Email workspace', () => {
     } finally { prompt.mockRestore(); }
   });
 
-  it('khung đọc hiện Cc của thư và không render HTML thư', async () => {
+  const READER_MESSAGE = { id: 'mail-9', threadId: 'thread-9', from: 'nv.mkt@vcworkspace.test', to: ['tp.mkt@vcworkspace.test'], subject: 'Thư có nội dung', sentAt: '2026-10-26T08:00:00.000Z', deliveryStatus: 'accepted' };
+
+  it('khung đọc: HTML nằm trong iframe sandbox không script/same-origin, srcDoc có CSP; đính kèm lưu Drive theo part', async () => {
+    let saved: { part?: string; body?: any } = {};
+    server.use(...mailboxHandlers([READER_MESSAGE], {
+      text: 'Xin chào', html: '<p>Xin <strong>chào</strong></p><script>alert(1)</script><img src="https://t.test/p.gif" onerror="x()">', hasRemoteContent: true, truncated: false,
+      attachments: [{ part: 0, filename: 'logo.png', contentType: 'image/png', size: 512 }, { part: 1, filename: 'bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', size: 2560 }],
+    }), http.post(`${API}/mail/messages/mail-9/attachments/:part/save-to-drive`, async ({ params, request }) => {
+      saved = { part: String(params.part), body: await request.json() };
+      return HttpResponse.json({ id: 'file-1', name: 'bao-cao.docx', contentSha256: 'a'.repeat(64) }, { status: 201 });
+    }));
+    renderApp(<EmailPage />);
+    const frame = await screen.findByTitle('Nội dung thư');
+    expect(frame.tagName).toBe('IFRAME');
+    const sandbox = frame.getAttribute('sandbox')!;
+    expect(sandbox).not.toBeNull();
+    expect(sandbox.split(/\s+/).sort()).toEqual(['allow-popups', 'allow-popups-to-escape-sandbox']);
+    expect(sandbox).not.toMatch(/allow-scripts|allow-same-origin/);
+    const doc = frame.getAttribute('srcdoc')!;
+    expect(doc).toContain(`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">`);
+    expect(doc).toContain('<base target="_blank">');
+    expect(doc).toContain('<p>Xin <strong>chào</strong></p>');
+    // Lọc lại phía trình duyệt (phòng thủ nhiều lớp) dù server đã lọc.
+    expect(doc).not.toMatch(/<script|<img|onerror|t\.test/);
+    expect(screen.getByText('Đã chặn hình ảnh và nội dung tải từ bên ngoài để bảo vệ bạn.')).toBeInTheDocument();
+    expect(screen.getByText('2 tệp đính kèm')).toBeInTheDocument();
+    expect(screen.getByText('bao-cao.docx')).toBeInTheDocument();
+    expect(screen.getByText(/^2,5 KB/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu bao-cao.docx vào Drive' }));
+    expect(await screen.findByText(/Đã lưu bao-cao\.docx vào Cá nhân/)).toBeInTheDocument();
+    expect(saved).toEqual({ part: '1', body: { spaceId: 'space-1' } });
+  });
+
+  it('khung đọc: thư chữ thuần hiện bằng văn bản giữ xuống dòng, không dùng iframe hay HTML', async () => {
+    server.use(...mailboxHandlers([READER_MESSAGE], { text: 'Dòng một\nDòng hai <b>không đậm</b>', hasRemoteContent: false, truncated: false, attachments: [] }));
+    const { container } = renderApp(<EmailPage />);
+    const body = await screen.findByText(/Dòng một/);
+    expect(body).toHaveClass('mail-body-text');
+    expect(body.textContent).toBe('Dòng một\nDòng hai <b>không đậm</b>');
+    expect(body.querySelector('b')).toBeNull();
+    expect(container.querySelector('iframe')).toBeNull();
+    expect(screen.queryByText(/tệp đính kèm/)).not.toBeInTheDocument();
+  });
+
+  it('khung đọc: lỗi tải nội dung hiện thông báo và thử lại được', async () => {
+    let calls = 0;
+    server.use(http.get(`${API}/mail/messages/mail-9/body`, () => (++calls === 1
+      ? HttpResponse.json({ error: { code: 'INTERNAL', message: 'x', requestId: 'r' } }, { status: 500 })
+      : HttpResponse.json({ text: 'Đã tải lại', hasRemoteContent: false, truncated: false, attachments: [] }))), ...mailboxHandlers([READER_MESSAGE]));
+    renderApp(<EmailPage />);
+    expect(await screen.findByText('Không tải được nội dung thư.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByText('Đã tải lại')).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  it('khung đọc hiện Cc của thư, không hiện Bcc', async () => {
     server.use(...mailboxHandlers([{ id: 'mail-2', threadId: 'thread-2', from: 'nv.mkt@vcworkspace.test', to: ['tp.mkt@vcworkspace.test'], cc: ['xem.mkt@vcworkspace.test', 'nv.kd@vcworkspace.test'], subject: 'Có Cc', sentAt: '2026-10-23T08:00:00.000Z', deliveryStatus: 'accepted' }]));
     renderApp(<EmailPage />);
     expect(await screen.findByRole('heading', { name: 'Có Cc' })).toBeInTheDocument();
