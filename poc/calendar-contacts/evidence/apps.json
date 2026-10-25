@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-10-25T10:14:26.923Z",
+  "apps": {
+    "dav": "1.36.1",
+    "contactsinteraction": "1.14.1",
+    "calendar": "6.6.3",
+    "contacts": "8.9.2",
+    "calendar_resource_management": "0.12.2"
+  },
+  "pinnedFromPreflight": {
+    "calendar": "6.6.3",
+    "contacts": "8.9.2",
+    "calendar_resource_management": "0.12.2"
+  },
+  "integrity": {
+    "calendar": "PASS",
+    "contacts": "PASS",
+    "calendar_resource_management": "PASS"
+  },
+  "nextcloudNetworksAfterInstall": [
+    "vcworkspace-work13_work13"
+  ],
+  "secretsIncluded": false
+}

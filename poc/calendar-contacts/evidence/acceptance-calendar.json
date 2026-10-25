@@ -1,0 +1,297 @@
+{
+  "generatedAt": "2026-10-25T10:45:40.000Z",
+  "run": "mvnpc10v",
+  "marker": "CAL16-BIMAT-mvnpc10v",
+  "shared": {
+    "memberSeesShares": [
+      "/remote.php/dav/calendars/<member-a>/cal16-team-a_shared_by_<successor-a>/",
+      "/remote.php/dav/calendars/<member-a>/cal16-team-a-thongbao_shared_by_<successor-a>/"
+    ],
+    "teamBOrOutsiderSeeTeamA": false,
+    "readWrite": {
+      "memberPut": 201,
+      "ownerReadsMemberEvent": 200
+    },
+    "readOnly": {
+      "memberPut": 404,
+      "ownerPut": 201,
+      "memberGet": 200,
+      "memberDelete": 404,
+      "ownerGetOfMemberPut": 404,
+      "ownerGetAfterMemberDelete": 200
+    }
+  },
+  "etagConflict": {
+    "created": 201,
+    "etagPresent": true,
+    "sequential": {
+      "winner": 204,
+      "staleEtagPut": 412,
+      "staleEtagDelete": 412
+    },
+    "ifNoneMatchOnExisting": 412,
+    "finalSummary": "SUMMARY:sua boi successor-a",
+    "concurrentSameEtag10Rounds": {
+      "204+204": 10
+    },
+    "lostUpdateRounds": 10
+  },
+  "classification": {
+    "readWriteShare": {
+      "private": {
+        "memberGet": 404,
+        "inQuery": false,
+        "hrefInSyncCollection": false,
+        "markerLeaked": false,
+        "ownerGet": 200
+      },
+      "confidential": {
+        "memberGet": 200,
+        "inQuery": true,
+        "markerLeaked": true,
+        "memberSees": {
+          "summary": [
+            "SUMMARY:Mat CAL16-BIMAT-mvnpc10v-rw"
+          ],
+          "location": [
+            "LOCATION:Phong mat CAL16-BIMAT-mvnpc10v-rw"
+          ],
+          "description": [
+            "DESCRIPTION:Noi dung mat CAL16-BIMAT-mvnpc10v-rw"
+          ],
+          "dtstart": [
+            "DTSTART:20261106T040000Z"
+          ]
+        }
+      }
+    },
+    "readOnlyShare": {
+      "private": {
+        "memberGet": 404,
+        "inQuery": false,
+        "hrefInSyncCollection": false,
+        "markerLeaked": false,
+        "ownerGet": 200
+      },
+      "confidential": {
+        "memberGet": 200,
+        "inQuery": true,
+        "markerLeaked": false,
+        "memberSees": {
+          "summary": [
+            "SUMMARY:Busy"
+          ],
+          "location": [],
+          "description": [],
+          "dtstart": [
+            "DTSTART:20261106T040000Z"
+          ]
+        }
+      }
+    }
+  },
+  "recurrence": {
+    "put": 201,
+    "expandedStartsUtc": [
+      "20261102T020000Z",
+      "20261109T020000Z",
+      "20261123T070000Z",
+      "20261130T020000Z",
+      "20261207T020000Z"
+    ],
+    "recurrenceIds": [
+      "20261102T020000Z",
+      "20261109T020000Z",
+      "20261123T020000Z",
+      "20261130T020000Z",
+      "20261207T020000Z"
+    ],
+    "afterCancellingOne": {
+      "put": 204,
+      "instances": [
+        {
+          "start": "20261102T020000Z",
+          "status": "CONFIRMED"
+        },
+        {
+          "start": "20261109T020000Z",
+          "status": "CONFIRMED"
+        },
+        {
+          "start": "20261123T070000Z",
+          "status": "CONFIRMED"
+        },
+        {
+          "start": "20261130T020000Z",
+          "status": "CANCELLED"
+        },
+        {
+          "start": "20261207T020000Z",
+          "status": "CONFIRMED"
+        }
+      ]
+    }
+  },
+  "timezones": {
+    "newYorkWeekly0900": {
+      "put": 201,
+      "startsUtc": [
+        "20261022T130000Z",
+        "20261029T130000Z",
+        "20261105T140000Z",
+        "20261112T140000Z"
+      ],
+      "inHoChiMinh": [
+        "2026-10-22 20:00",
+        "2026-10-29 20:00",
+        "2026-11-05 21:00",
+        "2026-11-12 21:00"
+      ]
+    },
+    "hoChiMinhWeekly0900": {
+      "startsUtc": [
+        "20261029T020000Z",
+        "20261105T020000Z"
+      ]
+    },
+    "dstGap20260308_0230NY": {
+      "storedAs": "DTSTART;TZID=America/New_York:20260308T023000",
+      "expandedUtc": "20260308T073000Z"
+    },
+    "dstOverlap20261101_0130NY": {
+      "storedAs": "DTSTART;TZID=America/New_York:20261101T013000",
+      "expandedUtc": "20261101T053000Z"
+    }
+  },
+  "syncToken": {
+    "initialCount": 39,
+    "initialToken": "http://sabre.io/ns/sync/201",
+    "afterAdd": {
+      "status": 207,
+      "token": "202",
+      "changed": [
+        "cal16-sync-mvnpc10v.ics"
+      ],
+      "removed": []
+    },
+    "afterModify": {
+      "status": 207,
+      "token": "203",
+      "changed": [
+        "cal16-sync-mvnpc10v.ics"
+      ],
+      "removed": []
+    },
+    "afterDelete": {
+      "status": 207,
+      "token": "204",
+      "changed": [],
+      "removed": [
+        "cal16-sync-mvnpc10v.ics"
+      ]
+    },
+    "noChange": {
+      "status": 207,
+      "token": "204",
+      "changed": [],
+      "removed": []
+    },
+    "invalidToken": {
+      "status": 403,
+      "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<d:error xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\">\n  <s:exception>Sabre\\DAV\\Exception\\InvalidSyncToken</s:exception>\n  <s:message>Invalid or unknown sync token</s:message>\n  <d:valid-sync-token/>\n</d:error>\n"
+    },
+    "futureToken": {
+      "status": 207,
+      "token": "204",
+      "changed": [],
+      "removed": []
+    },
+    "teamBWithValidToken": 404
+  },
+  "freeBusy": {
+    "range": [
+      "20261102T000000Z",
+      "20261108T000000Z"
+    ],
+    "viaOutbox": {
+      "manager-b": {
+        "status": 200,
+        "perRecipient": [
+          {
+            "recipient": "mailto:successor-a@team-a.test",
+            "requestStatus": "3.7;Could not find principal",
+            "freebusy": [],
+            "detailProps": [],
+            "otherAttendees": []
+          },
+          {
+            "recipient": "mailto:member-a@team-a.test",
+            "requestStatus": "3.7;Could not find principal",
+            "freebusy": [],
+            "detailProps": [],
+            "otherAttendees": []
+          }
+        ],
+        "markerLeaked": false
+      },
+      "outsider": {
+        "status": 200,
+        "perRecipient": [
+          {
+            "recipient": "mailto:successor-a@team-a.test",
+            "requestStatus": "3.7;Could not find principal",
+            "freebusy": [],
+            "detailProps": [],
+            "otherAttendees": []
+          },
+          {
+            "recipient": "mailto:member-a@team-a.test",
+            "requestStatus": "3.7;Could not find principal",
+            "freebusy": [],
+            "detailProps": [],
+            "otherAttendees": []
+          }
+        ],
+        "markerLeaked": false
+      },
+      "member-a": {
+        "status": 200,
+        "perRecipient": [
+          {
+            "recipient": "mailto:successor-a@team-a.test",
+            "requestStatus": "2.0;Success",
+            "freebusy": [
+              "FREEBUSY:20261102T020000Z/20261102T030000Z",
+              "FREEBUSY:20261103T020000Z/20261103T030000Z",
+              "FREEBUSY:20261104T020000Z/20261104T030000Z",
+              "FREEBUSY:20261105T020000Z/20261105T030000Z",
+              "FREEBUSY:20261105T140000Z/20261105T143000Z",
+              "FREEBUSY:20261106T020000Z/20261106T030000Z",
+              "FREEBUSY:20261106T040000Z/20261106T050000Z"
+            ],
+            "detailProps": [],
+            "otherAttendees": []
+          },
+          {
+            "recipient": "mailto:member-a@team-a.test",
+            "requestStatus": "2.0;Success",
+            "freebusy": [],
+            "detailProps": [],
+            "otherAttendees": []
+          }
+        ],
+        "markerLeaked": false
+      }
+    },
+    "collectionReport": {
+      "teamB": 404,
+      "memberA": 200,
+      "memberAFreebusyLines": 5
+    },
+    "spoofedOrganizer": {
+      "status": 403,
+      "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<d:error xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\">\n  <s:exception>Sabre\\DAV\\Exception\\Forbidden</s:exception>\n  <s:message>The organizer in the request di"
+    }
+  },
+  "secretsIncluded": false
+}

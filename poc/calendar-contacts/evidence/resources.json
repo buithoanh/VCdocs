@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-10-25T10:45:34.881Z",
+  "app": "calendar_resource_management 0.12.2",
+  "occListing": [
+    "| 1  | VC HQ |         |             | no                    |",
+    "| 1  | VC HQ      | Tang 3       |",
+    "| 1  | vcw-room-p301 | Phong hop P301 (Team A) | VC HQ, Tang 3 | room-p301@vcworkspace.test | Meeting room |                | 8        |             | no    | no                 | no | yes       | no         | no                    |",
+    "| 2  | vcw-room-p302 | Phong hop P302 (chung)  | VC HQ, Tang 3 | room-p302@vcworkspace.test | Meeting room |                | 12       |             | no    | no                 | no | yes       | no         | no                    |",
+    "| 1  | vcw-projector-01 | May chieu 01 | 1 VC HQ    |                | Projector |",
+    "| 1  | room   | 1         | 35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74 |"
+  ],
+  "p301RestrictedToGroup": "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+  "principalsVisibleTo": {
+    "successor-a": {
+      "rooms": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/"
+        ]
+      },
+      "resources": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/",
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/"
+        ]
+      }
+    },
+    "manager-b": {
+      "rooms": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/"
+        ]
+      },
+      "resources": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/",
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/"
+        ]
+      }
+    },
+    "outsider": {
+      "rooms": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p301/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/",
+          "/remote.php/dav/principals/calendar-rooms/calendar_resource_management-vcw-room-p302/"
+        ]
+      },
+      "resources": {
+        "status": 207,
+        "hrefs": [
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/",
+          "/remote.php/dav/principals/calendar-resources/calendar_resource_management-vcw-projector-01/"
+        ]
+      }
+    }
+  },
+  "secretsIncluded": false
+}

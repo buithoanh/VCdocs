@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-10-25T10:42:21.627Z",
+  "files": {
+    "nextcloud.dump": {
+      "sha256": "a36d2882a44983cbb5398181bd69aabd8959139a2435cf217e1166a07ad79ee5",
+      "bytes": 2727696
+    },
+    "nextcloud-html.tgz": {
+      "sha256": "976a391b3c199092d1d4ba93cbb65442e4b585eaabeef05321e5895eaade2b0d",
+      "bytes": 846031395
+    },
+    "mail16.tgz": {
+      "sha256": "e434578a17b4eec5b245fe3e58a11ae33916d09476a2fa9fe09c17645f5015ab",
+      "bytes": 282765
+    }
+  },
+  "maintenanceModeMs": 34972,
+  "mailStoppedMs": 1408,
+  "mode": "0600",
+  "location": "poc/calendar-contacts/backup/ (git-ignored)",
+  "note": "Lịch/danh bạ/share/token/phòng nằm trong DB Nextcloud; thư iMIP nằm trong volume Stalwart chat16",
+  "secretsIncluded": false
+}

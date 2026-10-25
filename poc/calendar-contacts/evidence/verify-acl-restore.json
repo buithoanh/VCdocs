@@ -1,0 +1,1095 @@
+{
+  "generatedAt": "2026-10-25T10:44:15.066Z",
+  "base": "http://localhost:18163",
+  "summary": {
+    "manager-b→TeamA": "30/30 deny",
+    "member-b→TeamA": "30/30 deny",
+    "outsider→TeamA": "30/30 deny",
+    "anonymous→TeamA": "30/30 deny",
+    "member-a→TeamB": "30/30 deny"
+  },
+  "fixtureUnchanged": {
+    "event": true,
+    "card": true
+  },
+  "positive": {
+    "ownerGetEvent": 200,
+    "memberGetEventViaShare": {
+      "status": 200,
+      "marker": true
+    },
+    "memberGetCardViaShare": {
+      "status": 200,
+      "marker": true
+    },
+    "memberBGetTeamBViaShare": {
+      "status": 200,
+      "marker": true
+    },
+    "memberUnifiedSearchFindsFixture": 1
+  },
+  "failures": [],
+  "matrix": {
+    "manager-b→TeamA": [
+      {
+        "probe": "PROPFIND calendar home of owner",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 0",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 1",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET calendar ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT calendar-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (calendar)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT free-busy-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT overwrite event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "MOVE event to own calendar",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPPATCH calendar displayname",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "ACL grant self all",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to own group (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/caldav GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND address book",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET address book ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT addressbook-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (address book)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share address book to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/carddav GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search calendar provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search contacts provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      }
+    ],
+    "member-b→TeamA": [
+      {
+        "probe": "PROPFIND calendar home of owner",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 0",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 1",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET calendar ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT calendar-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (calendar)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT free-busy-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT overwrite event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "MOVE event to own calendar",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPPATCH calendar displayname",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "ACL grant self all",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to own group (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/caldav GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND address book",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET address book ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT addressbook-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (address book)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share address book to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/carddav GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search calendar provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search contacts provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      }
+    ],
+    "outsider→TeamA": [
+      {
+        "probe": "PROPFIND calendar home of owner",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 0",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 1",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET calendar ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT calendar-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (calendar)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT free-busy-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT overwrite event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "MOVE event to own calendar",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPPATCH calendar displayname",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "ACL grant self all",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to own group (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/caldav GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND address book",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET address book ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT addressbook-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (address book)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share address book to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/carddav GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search calendar provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search contacts provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      }
+    ],
+    "anonymous→TeamA": [
+      {
+        "probe": "PROPFIND calendar home of owner",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 0",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 1",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event via forged shared path",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET calendar ?export",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT calendar-query",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (calendar)",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT free-busy-query",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new event",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT overwrite event",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE event",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "MOVE event to own calendar",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPPATCH calendar displayname",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "ACL grant self all",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to self (escalation)",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to own group (escalation)",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/caldav GET event",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND address book",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card via forged shared path",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET address book ?export",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT addressbook-query",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (address book)",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new card",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE card",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share address book to self (escalation)",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/carddav GET card",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search calendar provider",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search contacts provider",
+        "status": 401,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      }
+    ],
+    "member-a→TeamB": [
+      {
+        "probe": "PROPFIND calendar home of owner",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 0",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND calendar depth 1",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET event via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET calendar ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT calendar-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (calendar)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT free-busy-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT overwrite event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "MOVE event to own calendar",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPPATCH calendar displayname",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "ACL grant self all",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share calendar to own group (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/caldav GET event",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PROPFIND address book",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET card via forged shared path",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "GET address book ?export",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT addressbook-query",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "REPORT sync-collection (address book)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "PUT new card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "DELETE card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "POST share address book to self (escalation)",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "legacy /remote.php/carddav GET card",
+        "status": 404,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search calendar provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      },
+      {
+        "probe": "unified search contacts provider",
+        "status": 200,
+        "denied": true,
+        "leaked": false,
+        "createdAnyway": false
+      }
+    ]
+  },
+  "secretsIncluded": false
+}

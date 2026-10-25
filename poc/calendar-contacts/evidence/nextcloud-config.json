@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-10-25T10:17:45.522Z",
+  "mail": {
+    "mail_smtpmode": "smtp",
+    "mail_smtphost": "mail16",
+    "mail_smtpport": "465",
+    "mail_smtpsecure": "ssl",
+    "mail_smtpauth": "true",
+    "mail_smtpname": "calendar@vcworkspace.test",
+    "mail_smtppassword": "SET (not printed)",
+    "mail_from_address": "calendar",
+    "mail_domain": "vcworkspace.test",
+    "mail_smtptimeout": "20",
+    "mail_smtpstreamoptions": "ssl:\n  verify_peer: false\n  verify_peer_name: false\n  allow_self_signed: true"
+  },
+  "dav": {
+    "sendInvitations": "yes",
+    "generateBirthdayCalendar": "no",
+    "system_addressbook_exposed": "1"
+  },
+  "sharing": {
+    "shareapi_only_share_with_group_members": "yes",
+    "shareapi_restrict_user_enumeration_to_group": "<unset>",
+    "shareapi_allow_share_dialog_user_enumeration": "<unset>",
+    "shareapi_restrict_user_enumeration_full_match": "<unset>",
+    "shareapi_allow_links": "no"
+  },
+  "secretsIncluded": false
+}

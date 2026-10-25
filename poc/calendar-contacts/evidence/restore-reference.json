@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-10-25T10:43:51.387Z",
+  "base": "http://localhost:18130",
+  "mailBase": "http://127.0.0.1:18160",
+  "collections": {
+    "/remote.php/dav/calendars/<successor-a>/cal16-team-a/": {
+      "status": 207,
+      "syncToken": "http://sabre.io/ns/sync/170",
+      "objects": {
+        "cal16-confidential-mvnokjyn.ics": "\"c086ccba6429e224653d1382c8434b2f\"",
+        "cal16-confidential-rw-mvnolay7.ics": "\"34febf96bc3b42f9e6c7f119a2b69ce2\"",
+        "cal16-confidential-rw-mvnolmm4.ics": "\"1c50a2fa551873b97c94d3c3738afbaf\"",
+        "cal16-confidential-rw-mvnom0e7.ics": "\"69147a6c7e64f6818077f2d30be2e6eb\"",
+        "cal16-conflict-mvnok6xc.ics": "\"7a1535399188796ef497584f17f755fd\"",
+        "cal16-conflict-mvnokjyn.ics": "\"2df53a7e80bd8c1c14a9fb5ca8c2fa45\"",
+        "cal16-conflict-mvnolay7.ics": "\"1d9a1900399a7d60ef0e209170dc9d3b\"",
+        "cal16-conflict-mvnolmm4.ics": "\"c7b5e67c1dc928b0b55671d03162f156\"",
+        "cal16-conflict-mvnom0e7.ics": "\"7af4a0d57c889e5fa251ab12e66c7eca\"",
+        "cal16-dst-gap-mvnolay7.ics": "\"08e7f78c437aa063d408e8d92268c693\"",
+        "cal16-dst-gap-mvnolmm4.ics": "\"b3b87a735fb23ba59c3912d8f95c87f7\"",
+        "cal16-dst-gap-mvnom0e7.ics": "\"e1c4dc6964ede2fa24208779b184df21\"",
+        "cal16-dst-overlap-mvnolay7.ics": "\"3d1dde57bbe76dad1e65a520e672075a\"",
+        "cal16-dst-overlap-mvnolmm4.ics": "\"817ca299666a964df4acfbe17396d523\"",
+        "cal16-dst-overlap-mvnom0e7.ics": "\"07804a5bd6188fd94ac7b75cb6dbd428\"",
+        "cal16-fixture-a.ics": "\"b6d24bd8b6d0984d070f10984f067167\"",
+        "cal16-flow-private-mvnp18gm.ics": "\"0a92ab2ce6ca423ae85abbbaaa56329f\"",
+        "cal16-hcm-mvnolay7.ics": "\"4d1c31d08bf38eb0394747727f7846f0\"",
+        "cal16-hcm-mvnolmm4.ics": "\"d2f4992a16ca302f3d2f51c0cc0d2447\"",
+        "cal16-hcm-mvnom0e7.ics": "\"acf21971f23ff3050b6bc3c080b22bd3\"",
+        "cal16-member-mvnojpn3.ics": "\"3f9ef9c71aab6ea9f51cd60fe2c57e64\"",
+        "cal16-member-mvnok6xc.ics": "\"8a525ec18ace10dbc9f4a2c0e74861c1\"",
+        "cal16-member-mvnokjyn.ics": "\"ac02cd5b469ebad317a2c1e929212fc5\"",
+        "cal16-member-mvnolay7.ics": "\"08401f84c3d65480204e78a1a46dfe03\"",
+        "cal16-member-mvnolmm4.ics": "\"a9bf82d49c1929785ba84c88be807e96\"",
+        "cal16-member-mvnom0e7.ics": "\"02beb8cb2e31b0ac350f8404156c3a7b\"",
+        "cal16-ny-mvnolay7.ics": "\"5e124b8d91a5853e124a9007d3629a99\"",
+        "cal16-ny-mvnolmm4.ics": "\"5739f4729f477841f57d4ba988ce6790\"",
+        "cal16-ny-mvnom0e7.ics": "\"0ee0f3b467409c3b7b6d7e6d2bf0d5b3\"",
+        "cal16-private-mvnokjyn.ics": "\"dc3f07811c98e1a476df044ddfc74b7c\"",
+        "cal16-private-rw-mvnolay7.ics": "\"ca96a8647c9132ffaec31b3eb1284964\"",
+        "cal16-private-rw-mvnolmm4.ics": "\"2f9633483516b7c6826a56e119864cbe\"",
+        "cal16-private-rw-mvnom0e7.ics": "\"d2e24cc347d5f2b42f4c479e54c25c8a\"",
+        "cal16-recur-mvnolay7.ics": "\"107e0f54e85bbd6e57971dad291467aa\"",
+        "cal16-recur-mvnolmm4.ics": "\"d4f045143febad8c90322f9196fd6f0a\"",
+        "cal16-recur-mvnom0e7.ics": "\"0bc009b1139edbd969151a0c86b9b349\""
+      },
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read-write"
+        }
+      ]
+    },
+    "/remote.php/dav/calendars/<successor-a>/cal16-team-a-thongbao/": {
+      "status": 207,
+      "syncToken": "http://sabre.io/ns/sync/13",
+      "objects": {
+        "cal16-confidential-ro-mvnolay7.ics": "\"88adea5ac1a6c24baabf81ce14f8831e\"",
+        "cal16-confidential-ro-mvnolmm4.ics": "\"ce66a09490507b441231f3eb02c74a1f\"",
+        "cal16-confidential-ro-mvnom0e7.ics": "\"248ea9f2cc726ea6caf09d04c5001cdb\"",
+        "cal16-private-ro-mvnolay7.ics": "\"e837257c4ec80a18f377fbcb0b0e7cd6\"",
+        "cal16-private-ro-mvnolmm4.ics": "\"00581e4784b53b0f2162c29fe5049444\"",
+        "cal16-private-ro-mvnom0e7.ics": "\"818f09abf7f51a1e87af02651d41a25e\"",
+        "tb-mvnojpn3.ics": "\"fc6d2f689c19d515cc8e72a76da1b7ea\"",
+        "tb-mvnok6xc.ics": "\"764f1543eb592e8041d63269f2b4e2f2\"",
+        "tb-mvnokjyn.ics": "\"68c16f689fef234884aebad9c082aba9\"",
+        "tb-mvnolay7.ics": "\"e5a517443848e230330459ea52cdadc6\"",
+        "tb-mvnolmm4.ics": "\"4e2ed9223cde5324f16c8aecc720bb1c\"",
+        "tb-mvnom0e7.ics": "\"833997ef6fc044f168e4c540ea0fe6c3\""
+      },
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read"
+        }
+      ]
+    },
+    "/remote.php/dav/addressbooks/users/<successor-a>/ab16-team-a/": {
+      "status": 207,
+      "syncToken": "http://sabre.io/ns/sync/36",
+      "objects": {
+        "cal16-card-mvnoumul.vcf": "\"5e77a6532b1dd5550efaf46cd829da2e\"",
+        "cal16-card-mvnov710.vcf": "\"e074df4d8b737b7d7e1c6a52c15ec852\"",
+        "cal16-card-mvnowbuv.vcf": "\"b1af91c4404fe472c138228a5861a47c\"",
+        "cal16-card-mvnowoem.vcf": "\"4d925159e3e9e07303be72f846958fdb\"",
+        "cal16-card-mvnox27v.vcf": "\"151a60e7c8f42de1e6f280962539b418\"",
+        "cal16-card-mvnoy5ef.vcf": "\"cff32ca012ae02a98a34bb62de73f029\"",
+        "cal16-fixture-card-a.vcf": "\"70bc6655b61cd787e41742b6af3413e5\"",
+        "flow-mvnp18gm.vcf": "\"8a70092f75a25784341459c9265597c4\"",
+        "rt3-mvnoumul.vcf": "\"08450f59021054f88d96ab57b3d41844\"",
+        "rt3-mvnov710.vcf": "\"8118bbbe0988c7274ac23d39c0d38e9f\"",
+        "rt3-mvnowbuv.vcf": "\"d4a41e20b46d243870878451f82aa771\"",
+        "rt3-mvnowoem.vcf": "\"315dc5f5dbeb1385d2d99698f428267d\"",
+        "rt3-mvnox27v.vcf": "\"6ab630b1bc93ebfb4dcbdcb07b2b9dec\"",
+        "rt3-mvnoy5ef.vcf": "\"72b1daab6d4743088c4490409c99b0c6\"",
+        "rt4-mvnoumul.vcf": "\"ccbff18ab48d331b8bf0afa1173ab83a\"",
+        "rt4-mvnov710.vcf": "\"f5dcde4ba068f4641403b80ce8154540\"",
+        "rt4-mvnowbuv.vcf": "\"847e73663da80e26e415f3ef2adcdfa9\"",
+        "rt4-mvnowoem.vcf": "\"17ef34424b8df81f4b48f33e8bb47919\"",
+        "rt4-mvnox27v.vcf": "\"92780e3fd2e080ad4c128c02edcba2ff\"",
+        "rt4-mvnoy5ef.vcf": "\"43b72a4c998350399270f330c1ba7950\""
+      },
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read-write"
+        }
+      ]
+    },
+    "/remote.php/dav/calendars/<manager-b>/cal16-team-b/": {
+      "status": 207,
+      "syncToken": "http://sabre.io/ns/sync/6",
+      "objects": {
+        "cal16-fixture-b.ics": "\"4d546d3ec7d07e66b79c887c208bb4c0\"",
+        "cal16-flow-mvnp18gm-b.ics": "\"519c8d6b0807b178007f66c7d28c502f\"",
+        "cal16-room-teamb-mvnos8h6.ics": "\"384eacc2eb8b61ce14764cadc6d518d7\"",
+        "cal16-room302-teamb-mvnos8h6.ics": "\"5420ed5d65a5c3eb6ab537de0ed6bc39\""
+      },
+      "sharees": [
+        {
+          "href": "principal:principals/groups/3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+          "access": "read-write"
+        }
+      ]
+    },
+    "/remote.php/dav/addressbooks/users/<manager-b>/ab16-team-b/": {
+      "status": 207,
+      "syncToken": "http://sabre.io/ns/sync/2",
+      "objects": {
+        "cal16-fixture-card-b.vcf": "\"4773eafa66904a938ff1a4107d8605ff\""
+      },
+      "sharees": [
+        {
+          "href": "principal:principals/groups/3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+          "access": "read-write"
+        }
+      ]
+    }
+  },
+  "memberSharedHome": true,
+  "rooms": [
+    "calendar_resource_management-vcw-room-p301",
+    "calendar_resource_management-vcw-room-p302"
+  ],
+  "resources": [
+    "calendar_resource_management-vcw-projector-01"
+  ],
+  "systemAddressBookCards": {
+    "member-a": 2,
+    "outsider": 1
+  },
+  "policy": {
+    "restrictToGroup": "yes",
+    "groupMembersOnly": "yes"
+  },
+  "mailboxCounts": {
+    "partner@partner.test": 13,
+    "manager-b@team-b.test": 16,
+    "member-a@team-a.test": 15
+  },
+  "secretsIncluded": false
+}

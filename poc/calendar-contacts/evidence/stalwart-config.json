@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-10-25T10:18:38.244Z",
+  "image": "stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c (0.16.27, same digest as chat07)",
+  "volumes": [
+    "vcworkspace_cal16_mail_data (new, chat16 only)"
+  ],
+  "network": "vcworkspace-work13_work13 (internal: true, no Internet route); host only via 127.0.0.1:18160 relay to HTTP/JMAP",
+  "domains": [
+    "vcworkspace.test",
+    "partner.test",
+    "outsider.test",
+    "team-b.test",
+    "team-a.test"
+  ],
+  "mailboxes": [
+    "successor-a@team-a.test",
+    "member-a@team-a.test",
+    "manager-a@team-a.test",
+    "manager-b@team-b.test",
+    "member-b@team-b.test",
+    "manager-a@outsider.test",
+    "partner@partner.test",
+    "calendar@vcworkspace.test",
+    "room-p301@vcworkspace.test",
+    "room-p302@vcworkspace.test",
+    "projector-01@vcworkspace.test"
+  ],
+  "accountsReadback": [
+    {
+      "id": "l",
+      "name": "projector-01",
+      "domain": "vcworkspace.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "k",
+      "name": "room-p302",
+      "domain": "vcworkspace.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "j",
+      "name": "room-p301",
+      "domain": "vcworkspace.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "i",
+      "name": "calendar",
+      "domain": "vcworkspace.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "h",
+      "name": "partner",
+      "domain": "partner.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "g",
+      "name": "manager-a",
+      "domain": "outsider.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "f",
+      "name": "member-b",
+      "domain": "team-b.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "e",
+      "name": "manager-b",
+      "domain": "team-b.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "d",
+      "name": "manager-a",
+      "domain": "team-a.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "c",
+      "name": "member-a",
+      "domain": "team-a.test",
+      "type": "User",
+      "hasCredential": true
+    },
+    {
+      "id": "b",
+      "name": "successor-a",
+      "domain": "team-a.test",
+      "type": "User",
+      "hasCredential": true
+    }
+  ],
+  "throttle": {
+    "scopedAwayFromLocalTest": true,
+    "expression": "ends_with(sender_domain, '.test') && ends_with(rcpt, '.test')"
+  },
+  "secretsIncluded": false
+}

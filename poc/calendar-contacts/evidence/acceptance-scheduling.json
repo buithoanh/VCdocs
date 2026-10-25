@@ -1,0 +1,234 @@
+{
+  "generatedAt": "2026-10-25T10:45:58.158Z",
+  "run": "mvnpc45b",
+  "cleanupPreviousRuns": {
+    "successor-a/cal16-team-a": 0,
+    "member-a/personal": 4,
+    "manager-b/cal16-team-b": 2
+  },
+  "invitation": {
+    "put": 201,
+    "putMs": 393,
+    "organizerCopy": {
+      "successor-a@team-a.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": null
+      },
+      "member-a@team-a.test": {
+        "partstat": "NEEDS-ACTION",
+        "scheduleStatus": "1.2"
+      },
+      "manager-b@team-b.test": {
+        "partstat": "NEEDS-ACTION",
+        "scheduleStatus": "1.1"
+      },
+      "partner@partner.test": {
+        "partstat": "NEEDS-ACTION",
+        "scheduleStatus": "1.1"
+      },
+      "room-p301@vcworkspace.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "1.2"
+      },
+      "projector-01@vcworkspace.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "2.0"
+      }
+    },
+    "memberA": {
+      "deliveredToPersonalCalendar": true,
+      "afterMs": 45,
+      "emailReceived": true
+    },
+    "managerB": {
+      "emailReceived": true,
+      "viaIMip": "METHOD:REQUEST",
+      "note": "khác nhóm + shareapi_only_share_with_group_members → không tìm thấy principal nội bộ, Nextcloud coi là khách ngoài và gửi iMIP"
+    },
+    "partner": {
+      "afterMs": 45,
+      "subject": "Invitation: Hop du an mvnpc45b",
+      "from": [
+        {
+          "name": "Successor A via Nextcloud",
+          "email": "calendar@vcworkspace.test"
+        }
+      ],
+      "replyTo": [
+        {
+          "name": "Successor A",
+          "email": "successor-a@team-a.test"
+        }
+      ],
+      "partTypes": [
+        "multipart/mixed",
+        "multipart/alternative",
+        "text/plain",
+        "text/html",
+        "text/calendar"
+      ],
+      "method": null,
+      "icsMethod": [
+        "METHOD:REQUEST"
+      ],
+      "icsHasSummary": true,
+      "acceptLinkHost": "localhost:18130"
+    },
+    "room301EmailReceived": false
+  },
+  "replies": {
+    "partnerAcceptLink": {
+      "withGroupMembersOnly": {
+        "status": 200,
+        "anonymous": true,
+        "page": "schedule-response-error",
+        "organizerCopyPartstat": "NEEDS-ACTION"
+      },
+      "withPolicyTemporarilyOff": {
+        "status": 200,
+        "anonymous": true,
+        "page": "schedule-response-success",
+        "organizerCopyPartstat": "ACCEPTED"
+      },
+      "policyRestored": "yes"
+    },
+    "memberCalDavReply": 204,
+    "organizerCopy": {
+      "successor-a@team-a.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": null
+      },
+      "member-a@team-a.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "2.0"
+      },
+      "manager-b@team-b.test": {
+        "partstat": "NEEDS-ACTION",
+        "scheduleStatus": "1.2"
+      },
+      "partner@partner.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "2.0"
+      },
+      "room-p301@vcworkspace.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "1.2"
+      },
+      "projector-01@vcworkspace.test": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "1.2"
+      }
+    },
+    "note": "Link chấp nhận là GET công khai (không cần đăng nhập): trình quét link của hộp thư có thể tự \"chấp nhận\"."
+  },
+  "rooms": {
+    "conflictSameSlot": {
+      "partstat": "DECLINED",
+      "scheduleStatus": "2.0"
+    },
+    "freeSlot": {
+      "partstat": "ACCEPTED",
+      "scheduleStatus": "2.0"
+    },
+    "teamBBooksRestrictedP301": {
+      "partstat": "NEEDS-ACTION",
+      "scheduleStatus": "1.0",
+      "emailToRoomMailbox": false
+    },
+    "teamBBooksSharedP302": {
+      "partstat": "ACCEPTED",
+      "scheduleStatus": "2.0"
+    },
+    "teamABooksP302OverlappingTeamB": {
+      "partstat": "DECLINED",
+      "scheduleStatus": "2.0"
+    },
+    "roomFreeBusyAsTeamB": [
+      {
+        "recipient": "mailto:room-p301@vcworkspace.test",
+        "requestStatus": "3.7;Could not find principal",
+        "freebusy": [],
+        "hasSummary": false
+      },
+      {
+        "recipient": "mailto:room-p302@vcworkspace.test",
+        "requestStatus": "2.0;Success",
+        "freebusy": [
+          "FREEBUSY:20261111T020000Z/20261111T030000Z"
+        ],
+        "hasSummary": false
+      }
+    ],
+    "roomCalendarsListableByTeamB": 404
+  },
+  "updateCancel": {
+    "update": {
+      "put": 204,
+      "partnerGotUpdate": true,
+      "partnerUpdateMethod": "METHOD:REQUEST",
+      "memberCopyMoved": true,
+      "roomAfterMove": {
+        "partstat": "ACCEPTED",
+        "scheduleStatus": "1.0"
+      }
+    },
+    "cancel": {
+      "delete": 204,
+      "partnerGotCancel": true,
+      "memberCopyStatus": "STATUS:CANCELLED"
+    },
+    "roomRebookAfterCancel": {
+      "partstat": "ACCEPTED",
+      "scheduleStatus": "2.0"
+    }
+  },
+  "mailboxes": {
+    "partner@partner.test": [
+      {
+        "subject": "Invitation updated: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      },
+      {
+        "subject": "Cancelled: Hop du an mvnpc45b",
+        "method": "METHOD:CANCEL"
+      },
+      {
+        "subject": "Invitation: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      }
+    ],
+    "manager-b@team-b.test": [
+      {
+        "subject": "Invitation updated: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      },
+      {
+        "subject": "Cancelled: Hop du an mvnpc45b",
+        "method": "METHOD:CANCEL"
+      },
+      {
+        "subject": "Invitation: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      }
+    ],
+    "member-a@team-a.test": [
+      {
+        "subject": "Invitation updated: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      },
+      {
+        "subject": "Cancelled: Hop du an mvnpc45b",
+        "method": "METHOD:CANCEL"
+      },
+      {
+        "subject": "Invitation: Hop du an mvnpc45b",
+        "method": "METHOD:REQUEST"
+      }
+    ],
+    "successor-a@team-a.test": [],
+    "room-p301@vcworkspace.test": [],
+    "room-p302@vcworkspace.test": [],
+    "projector-01@vcworkspace.test": []
+  },
+  "secretsIncluded": false
+}
