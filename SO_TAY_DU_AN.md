@@ -213,6 +213,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 - (Audit 10/12, 2026-10-25) R3 (kiểm soát tài liệu) có cần xem hoặc nhắc phiếu duyệt ở drive Mật mà mình không là thành viên không? Bản sửa theo hợp đồng hiện tại: 404 cho cả xem lẫn nhắc; R3 vẫn xem/nhắc phiếu ở drive không Mật và drive Mật mình là thành viên. Nếu cần nhắc mà không xem, phải đổi hợp đồng `/approvals/{id}/remind`.
 - (Audit 11/12, 2026-10-25) Đăng ký ngược (`/records/claim`) sang drive khác giờ chỉ cho trưởng phòng nguồn hoặc Quản lý drive nguồn (theo BA dòng 528); người tạo là Đóng góp phải nhờ trưởng phòng. Giữ vậy? Và trên Workspace thử: phiên bản đầu (`revisions.list`) của file shared drive có đúng người tạo không (Docs và file tải lên), lệch bao lâu so với `createdTime`.
+- (Audit 12/12, 2026-10-25) Mail engine production có nhận thư vào hộp `@vcworkspace.test` từ ngoài API không (SMTP internet, SMTP/IMAP APPEND từ client khác)? Engine có tự thêm Message-ID không? Hiện thư thiếu Message-ID ở header bị bỏ qua, không hiện trong VCworkspace.
 
 ## 5. Lưu ý & bài học
 
@@ -228,6 +229,17 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Sửa audit 12/12 — client IMAP tách phản hồi theo literal `{N}`
+
+- Nhánh `claude/audit-fix-12-imap-literal` (cắt từ nhánh 11/12, commit 120bd69). Fingerprint `mail-basic/imap-literal-length-ignored` **tái hiện được** bằng transcript IMAP trong bộ nhớ. Dòng `s3 OK`/`s4 OK` cùng `BODY[] {..}` giả nằm trong thân thư 1 làm `listFolder` cắt cụt thư 1 và trả thêm thư giả `victim@`. Thư thiếu Message-ID làm `uid()` lấy UID của thư kế tiếp. `NO` phải chờ timeout 10 giây.
+- Sửa:
+  - `tls-client.ts`: thêm `parseImapResponse`/`readImap`. Đọc đúng N byte literal; chỉ nhận dòng hoàn tất có tag nằm ngoài literal; `OK`/`NO`/`BAD` trả ngay; socket đóng thì báo lỗi ngay.
+  - `StalwartMailPort`: `withImap` luôn đóng socket trong `finally` (SMTP cũng vậy). engineId lấy bằng mailparser trên header. Thư thiếu Message-ID bị bỏ qua.
+  - `syncFolder`: thư hỏng thì bỏ qua, không trả 500.
+  - Test mới `apps/api/test/stalwart-imap-literal.spec.ts` (trước 7/7 fail, sau 7/7 đạt) và 1 ca e2e trong `mail-durability.e2e-spec.ts` (trước 500, sau 200).
+  - `ai:check` PASS (301 passed). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: chưa kiểm với Stalwart thật. Câu hỏi deploy mail ngoài API ở mục 4. Chưa chạy `ai:check:full`. Đã xong 12/12 đầu mối audit.
 
 ### 2026-10-25 · Sửa audit 11/12 — đăng ký ngược không coi người sửa cuối là người tạo
 

@@ -84,4 +84,11 @@ describe('Email durability và đa tiến trình',()=>{
     const b=await t.login('nv.mkt');const result=await b.get('/mail/messages?folder=inbox&q=kim-c%C6%B0%C6%A1ng-08&scope=body');
     expect(result.body.items).toHaveLength(1);expect(result.body.items[0].subject).toBe('Báo cáo MIME');
   });
+
+  it('audit 12/12: một thư engine thiếu Message-ID không làm cả danh sách trả 500',async()=>{
+    fake.inject('nv.mkt@vcworkspace.test','inbox',Buffer.from(['From: tp.mkt@vcworkspace.test','To: nv.mkt@vcworkspace.test','Subject: Thiếu Message-ID 12','','Message-ID: <chi-trong-than-thu@vcworkspace.test>',''].join('\r\n')),'no-message-id-engine-12');
+    fake.inject('nv.mkt@vcworkspace.test','inbox',Buffer.from(['From: tp.mkt@vcworkspace.test','To: nv.mkt@vcworkspace.test','Subject: Có Message-ID 12','Message-ID: <co-message-id-12@vcworkspace.test>','','x',''].join('\r\n')),'with-message-id-engine-12');
+    const b=await t.login('nv.mkt');const result=await b.get('/mail/messages?folder=inbox&q=message-id%2012&scope=subject');
+    expect(result.status).toBe(200);expect(result.body.items.map((x:any)=>x.subject)).toEqual(['Có Message-ID 12']);
+  });
 });

@@ -5,6 +5,63 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 12/12 — Client IMAP bỏ qua độ dài literal `{N}`
+
+- **Fingerprint:** `mail-basic/imap-literal-length-ignored`.
+- **Nhánh:** `claude/audit-fix-12-imap-literal` (cắt từ `claude/audit-fix-11-records-claim-creator-c6f9d9`, commit 120bd69).
+- **Kết luận:** lỗi **có thật** ở mã, đã tái hiện bằng unit test với transcript IMAP cố định (không chạy Stalwart thật). Chưa biết mail từ ngoài API có vào được các hộp thư này không (xem "Giới hạn").
+
+### Tái hiện trước khi sửa
+
+Test hồi quy `apps/api/test/stalwart-imap-literal.spec.ts`: thay `tls.connect` bằng một duplex trong bộ nhớ phát lại transcript IMAP cố định (literal tính theo byte UTF-8, có ký tự tiếng Việt). Mã cũ: `Tests: 7 failed, 7 total`.
+
+1. `listFolder`: literal `BODY[]` của thư 1 chứa dòng `s3 OK ...`, một khối `* 2 FETCH (UID 2 BODY[] {44}` với `Message-ID: <victim@vcworkspace.test>` giả, rồi dòng `s4 OK ...`. Mã cũ trả thư 1 bị cắt ngay trước `s3 OK`, và trả thư thứ hai là thư giả `victim@vcworkspace.test` (nội dung lấy từ thân thư 1) thay cho thư 2 thật.
+2. `listFolder`: thư không có Message-ID ở header nhưng thân thư có dòng `Message-ID: <m1@...>`. Mã cũ lấy `m1@...` làm engineId.
+3. `uid()`/`raw()`: thư UID 1 thiếu Message-ID. Regex lười trong `uid()` gán `m2@...` cho UID 1, nên `raw('m2@...')` trả byte của thư 1.
+4. `raw()`: literal chứa dòng `a4 OK` và `BODY[] {5}` giả. Mã cũ trả thiếu byte.
+5. `SELECT` trả `a2 NO`, và `LOGIN` trả `a1 NO`: mã cũ chờ hết 10 giây rồi báo `MAIL_PROTOCOL_TIMEOUT` (2 ca); socket không được đóng.
+6. Cùng transcript ca 1, cắt thành gói 7 byte: mã cũ cũng sai.
+
+Thêm ca e2e trong `apps/api/test/mail-durability.e2e-spec.ts` (`audit 12/12: một thư engine thiếu Message-ID không làm cả danh sách trả 500`, dùng FakeMailPort): với `mail-basic.service.ts` cũ thì `GET /mail/messages` trả **500** (1 failed, 7 passed).
+
+### Cách sửa
+
+- **`tls-client.ts`:** thêm `parseImapResponse`. Dòng kết thúc bằng `{N}` (hoặc `{N+}`) thì đọc đúng N byte tiếp theo làm literal, sau đó đọc tiếp phần còn lại của phản hồi. Literal được thay bằng dấu chỗ `\0<i>\0` trong text; byte giữ nguyên trong `literals`. Bộ đệm là chuỗi latin1 nên 1 ký tự = 1 byte. Literal lớn hơn 64 MB hoặc text có NUL thì báo lỗi.
+  - `readImap(tag)` chỉ nhận dòng hoàn tất có tag nằm ngoài literal. Trả `OK`/`NO`/`BAD` cùng các phản hồi không tag. Gặp tag lạ thì báo lỗi.
+  - `readImapGreeting()` đòi `* OK`/`* PREAUTH`.
+  - Socket đóng hoặc lỗi thì báo ngay, không chờ hết thời gian chờ. `read(regex)` chỉ còn dùng cho SMTP.
+  - Thêm `close()`: `end()` rồi `destroy()` sau 1 giây.
+- **`stalwart-mail.port.ts`:**
+  - `withImap` mở phiên (greeting, `LOGIN` với chuỗi quoted có thoát `\` và `"`) và luôn `close()` trong `finally`. `deliver` (SMTP) cũng đóng socket trong `finally`.
+  - `imapCommand` ném `MAIL_IMAP_NO`/`MAIL_IMAP_BAD` ngay khi nhận kết quả.
+  - `fetchedLiterals` chỉ đọc `* n FETCH (...)` có UID trùng UID đã yêu cầu, và lấy literal của đúng mục `BODY[]` hoặc `BODY[HEADER.FIELDS (...)]`.
+  - engineId lấy bằng `headerMessageId`: mailparser (cùng parser với metadata ở `parseEngineRaw`) chỉ đọc phần header. Thư thiếu Message-ID không khớp UID nào trong `uid()`, và bị bỏ qua trong `listFolder`.
+  - `setLabels` và `ensureFilterFolders` dùng cùng bộ đọc. `CREATE` trả `NO` vẫn kiểm bằng `SELECT` như cũ.
+- **`mail-basic.service.ts` `syncFolder`:** một thư không parse được (ví dụ thiếu Message-ID) thì ghi cảnh báo và bỏ qua, không làm cả danh sách trả 500.
+- Không thêm thư viện IMAP.
+- Khoá engine vẫn là Message-ID, không đổi sang UID, vì các bản ghi `WorkspaceMailMessage` đã có và `deliver` đều dùng Message-ID; UID cũng đổi khi UIDVALIDITY đổi.
+
+### Giới hạn
+
+- Thư không có Message-ID trong header không hiện trong VCworkspace (trước đây cũng bị bỏ qua hoặc gây 500). Muốn hiện thì cần khoá theo UIDVALIDITY+UID, và phải đổi `raw()`/`setLabels()`.
+- Chưa chạy với Stalwart thật. Chưa kiểm Stalwart có trả `BODY[]` dạng quoted string thay cho literal không. Nếu có thì `raw()` báo `MAIL_FETCH_INVALID` và `listFolder` bỏ qua thư đó.
+- Các câu hỏi deploy trong đầu mối vẫn mở: engine có nhận SMTP từ internet, hoặc SMTP/IMAP APPEND từ client khác API không; engine có tự thêm Message-ID không.
+- Mỗi thư bị đọc header bằng mailparser hai lần (ở port và ở service).
+
+### Sau khi sửa
+
+- `stalwart-imap-literal.spec.ts`: `Tests: 7 passed, 7 total`.
+- Các test mail `stalwart-imap-literal`, `mail-durability`, `mail-basic`, `mail-management`, `mailbox-owner`, `mail-address-claim`: `Test Suites: 6 passed`, `Tests: 29 passed, 29 total`. `tsc --noEmit` của API đạt.
+- `pnpm ai:check`: **PASS** (exit 0). Guard 44/44, OpenAPI hợp lệ, typecheck API đạt, BE `Test Suites: 9 skipped, 36 passed`, `Tests: 9 skipped, 301 passed, 310 total`. Không cần tắt sandbox. Không chạy test FE vì không đổi FE.
+- Chưa chạy `pnpm ai:check:full`.
+
+### Việc của chủ dự án
+
+- Trả lời câu hỏi deploy: engine production có nhận thư từ ngoài API vào hộp thư `@vcworkspace.test` không, và xử lý thư thiếu Message-ID thế nào.
+- Trên Stalwart thử (không phải dữ liệu thật): chạy `listFolder`/`raw` với một thư có dòng giống `sN OK` trong thân, để xác nhận transcript thật khớp fixture.
+
+---
+
 ## 2026-10-25 · Đầu mối 11/12 — Đăng ký ngược coi người sửa cuối là người tạo rồi chuyển file ra khỏi drive nguồn
 
 - **Fingerprint:** `legacy/records-claim:creator-check-uses-lastModifyingUser`.
