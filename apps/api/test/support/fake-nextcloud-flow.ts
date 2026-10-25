@@ -18,8 +18,11 @@ export class FakeNextcloudFlow {
   forms = new Map<number, { ownerId: string; results: Set<string>; questions: { id: number; order: number; text: string }[]; submissions: Map<number, FakeSubmission> }>();
   boards = new Map<number, { editors: Set<string>; acl: any[]; stacks: Map<number, FakeCard[]> }>();
   tables = new Map<number, { title: string; ownership: string; shares: any[]; rows: Map<number, { id: number; tableId: number; createdAt: string; data: { columnId: number; value: string }[] }> }>();
-  /** fileId → { đường dẫn theo từng uid thấy file, tag } */
-  files = new Map<number, { paths: Record<string, string>; tags: string[] }>();
+  /** fileId → { đường dẫn theo từng uid thấy file, tag, ETag/mtime cho PROPFIND (chat15) } */
+  files = new Map<number, { paths: Record<string, string>; tags: string[]; etag?: string; mtime?: number }>();
+  /** Chat15: thư mục trả 403 khi PROPFIND; href lạ chèn thêm vào phản hồi PROPFIND */
+  forbiddenFolders = new Set<string>();
+  extraPropfindHrefs: string[] = [];
   private nextCard = 100;
 
   async start() {
@@ -127,6 +130,28 @@ export class FakeNextcloudFlow {
       const visible = file && scope === user ? file.paths[user] : undefined;
       const inner = visible ? `<d:response><d:href>/remote.php/dav/files/${user}${encodeURI(visible)}</d:href><d:propstat><d:prop><oc:fileid>${fid}</oc:fileid></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>` : '';
       return this.send(res, 207, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">${inner}</d:multistatus>`, 'application/xml');
+    }
+    if ((m = path.match(/^\/remote\.php\/dav\/files\/([^/]+)(\/.*)?$/)) && req.method === 'PROPFIND') {
+      // Chat15: PROPFIND Depth 1 trên cây của chính user (như client sync), dạng phản hồi Nextcloud 33
+      if (decodeURIComponent(m[1]) !== user) return this.send(res, 404, '<?xml version="1.0"?><d:error xmlns:d="DAV:"/>', 'application/xml');
+      const folder = decodeURIComponent(m[2] ?? '/').replace(/\/+$/, '');
+      if (this.forbiddenFolders.has(folder)) return this.send(res, 403, '<?xml version="1.0"?><d:error xmlns:d="DAV:"/>', 'application/xml');
+      const prefix = `${folder}/`;
+      const entries: string[] = [];
+      const dirs = new Set<string>();
+      let exists = folder === '';
+      for (const [fid, f] of this.files) {
+        const p = f.paths[user];
+        if (!p || !p.startsWith(prefix)) continue;
+        exists = true;
+        const rest = p.slice(prefix.length);
+        if (rest.includes('/')) dirs.add(rest.split('/')[0]);
+        else entries.push(`<d:response><d:href>/remote.php/dav/files/${user}${encodeURI(p)}</d:href><d:propstat><d:prop><oc:fileid>${fid}</oc:fileid><d:getetag>&quot;${f.etag ?? `e${fid}`}&quot;</d:getetag><d:getlastmodified>${new Date((f.mtime ?? 1_700_000_000) * 1000).toUTCString()}</d:getlastmodified><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`);
+      }
+      if (!exists) return this.send(res, 404, '<?xml version="1.0"?><d:error xmlns:d="DAV:"/>', 'application/xml');
+      const dirEntry = (p: string) => `<d:response><d:href>/remote.php/dav/files/${user}${encodeURI(p)}/</d:href><d:propstat><d:prop><oc:fileid>1</oc:fileid><d:getetag>&quot;d&quot;</d:getetag><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`;
+      const extra = this.extraPropfindHrefs.map((h) => `<d:response><d:href>${h}</d:href><d:propstat><d:prop><oc:fileid>999999</oc:fileid><d:getetag>&quot;x&quot;</d:getetag><d:resourcetype/></d:prop></d:propstat></d:response>`);
+      return this.send(res, 207, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">${dirEntry(folder)}${[...dirs].map((d) => dirEntry(`${prefix}${d}`)).join('')}${entries.join('')}${extra.join('')}</d:multistatus>`, 'application/xml');
     }
     if ((m = path.match(/^\/remote\.php\/dav\/systemtags-relations\/files\/(\d+)$/)) && req.method === 'PROPFIND') {
       const file = this.files.get(Number(m[1]));

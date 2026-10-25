@@ -93,7 +93,8 @@ export interface AppConfig {
 export type FlowRule =
   | { id: string; kind: 'forms.submission-to-deck'; runner: string; formId: number; boardId: number; stackId: number; allowSharedBoard?: boolean }
   | { id: string; kind: 'tables.row-notify'; runner: string; tableId: number; recipients: string[] }
-  | { id: string; kind: 'files.verify-tag'; runner: string; folderPath: string; tagName: string };
+  /** reconcile: chat15 — đối soát theo thư mục (thay đổi ngoài webhook, vd sửa trực tiếp trên NAS) */
+  | { id: string; kind: 'files.verify-tag'; runner: string; folderPath: string; tagName: string; reconcile?: boolean };
 
 export interface FlowConfig {
   /** Tắt mặc định; route trả 503 khi tắt */
@@ -173,6 +174,7 @@ export function validateFlowConfig(f: FlowConfig, nodeEnv: string): void {
       if (typeof r.folderPath !== 'string' || !/^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(r.folderPath) || typeof r.tagName !== 'string' || !r.tagName.trim()) {
         throw new Error(`Rule ${r.id}: folderPath (ASCII, tương đối) và tagName bắt buộc`);
       }
+      if (r.reconcile !== undefined && typeof r.reconcile !== 'boolean') throw new Error(`Rule ${r.id}: reconcile phải là boolean`);
     } else {
       throw new Error(`Rule ${r.id}: kind không hỗ trợ`);
     }

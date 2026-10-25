@@ -1,0 +1,322 @@
+{
+  "generatedAt": "2026-10-25T09:51:56.974Z",
+  "marker": "flow15-1792921888757",
+  "folder": "NAS-TeamA/Flow14-HoSo",
+  "sinkHooks": {
+    "NodeCreatedEvent": {
+      "registered": true,
+      "id": 73
+    },
+    "NodeWrittenEvent": {
+      "registered": true,
+      "id": 74
+    },
+    "NodeRenamedEvent": {
+      "registered": true,
+      "id": 75
+    },
+    "NodeDeletedEvent": {
+      "registered": true,
+      "id": 76
+    },
+    "NodeAddedToCache": {
+      "registered": false,
+      "status": 400,
+      "message": "{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":400,\"message\":\"OCP\\\\Files\\\\Events\\\\NodeAddedToCache is not an event class compatible with webhooks\"},\"data\":[]}}"
+    },
+    "FileCacheUpdated": {
+      "registered": false,
+      "status": 400,
+      "message": "{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":400,\"message\":\"OCP\\\\Files\\\\Events\\\\FileCacheUpdated is not an event class compatible with webhooks\"},\"data\":[]}}"
+    },
+    "NodeRemovedFromCache": {
+      "registered": false,
+      "status": 400,
+      "message": "{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":400,\"message\":\"OCP\\\\Files\\\\Events\\\\NodeRemovedFromCache is not an event class compatible with webhooks\"},\"data\":"
+    }
+  },
+  "viaNextcloud": {
+    "plain": {
+      "put": 201,
+      "fileId": 1084,
+      "journal": [
+        {
+          "source": "webhook",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "files-tag:outside_folder",
+            "nas-hoso:tag_verified"
+          ]
+        },
+        {
+          "source": "webhook",
+          "eventClass": "NodeWrittenEvent",
+          "status": "done",
+          "outcomes": [
+            "files-tag:outside_folder",
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "doneAfterMs": 833
+    },
+    "mat": {
+      "put": 201,
+      "fileId": 1085,
+      "journal": [
+        {
+          "source": "webhook",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "files-tag:outside_folder",
+            "nas-hoso:tag_verified"
+          ]
+        },
+        {
+          "source": "webhook",
+          "eventClass": "NodeWrittenEvent",
+          "status": "done",
+          "outcomes": [
+            "files-tag:outside_folder",
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "doneAfterMs": 1177
+    },
+    "access": {
+      "ownerMat": 200,
+      "memberMat": 404,
+      "memberPlain": 200,
+      "managerB": 404,
+      "outsider": 404
+    }
+  },
+  "viaNasSmb": {
+    "plain": {
+      "discoveredBy": "notify + PROPFIND Depth 0 trên đúng file (URL chứa /Flow14-HoSo/)",
+      "fileId": 1086,
+      "tags": [
+        "flow14-hoso"
+      ],
+      "visibleInNextcloudMs": 159,
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "reconciledDoneAfterMs": 1943
+    },
+    "mat": {
+      "discoveredBy": "notify + PROPFIND Depth 0 trên đúng file (URL chứa /Flow14-HoSo/)",
+      "fileId": 1087,
+      "tags": [
+        "flow14-hoso",
+        "flow14-mat"
+      ],
+      "visibleInNextcloudMs": 158,
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "reconciledDoneAfterMs": 1669
+    },
+    "access": {
+      "memberReadsNasMatViaWebdav": 404,
+      "ownerReadsNasMatViaWebdav": 200,
+      "nasMemberReadsWebdavMatViaSmb": "ALLOWED (SMB không qua Flow core)",
+      "managerB": 404
+    }
+  },
+  "renameOnNas": {
+    "fileIdBefore": 1086,
+    "fileIdAfter": 1088,
+    "newFileId": true,
+    "journalNewId": [
+      {
+        "source": "reconcile",
+        "eventClass": "NodeCreatedEvent",
+        "status": "done",
+        "outcomes": [
+          "nas-hoso:tag_verified"
+        ]
+      }
+    ]
+  },
+  "discoveryPaths": {
+    "scanPlain": {
+      "discoveredBy": "occ files:scan",
+      "scanMs": 346,
+      "fileId": 1089,
+      "tags": [],
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "skipped",
+          "outcomes": [
+            "nas-hoso:tag_missing"
+          ]
+        }
+      ],
+      "memberRead": 200
+    },
+    "scanMat": {
+      "discoveredBy": "occ files:scan",
+      "scanMs": 346,
+      "fileId": 1090,
+      "tags": [
+        "flow14-mat"
+      ],
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "skipped",
+          "outcomes": [
+            "nas-hoso:tag_missing"
+          ]
+        }
+      ],
+      "memberRead": 404
+    },
+    "deepPlain": {
+      "discoveredBy": "PROPFIND Depth:infinity /NAS-TeamA (207) bởi member-a, notify tắt",
+      "fileId": 1091,
+      "tags": [
+        "flow14-hoso"
+      ],
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "memberRead": 200
+    },
+    "deepMat": {
+      "discoveredBy": "PROPFIND Depth:infinity /NAS-TeamA (207) bởi member-a, notify tắt",
+      "fileId": 1092,
+      "tags": [
+        "flow14-hoso",
+        "flow14-mat"
+      ],
+      "journal": [
+        {
+          "source": "reconcile",
+          "eventClass": "NodeCreatedEvent",
+          "status": "done",
+          "outcomes": [
+            "nas-hoso:tag_verified"
+          ]
+        }
+      ],
+      "memberRead": 404
+    }
+  },
+  "webhooksCapturedOnSink": {
+    "viaWebdavPlain": [
+      "OCP\\Files\\Events\\Node\\NodeCreatedEvent",
+      "OCP\\Files\\Events\\Node\\NodeWrittenEvent"
+    ],
+    "viaNasSmbPlain": [],
+    "viaNasSmbMat": [],
+    "viaNasRename": [],
+    "viaNasFsScan": [],
+    "viaDeepPropfind": []
+  },
+  "findings": {
+    "smbBypassesFlowCore": true,
+    "tagsByDiscoveryPath": {
+      "notifyThenFilePropfind": {
+        "tags": [
+          "flow14-hoso"
+        ],
+        "receiver": "tag_verified",
+        "memberRead": null
+      },
+      "notifyThenFilePropfindMat": {
+        "tags": [
+          "flow14-hoso",
+          "flow14-mat"
+        ],
+        "receiver": "tag_verified",
+        "memberRead": null
+      },
+      "scanPlain": {
+        "tags": [],
+        "receiver": "tag_missing",
+        "memberRead": 200
+      },
+      "scanMat": {
+        "tags": [
+          "flow14-mat"
+        ],
+        "receiver": "tag_missing",
+        "memberRead": 404
+      },
+      "deepPlain": {
+        "tags": [
+          "flow14-hoso"
+        ],
+        "receiver": "tag_verified",
+        "memberRead": 200
+      },
+      "deepMat": {
+        "tags": [
+          "flow14-hoso",
+          "flow14-mat"
+        ],
+        "receiver": "tag_verified",
+        "memberRead": 404
+      }
+    },
+    "receiverFlagsMissingTag": true
+  },
+  "latency": {
+    "webdavDoneMs": {
+      "n": 2,
+      "min": 833,
+      "p50": 833,
+      "p95": 1177,
+      "max": 1177,
+      "mean": 1005
+    },
+    "nasReconciledDoneMs": {
+      "n": 2,
+      "min": 1669,
+      "p50": 1669,
+      "p95": 1943,
+      "max": 1943,
+      "mean": 1806
+    }
+  },
+  "webhookDeliveryFailuresDuringRun": 0,
+  "checks": {
+    "webdavTagVerified": true,
+    "flowCoreDenyOnSmbMount": true,
+    "teamBOutsiderDenied": true,
+    "nasChangesEmitNoNodeWebhook": true,
+    "nasChangesReconciled": true,
+    "renameReconciled": true
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

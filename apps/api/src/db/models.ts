@@ -242,8 +242,19 @@ const FlowCursor = mk({
   /** Lần đầu rule được nạp: đối soát chỉ bù tài nguyên tạo từ mốc này */
   activatedAt: { type: Date, required: true },
   lastReconcileAt: Date,
+  /** Chat15: lần đầu đối soát thư mục của rule Files (ảnh chụp fileid/ETag gốc) */
+  filesBaselineAt: Date,
 });
 FlowCursor.index({ companyId: 1, ruleId: 1 }, { unique: true });
+
+/** Chat15: ảnh chụp fileid → ETag của thư mục rule Files để đối soát thay đổi không có webhook */
+const FlowFileState = mk({
+  ruleId: { type: String, required: true },
+  fileId: { type: Number, required: true },
+  etag: { type: String, required: true },
+  seenAt: { type: Date, required: true },
+});
+FlowFileState.index({ companyId: 1, ruleId: 1, fileId: 1 }, { unique: true });
 
 // ── Drive cơ bản VCworkspace ──
 const WorkspaceSpace = mk({
@@ -664,6 +675,7 @@ export const MODEL_DEFS = {
   FlowEvent: { schema: FlowEvent, collection: 'flow_events' },
   FlowEffect: { schema: FlowEffect, collection: 'flow_effects' },
   FlowCursor: { schema: FlowCursor, collection: 'flow_cursors' },
+  FlowFileState: { schema: FlowFileState, collection: 'flow_file_states' },
   WorkspaceSpace: { schema: WorkspaceSpace, collection: 'workspace_spaces' },
   WorkspaceSpaceMember: { schema: WorkspaceSpaceMember, collection: 'workspace_space_members' },
   WorkspaceDriveItem: { schema: WorkspaceDriveItem, collection: 'workspace_drive_items' },

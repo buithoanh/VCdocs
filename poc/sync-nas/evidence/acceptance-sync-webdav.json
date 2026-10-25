@@ -1,0 +1,281 @@
+{
+  "generatedAt": "2026-10-25T09:44:37.481Z",
+  "marker": "sync15-1792921357008",
+  "home": {
+    "propfind": {
+      "depth0": {
+        "status": 207,
+        "entries": 1
+      },
+      "depth1": {
+        "status": 207,
+        "entries": 2
+      },
+      "depthInfinity": 207,
+      "leafProps": {
+        "etag": true,
+        "fileId": 983,
+        "permissions": "RGDNVW",
+        "size": 3
+      }
+    },
+    "etagPropagation": {
+      "folderA": true,
+      "root": true,
+      "home": true
+    },
+    "etagSameSecondSameSize": {
+      "createEtag": "fd98b4dbd4267f4d1af5ef764694534a",
+      "overwriteSameSecondEtag": "fd98b4dbd4267f4d1af5ef764694534a",
+      "unchangedWithinSecond": true,
+      "changedNextSecond": true
+    },
+    "conditional": {
+      "sameEtagSeenByBoth": true,
+      "d1PutIfMatch": 204,
+      "d2PutStaleIfMatch": 412,
+      "contentAfter": "desktop-1 edit",
+      "ifNoneMatchStarOnExisting": 412,
+      "deleteStaleIfMatch": 412,
+      "moveStaleIfMatch": 412,
+      "stillExists": 200
+    },
+    "concurrentEdits": {
+      "differentSize": {
+        "rounds": 10,
+        "exactlyOneWinner": 10,
+        "bothWon": 0,
+        "noneWon": 0,
+        "firstAttemptStatuses": [
+          423
+        ],
+        "finalStatuses": [
+          204,
+          412
+        ],
+        "bothLockedOnFirstAttempt": 10
+      },
+      "sameSize": {
+        "rounds": 10,
+        "exactlyOneWinner": 10,
+        "bothWon": 0,
+        "noneWon": 0,
+        "firstAttemptStatuses": [
+          423
+        ],
+        "finalStatuses": [
+          204,
+          412
+        ],
+        "bothLockedOnFirstAttempt": 10
+      }
+    },
+    "chunkedUploadV2": {
+      "mkcol": 201,
+      "put1": 201,
+      "resumeListingFromOtherDevice": {
+        "status": 207,
+        "chunksListed": 1
+      },
+      "foreignUserPutChunk": 403,
+      "foreignUserMove": 403,
+      "put2": 201,
+      "put3": 201,
+      "wrongTotalLengthMove": 400,
+      "move": 201,
+      "ocFileId": true,
+      "downloadMatches": true,
+      "checksumStored": true,
+      "mtimeKept": true,
+      "abortDelete": 204,
+      "abortGone": 404
+    }
+  },
+  "nas": {
+    "propfind": {
+      "depth0": {
+        "status": 207,
+        "entries": 1
+      },
+      "depth1": {
+        "status": 207,
+        "entries": 2
+      },
+      "depthInfinity": 207,
+      "leafProps": {
+        "etag": true,
+        "fileId": 1041,
+        "permissions": "RMGDNVW",
+        "size": 3
+      }
+    },
+    "etagPropagation": {
+      "folderA": true,
+      "root": true,
+      "home": true
+    },
+    "etagSameSecondSameSize": {
+      "createEtag": "6addcf3b24130",
+      "overwriteSameSecondEtag": "6addcf3b24130",
+      "unchangedWithinSecond": true,
+      "changedNextSecond": true
+    },
+    "conditional": {
+      "sameEtagSeenByBoth": true,
+      "d1PutIfMatch": 204,
+      "d2PutStaleIfMatch": 412,
+      "contentAfter": "desktop-1 edit",
+      "ifNoneMatchStarOnExisting": 412,
+      "deleteStaleIfMatch": 412,
+      "moveStaleIfMatch": 412,
+      "stillExists": 200
+    },
+    "concurrentEdits": {
+      "differentSize": {
+        "rounds": 10,
+        "exactlyOneWinner": 10,
+        "bothWon": 0,
+        "noneWon": 0,
+        "firstAttemptStatuses": [
+          204,
+          423
+        ],
+        "finalStatuses": [
+          204,
+          412
+        ],
+        "bothLockedOnFirstAttempt": 0
+      },
+      "sameSize": {
+        "rounds": 10,
+        "exactlyOneWinner": 10,
+        "bothWon": 0,
+        "noneWon": 0,
+        "firstAttemptStatuses": [
+          204,
+          423
+        ],
+        "finalStatuses": [
+          204,
+          412
+        ],
+        "bothLockedOnFirstAttempt": 0
+      }
+    },
+    "chunkedUploadV2": {
+      "mkcol": 201,
+      "put1": 201,
+      "resumeListingFromOtherDevice": {
+        "status": 207,
+        "chunksListed": 1
+      },
+      "foreignUserPutChunk": 403,
+      "foreignUserMove": 403,
+      "put2": 201,
+      "put3": 201,
+      "wrongTotalLengthMove": 400,
+      "move": 201,
+      "ocFileId": true,
+      "downloadMatches": true,
+      "checksumStored": true,
+      "mtimeKept": true,
+      "abortDelete": 204,
+      "abortGone": 404
+    }
+  },
+  "revoke": {
+    "tokensBefore": 2,
+    "adminRevoke": {
+      "occMs": 531,
+      "firstRequestAfter": 207,
+      "deniedAfterMs": 5986,
+      "note": "cache token APCu (TTL 10 s) của tiến trình web không bị occ (CLI) xoá",
+      "otherDeviceStillWorks": 207
+    },
+    "selfLogout": {
+      "status": 200,
+      "nextRequest": 401,
+      "nasMountNextRequest": 401
+    },
+    "tokensAfter": 0
+  },
+  "offboard": {
+    "before": {
+      "b1Home": 207,
+      "b2NasTeamB": 207,
+      "smbDirect": "ALLOWED",
+      "chunkStart": 201,
+      "chunk1": 201
+    },
+    "disableOccMs": 210,
+    "afterDisable": {
+      "firstRequestMs": 461,
+      "statusesHomeNasChunkMove": [
+        [
+          503,
+          503,
+          503,
+          503
+        ],
+        [
+          503,
+          503,
+          503,
+          503
+        ],
+        [
+          503,
+          503,
+          503,
+          503
+        ],
+        [
+          503,
+          503,
+          503,
+          503
+        ],
+        [
+          503,
+          503,
+          503,
+          503
+        ]
+      ],
+      "allDenied": true,
+      "note": "token còn hiệu lực + tài khoản disabled → Nextcloud trả 503 (DisabledUserException), không phải 401"
+    },
+    "smbDirectAfterNextcloudDisable": "ALLOWED (danh tính NAS riêng)",
+    "smbDirectAfterNasDisable": "NT_STATUS_ACCOUNT_DISABLED",
+    "tokensRevoked": 2,
+    "inProgressFileOnNas": false,
+    "afterReEnable": {
+      "revokedDevices": [
+        401,
+        401
+      ],
+      "legacyChat13TokenNotDeleted": 207,
+      "note": "disable không xoá token: bật lại tài khoản thì token chưa xoá dùng lại được → offboard phải xoá token (chat13 đã làm)"
+    }
+  },
+  "checks": {
+    "ifMatchStale412": true,
+    "ifNoneMatchStar412": true,
+    "staleDeleteMove412": true,
+    "concurrentNoLostUpdate": true,
+    "etagPropagates": true,
+    "chunked": true,
+    "revokeWithin10s": true,
+    "selfLogoutImmediate": true,
+    "offboardImmediate": true,
+    "smbNeedsSeparateOffboard": true
+  },
+  "notTested": [
+    "Nextcloud Desktop/Android/iOS thật",
+    "conflict copy phía client",
+    "selective sync / virtual files",
+    "Login Flow v2 + OIDC trên thiết bị"
+  ],
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

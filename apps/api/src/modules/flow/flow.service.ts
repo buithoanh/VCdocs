@@ -476,7 +476,21 @@ export class FlowService implements OnApplicationBootstrap, OnModuleDestroy {
     if (!href) throw new FlowSkip('not_visible_to_runner', 'Runner không thấy file');
     if (!href.startsWith(`${nc.filesRoot()}${rule.folderPath}/`)) throw new FlowSkip('outside_folder', 'File không nằm trong thư mục của rule');
     const tags = await nc.getFileTags(fileId);
-    if (!tags.includes(rule.tagName)) throw new FlowRetryable('tag_pending', `Chưa thấy tag ${rule.tagName}`);
+    if (!tags.includes(rule.tagName)) {
+      // Đối soát chỉ thấy thay đổi đã nằm yên (ghi ngoài Nextcloud, vd trực tiếp trên NAS): Flow core
+      // không chạy cho các thay đổi đó nên tag sẽ không tự xuất hiện → quyết định cuối, ghi audit.
+      if (ev.source === 'reconcile') {
+        await this.audit.write({ companyId: this.cfg.flow.companyId!, requestId: ev.correlationId }, {
+          action: 'flow.files.tag_missing',
+          objectType: 'flow_event',
+          objectId: String(ev._id),
+          after: { ruleId: rule.id, fileId, tags, expected: rule.tagName, runner: nc.uid },
+          result: 'denied',
+        });
+        throw new FlowSkip('tag_missing', `File đổi ngoài Nextcloud, không có tag ${rule.tagName}`);
+      }
+      throw new FlowRetryable('tag_pending', `Chưa thấy tag ${rule.tagName}`);
+    }
     await this.audit.write({ companyId: this.cfg.flow.companyId!, requestId: ev.correlationId }, {
       action: 'flow.files.tag_verified',
       objectType: 'flow_event',
@@ -496,7 +510,7 @@ export class FlowService implements OnApplicationBootstrap, OnModuleDestroy {
   /** Mốc kích hoạt rule = lần đầu worker chạy với rule đó; đối soát không bù dữ liệu trước mốc */
   async ensureCursors(): Promise<void> {
     for (const rule of this.cfg.flow.rules) {
-      if (rule.kind !== 'forms.submission-to-deck' && rule.kind !== 'tables.row-notify') continue;
+      if (rule.kind === 'files.verify-tag' && !rule.reconcile) continue;
       await this.cursor(rule.id);
     }
   }
@@ -515,7 +529,10 @@ export class FlowService implements OnApplicationBootstrap, OnModuleDestroy {
     const companyId = this.companyId;
     let added = 0;
     for (const rule of f.rules) {
-      if (rule.kind !== 'forms.submission-to-deck' && rule.kind !== 'tables.row-notify') continue;
+      if (rule.kind === 'files.verify-tag') {
+        if (rule.reconcile) added += await this.reconcileFolder(rule);
+        continue;
+      }
       const cursor = await this.cursor(rule.id);
       const since = new Date(cursor.activatedAt).getTime();
       const nc = this.client(rule.runner);
@@ -571,6 +588,92 @@ export class FlowService implements OnApplicationBootstrap, OnModuleDestroy {
       }
       await this.db.m.FlowCursor.updateOne({ companyId, ruleId: rule.id }, { $set: { lastReconcileAt: new Date() } });
     }
+    return added;
+  }
+
+  /**
+   * Chat15 đối soát Files theo thư mục: thay đổi ngoài Nextcloud (sửa/đổi tên trực tiếp trên NAS,
+   * rồi notify/scan) không phát Node*Event cho webhook. Worker liệt kê thư mục của rule bằng quyền
+   * runner, so fileid/ETag với ảnh chụp lần trước và đưa file mới/đổi chưa có journal vào hàng đợi.
+   * Lần đầu (baseline) chỉ đưa vào file đổi từ mốc kích hoạt rule. Runner mất quyền → không đưa gì,
+   * ghi audit; không thử tài khoản khác.
+   */
+  private async reconcileFolder(rule: Extract<FlowRule, { kind: 'files.verify-tag' }>): Promise<number> {
+    const f = this.cfg.flow;
+    const companyId = this.companyId;
+    const cursor = await this.cursor(rule.id);
+    const since = Math.floor(new Date(cursor.activatedAt).getTime() / 1000);
+    const baseline = !cursor.filesBaselineAt;
+    const nc = this.client(rule.runner);
+    let listing: Awaited<ReturnType<NextcloudFlowClient['listFolderFiles']>>;
+    try {
+      listing = await nc.listFolderFiles(rule.folderPath);
+    } catch (e: any) {
+      const outcome = e instanceof FlowSkip || e instanceof FlowRetryable ? e.outcome : 'error';
+      await this.audit.write({ companyId: f.companyId!, requestId: `flow-reconcile-${rule.id}` }, {
+        action: 'flow.reconcile.failed',
+        objectType: 'flow_rule',
+        objectId: rule.id,
+        after: { ruleId: rule.id, outcome, runner: nc.uid },
+        result: 'denied',
+      });
+      return 0;
+    }
+    const S = this.db.m.FlowFileState;
+    const known = new Map<number, string>(
+      (await S.find({ companyId, ruleId: rule.id }).select({ fileId: 1, etag: 1 }).lean<any[]>()).map((x) => [x.fileId, x.etag]),
+    );
+    let added = 0;
+    const now = new Date();
+    for (const file of listing.files) {
+      const prev = known.get(file.fileId);
+      if (prev === file.etag) continue;
+      const eventClass = prev === undefined ? FLOW_EVENTS.nodeCreated : FLOW_EVENTS.nodeWritten;
+      const time = file.modifiedAt ?? Math.floor(now.getTime() / 1000);
+      const resourceKey = `files:node:${file.fileId}`;
+      const enqueue =
+        (!baseline || time >= since) &&
+        // Webhook đã báo thay đổi này (thao tác qua Nextcloud) → không nhân đôi
+        !(await this.db.m.FlowEvent.exists({ companyId, resourceKey, eventTime: { $gte: new Date((time - 1) * 1000) } }));
+      if (enqueue) {
+        const journalId = new Types.ObjectId();
+        try {
+          await this.db.m.FlowEvent.create({
+            _id: journalId,
+            companyId,
+            dedupeKey: sha256(`reconcile|files|${rule.id}|${file.fileId}|${file.etag}`),
+            source: 'reconcile',
+            eventClass,
+            resource: { fileId: file.fileId },
+            resourceKey,
+            orderingKey: resourceKey,
+            eventTime: new Date(time * 1000),
+            payloadSha256: sha256(canonical({ ruleId: rule.id, fileId: file.fileId, etag: file.etag })),
+            ruleIds: [rule.id],
+            status: 'queued',
+            nextAttemptAt: now,
+            receivedAt: now,
+            correlationId: `flow-${journalId.toHexString()}`,
+          });
+          added++;
+          await this.audit.write({ companyId: f.companyId!, requestId: `flow-${journalId.toHexString()}` }, {
+            action: 'flow.event.reconciled',
+            objectType: 'flow_event',
+            objectId: journalId.toHexString(),
+            after: { ruleId: rule.id, resourceKey, eventClass, change: prev === undefined ? 'new' : 'etag_changed' },
+          });
+        } catch (e: any) {
+          if (e?.code !== 11000) throw e;
+        }
+      }
+      await S.updateOne({ companyId, ruleId: rule.id, fileId: file.fileId }, { $set: { etag: file.etag, seenAt: now } }, { upsert: true });
+    }
+    // File biến mất (xoá, đổi tên ngoài Nextcloud → fileid mới): bỏ khỏi ảnh chụp; danh sách bị cắt thì giữ nguyên
+    if (!listing.truncated) await S.deleteMany({ companyId, ruleId: rule.id, fileId: { $nin: listing.files.map((x) => x.fileId) } });
+    await this.db.m.FlowCursor.updateOne(
+      { companyId, ruleId: rule.id },
+      { $set: { lastReconcileAt: now, ...(baseline ? { filesBaselineAt: now } : {}) } },
+    );
     return added;
   }
 

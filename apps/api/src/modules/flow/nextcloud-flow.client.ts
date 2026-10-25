@@ -27,6 +27,13 @@ function id(n: unknown): string {
   return String(n);
 }
 
+export interface FlowFolderFile {
+  fileId: number;
+  etag: string;
+  /** getlastmodified (giây), null nếu Nextcloud không trả */
+  modifiedAt: number | null;
+}
+
 export interface FlowHttpResult {
   status: number;
   text: string;
@@ -172,6 +179,62 @@ export class NextcloudFlowClient {
   /** Đường dẫn WebDAV gốc của runner (đã giải mã), để so thư mục */
   filesRoot(): string {
     return `${this.base.pathname.replace(/\/$/, '')}/remote.php/dav/files/${this.uid}/`;
+  }
+
+  /**
+   * Chat15 đối soát Files: liệt kê đệ quy (PROPFIND Depth 1 từng thư mục, như client sync)
+   * thư mục folderPath trong cây của runner. Chỉ nhận mục nằm dưới đúng thư mục đó
+   * (href khác bị bỏ qua, không đi theo), tối đa maxFiles file / maxDirs thư mục.
+   */
+  async listFolderFiles(folderPath: string, limits = { maxFiles: 5000, maxDirs: 500 }): Promise<{ files: FlowFolderFile[]; truncated: boolean }> {
+    const rootPath = `${this.filesRoot()}${folderPath}/`;
+    const files: FlowFolderFile[] = [];
+    const queue: string[] = [rootPath];
+    const visited = new Set<string>();
+    let truncated = false;
+    while (queue.length) {
+      const dir = queue.shift()!;
+      if (visited.has(dir)) continue;
+      if (visited.size >= limits.maxDirs) {
+        truncated = true;
+        break;
+      }
+      visited.add(dir);
+      const rel = dir.slice(this.base.pathname.replace(/\/$/, '').length);
+      const r = await this.call('PROPFIND', rel.split('/').map((s) => encodeURIComponent(s)).join('/'), {
+        body: '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><oc:fileid/><d:getetag/><d:getlastmodified/><d:resourcetype/></d:prop></d:propfind>',
+        headers: { Depth: '1', 'Content-Type': 'application/xml' },
+      });
+      this.check('Liệt kê thư mục', r);
+      for (const m of r.text.matchAll(/<d:response>([\s\S]*?)<\/d:response>/g)) {
+        const rawHref = /<d:href>([^<]+)<\/d:href>/.exec(m[1])?.[1];
+        let href: string;
+        try {
+          href = decodeURIComponent(rawHref ?? '');
+        } catch {
+          continue;
+        }
+        // Chỉ mục con trực tiếp hoặc chính thư mục, dưới đúng gốc của rule (không ../, không đường lạ)
+        if (!href.startsWith(rootPath) || href.includes('/../') || href.includes('/./')) continue;
+        const isDir = /<d:collection\s*\/>/.test(m[1]);
+        if (isDir) {
+          const normalized = href.endsWith('/') ? href : `${href}/`;
+          if (normalized !== dir) queue.push(normalized);
+          continue;
+        }
+        const fileId = Number(/<oc:fileid>(\d+)<\/oc:fileid>/.exec(m[1])?.[1]);
+        const etag = /<d:getetag>&quot;([^&<]*)&quot;<\/d:getetag>|<d:getetag>"?([^"<]*)"?<\/d:getetag>/.exec(m[1]);
+        const modified = Date.parse(/<d:getlastmodified>([^<]+)<\/d:getlastmodified>/.exec(m[1])?.[1] ?? '');
+        if (!Number.isSafeInteger(fileId) || fileId <= 0 || !etag) continue;
+        if (files.length >= limits.maxFiles) {
+          truncated = true;
+          break;
+        }
+        files.push({ fileId, etag: etag[1] ?? etag[2], modifiedAt: Number.isFinite(modified) ? Math.floor(modified / 1000) : null });
+      }
+      if (truncated) break;
+    }
+    return { files, truncated };
   }
 
   async getFileTags(fileId: number): Promise<string[]> {

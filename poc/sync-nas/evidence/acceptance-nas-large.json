@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-10-25T09:35:58.135Z",
+  "marker": "big15-1792920924187",
+  "folder": "NAS-TeamA/Chat15-big15-1792920924187",
+  "sizeMiB": 1024,
+  "upload": {
+    "chunkMiB": 64,
+    "chunks": 16,
+    "mkcol": 201,
+    "moveStatus": 201,
+    "etag": "\"6addcd68ee0ad\"",
+    "fileId": "00000836ocng7vdul7ak",
+    "chunkPutMs": {
+      "total": 7854,
+      "perChunkMax": 2216,
+      "throughputMiBps": 130.4
+    },
+    "assembleMoveMs": 4898,
+    "endToEndMiBps": 80.3,
+    "sha256Client": "a714b4f90ee4ae35cfa2a5613bcb154c0779411a26eca7ef33b6df548f6d7f8c",
+    "sha256OnNas": "a714b4f90ee4ae35cfa2a5613bcb154c0779411a26eca7ef33b6df548f6d7f8c",
+    "sizeOnNas": 1073741824,
+    "mtimeOnNas": 1792920936,
+    "listedSize": 1073741824,
+    "requestedMtime": 1761350400,
+    "listedLastModified": "Sat, 25 Oct 2025 00:00:00 GMT",
+    "mtimeKeptInNextcloud": true,
+    "mtimeKeptOnNas": false,
+    "download": {
+      "status": 200,
+      "bytes": 1073741824,
+      "sha256": "a714b4f90ee4ae35cfa2a5613bcb154c0779411a26eca7ef33b6df548f6d7f8c",
+      "ms": 4585,
+      "throughputMiBps": 223.3
+    },
+    "uploadDirGoneAfterMove": 404,
+    "pass": true
+  },
+  "direct": {
+    "nasWriteMs": 3456,
+    "sha256OnNas": "e629914845e1b67eaa0cb5044008e71c38b879ac433151f895da65ff098c9d91",
+    "listedFullSizeAfterWriteMs": 140,
+    "scanFolderMs": 473,
+    "listedSizeAfterScan": 1073741824,
+    "download": {
+      "status": 200,
+      "bytes": 1073741824,
+      "sha256": "e629914845e1b67eaa0cb5044008e71c38b879ac433151f895da65ff098c9d91",
+      "ms": 4440,
+      "throughputMiBps": 230.6
+    },
+    "pass": true
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

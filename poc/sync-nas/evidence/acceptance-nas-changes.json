@@ -1,0 +1,283 @@
+{
+  "generatedAt": "2026-10-25T09:34:25.402Z",
+  "marker": "c15-1792920730266",
+  "folders": {
+    "teamA": "NAS-TeamA/Chat15-c15-1792920730266",
+    "teamB": "NAS-TeamB/Chat15-c15-1792920730266"
+  },
+  "delaysMs": {
+    "teamA_smb_new": {
+      "n": 5,
+      "min": 70,
+      "p50": 76,
+      "p95": 81,
+      "max": 81,
+      "mean": 76
+    },
+    "teamA_smb_new_homeEtag": {
+      "n": 5,
+      "min": 118,
+      "p50": 127,
+      "p95": 140,
+      "max": 140,
+      "mean": 129
+    },
+    "teamA_nasfs_new_burst": [
+      null,
+      81,
+      null,
+      86,
+      null
+    ],
+    "teamA_smb_overwrite_listingEtag": {
+      "n": 5,
+      "min": 72,
+      "p50": 72,
+      "p95": 73,
+      "max": 73,
+      "mean": 72
+    },
+    "teamA_smb_overwrite_fileEtag": {
+      "n": 5,
+      "min": 57,
+      "p50": 57,
+      "p95": 60,
+      "max": 60,
+      "mean": 58
+    },
+    "teamB_smb_new_without_scan": [
+      "not visible after 10 s",
+      "not visible after 10 s",
+      "not visible after 10 s"
+    ],
+    "teamB_scan_ms": {
+      "n": 3,
+      "min": 245,
+      "p50": 356,
+      "p95": 383,
+      "max": 383,
+      "mean": 328
+    },
+    "teamB_after_scan_visible": [
+      true,
+      true,
+      true
+    ]
+  },
+  "delaysRawMs": {
+    "teamA_smb_new": [
+      81,
+      81,
+      76,
+      70,
+      70
+    ],
+    "teamA_smb_new_homeEtag": [
+      140,
+      138,
+      127,
+      120,
+      118
+    ],
+    "teamA_nasfs_new_burst": [
+      null,
+      81,
+      null,
+      86,
+      null
+    ],
+    "teamA_smb_overwrite_listingEtag": [
+      72,
+      72,
+      72,
+      73,
+      72
+    ],
+    "teamA_smb_overwrite_fileEtag": [
+      59,
+      57,
+      57,
+      60,
+      57
+    ],
+    "teamB_smb_new_without_scan": [
+      "not visible after 10 s",
+      "not visible after 10 s",
+      "not visible after 10 s"
+    ],
+    "teamB_scan_ms": [
+      356,
+      383,
+      245
+    ],
+    "teamB_after_scan_visible": [
+      true,
+      true,
+      true
+    ]
+  },
+  "overwrite": {
+    "fileIdStable": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "renames": {
+    "viaNextcloudMove": {
+      "fileIdBefore": 799,
+      "fileIdAfter": 799,
+      "sameFileId": true,
+      "metadata": {
+        "tag": true,
+        "comment": true,
+        "share": {
+          "path": "/NAS-TeamA/Chat15-c15-1792920730266/meta-nc-c15-1792920730266-renamed.txt",
+          "fileSource": 799
+        },
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt"
+        ]
+      }
+    },
+    "viaSmbRenameWithNotify": {
+      "fileIdBefore": 800,
+      "fileIdAfter": 801,
+      "sameFileId": false,
+      "visibleAfterMs": 73,
+      "oldNameGoneAfterMs": 70,
+      "metadataBefore": {
+        "tag": true,
+        "comment": true,
+        "share": {
+          "path": "/NAS-TeamA/Chat15-c15-1792920730266/meta-smb-c15-1792920730266.txt",
+          "fileSource": 800
+        },
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt",
+          "meta-smb-c15-1792920730266.txt"
+        ]
+      },
+      "metadataOnNewFileId": {
+        "tag": false,
+        "comment": false,
+        "share": "status 404",
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt"
+        ]
+      },
+      "metadataOnOldFileId": {
+        "tag": false,
+        "comment": false,
+        "share": "status 404",
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt"
+        ]
+      }
+    },
+    "viaNasMvThenScan": {
+      "fileIdBefore": 802,
+      "fileIdAfter": 803,
+      "sameFileId": false,
+      "metadataOnNewFileId": {
+        "tag": false,
+        "comment": false,
+        "share": "status 404",
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt"
+        ]
+      },
+      "metadataOnOldFileId": {
+        "tag": false,
+        "comment": false,
+        "share": "status 404",
+        "recipientSeesShareInRoot": [
+          "meta-nc-c15-1792920086476.txt",
+          "meta-nc-c15-1792920730266.txt"
+        ]
+      }
+    }
+  },
+  "unicode": {
+    "mountEncodingCompatibility": true,
+    "nfdVisibleInListingWithCompat": true,
+    "nasBytes": [
+      {
+        "form": "NFD",
+        "hexPrefix": "486fcc82cc8020736fcc9b20"
+      },
+      {
+        "form": "NFC",
+        "hexPrefix": "48e1bb932073c6a120633135"
+      }
+    ],
+    "nextcloudListing": [
+      {
+        "name": "NFC file",
+        "form": "NFC"
+      },
+      {
+        "name": "NFD file",
+        "form": "NFC"
+      }
+    ],
+    "getNfdFileByNfcPath": 200,
+    "getNfdFileByNfdPath": 200,
+    "getNfcFile": 200,
+    "webdavPutNfdStoredOnNasAs": [
+      "NFC"
+    ]
+  },
+  "caseTests": {
+    "webdavCaseOnlyMove": {
+      "caseSensitiveOption": false,
+      "status": 500,
+      "sameFileId": false,
+      "oldNameReadable": 200,
+      "newNameReadable": 404,
+      "nasHas": [
+        "case-c15-1792920730266.txt"
+      ]
+    },
+    "smbCaseOnlyRename": {
+      "smb": "OK",
+      "visibleAfterMs": 85,
+      "nextcloudListing": [
+        "CASE2-c15-1792920730266.txt"
+      ],
+      "sameFileId": false,
+      "nasHas": [
+        "CASE2-c15-1792920730266.txt"
+      ]
+    },
+    "caseCollisionOnNas": {
+      "nextcloudListing": [
+        "dup-c15-1792920730266.txt",
+        "DUP-c15-1792920730266.txt"
+      ],
+      "smbListing": [
+        "dup-c15-1792920730266.txt",
+        "DUP-c15-1792920730266.txt"
+      ],
+      "getLower": 3,
+      "getUpper": 5
+    }
+  },
+  "checks": {
+    "teamA_smb_visible_all": true,
+    "case_move_no_data_loss": true,
+    "nfd_visible_with_encoding_compat": true,
+    "teamB_needs_scan": true,
+    "overwrite_fileId_stable": true,
+    "nextcloud_move_keeps_all": true
+  },
+  "result": "LOCAL PASS (đo đạc + phát hiện, xem renames/unicode/caseTests)",
+  "secretsIncluded": false
+}
