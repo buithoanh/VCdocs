@@ -9,8 +9,10 @@ import { IdentityLifecycleController } from './identity-lifecycle.controller';
 import { IdentityLifecycleService } from './identity-lifecycle.service';
 import { FakeIdentityLifecyclePort, IDENTITY_LIFECYCLE_PORT, LocalIdentityLifecyclePort } from './identity-lifecycle.port';
 import { APP_CONFIG, AppConfig } from '../../config/config';
+import { MailBasicModule } from '../mail-basic/mail-basic.module';
 
 @Module({
+  imports: [MailBasicModule],
   controllers: [AuthController, MeController, UsersController, DrivesController, DevFakeGoogleController, IdentityLifecycleController],
   providers: [GoogleSyncService, OidcService, IdentityLifecycleService, { provide: IDENTITY_LIFECYCLE_PORT, inject: [APP_CONFIG], useFactory: (cfg: AppConfig) => cfg.identityLifecycle.mode === 'local' ? new LocalIdentityLifecyclePort(cfg.identityLifecycle) : new FakeIdentityLifecyclePort() }],
   exports: [GoogleSyncService],

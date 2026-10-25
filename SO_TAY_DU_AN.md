@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 7/12 — địa chỉ mail nội bộ không tự chiếm được
+
+- Nhánh `claude/audit-fix-07-address-claim-0a082f` (cắt từ nhánh 6/12). Fingerprint `mail-basic/self-service-address-claim` **tái hiện được**: `tp.mkt` tạo alias `newhire@`, người mới đăng nhập thì thư tới `newhire@` vào hộp `tp.mkt` và `tp.mkt` gửi được dưới tên `newhire@`; `nv.mkt` tạo được hộp nhóm `hr@`.
+- Sửa: hộp thư nhóm chỉ R3/R9 tạo; alias tên tự do chỉ R3/R9, người khác chỉ `<tên mình>+<nhãn>@`; hộp thư cá nhân luôn thắng alias/hộp nhóm khi nhận, đọc, gửi; tạo user/đổi email (OIDC, Google, google-sync, identity lifecycle) gọi `MailBasicService.releaseAddressFor` tắt alias + gỡ ở engine (`MailPort.releaseAlias` mới), hộp nhóm trùng thì gắn cờ audit. Test mới `test/mail-address-claim.e2e-spec.ts` (trước 5 fail, sau 5 pass), thêm 1 ca `oidc-auth`; `mail-management` đổi người tạo alias/hộp nhóm. Đề nghị hợp đồng R5. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 5 đầu mối audit còn lại (phiên 8/12 cắt từ nhánh này); chưa chạy `ai:check:full` và Stalwart thật (`releaseAlias`, biến thể `RUN_MAIL_ENGINE_MANAGEMENT`); chủ dự án rà alias/hộp nhóm tên tự do đã có; FE `/email` chưa ẩn nút tạo cho người không có R3/R9.
+
 ### 2026-10-25 · Sửa audit 6/12 — callback ONLYOFFICE ràng buộc JWT với payload
 
 - Nhánh `claude/audit-fix-06-editor-callback-jwt-b6ea2c` (cắt từ nhánh 5/12). Fingerprint `drive-basic/editor-callback/jwt-signature-only-unbound-payload` **tái hiện được**: manager dùng `config.token` của trình duyệt làm token callback, API tải url tuỳ ý trên `internalOrigin` và lưu thành phiên bản mới; url trong body được dùng thay url đã ký; token thiếu `exp` vẫn nhận.

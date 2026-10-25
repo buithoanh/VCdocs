@@ -11,6 +11,7 @@ import { OAUTH_COOKIE, SESSION_COOKIE, SessionService } from '../../session/sess
 import { AuditService } from '../../audit/audit.service';
 import { GoogleSyncService } from './google-sync.service';
 import { OidcService } from './oidc.service';
+import { MailBasicService } from '../mail-basic/mail-basic.service';
 
 function safeReturnTo(v?: string): string {
   // Chỉ nhận đường dẫn tương đối trong giao diện, chặn chuyển hướng ra ngoài
@@ -29,6 +30,7 @@ export class AuthController {
     private readonly audit: AuditService,
     private readonly sync: GoogleSyncService,
     private readonly oidc: OidcService,
+    private readonly mail: MailBasicService,
     @Inject(GOOGLE) private readonly google: GooglePorts,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
   ) {}
@@ -105,6 +107,7 @@ export class AuthController {
     if (!domain || !email.endsWith(`@${domain}`)) return this.fail(res, 'identity');
     let binding = await this.db.m.OidcIdentity.findOne({ issuer: claims.iss, subject: claims.sub }, undefined, { skipTenant: true }).lean<any>();
     let user: any;
+    let created = false;
     if (binding) {
       if (String(binding.companyId) !== companyId) return this.fail(res, 'identity');
       if (binding.active === false || binding.projectionPendingRevision != null) return this.fail(res, 'locked');
@@ -115,6 +118,7 @@ export class AuthController {
       // Không auto-link theo email, kể cả email đã verified: trùng email phải được admin xử lý tường minh.
       if (await this.db.m.User.exists({ companyId: cid, email })) return this.fail(res, 'identity');
       user = (await this.db.m.User.create({ companyId: cid, email, name: claims.name || email, systemRoles: this.oidc.roles(claims.groups) })).toObject();
+      created = true;
       try {
         binding = (await this.db.m.OidcIdentity.create({ companyId: cid, issuer: claims.iss, subject: claims.sub, userId: user._id, email, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() })).toObject();
       } catch {
@@ -127,6 +131,8 @@ export class AuthController {
     const trustedEmail = claims.email_verified === true ? email : binding.email;
     await this.db.m.User.updateOne({ _id: user._id, companyId: cid }, { $set: { email: trustedEmail, name: claims.name || user.name, systemRoles: roles, lastLoginAt: new Date(), isSuspended: false } });
     await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid }, { $set: { email: trustedEmail, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() } });
+    // Audit 7/12: user mới hoặc email vừa đổi lấy lại địa chỉ mail đang bị alias/hộp thư nhóm giữ.
+    if (user.email !== trustedEmail || created) await this.mail.releaseAddressFor({ companyId, userId: String(user._id), email: trustedEmail, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, trustedEmail);
 
     const oldSid = (req as any).cookies?.[SESSION_COOKIE];
     if (oldSid) await this.sessions.destroy(oldSid);
@@ -176,6 +182,7 @@ export class AuthController {
     let user = await this.db.m.User.findOne({ companyId: cid, email }).lean<any>();
     if (!user) {
       user = (await this.db.m.User.create({ companyId: cid, email, name: dirUser?.name ?? claims.name ?? email, title: dirUser?.title })).toObject();
+      await this.mail.releaseAddressFor({ companyId, userId: String(user._id), email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, email);
     }
     if (user.status === 'left') return this.fail(res, 'locked');
     // Lần đầu (và mỗi lần) đăng nhập: gán phòng, vai trò theo nhóm Google

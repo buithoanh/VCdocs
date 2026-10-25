@@ -42,15 +42,16 @@ describe('Quản lý Email VCworkspace', () => {
 
   it('alias là identity riêng; chống spoofing và idempotency vẫn gắn với người gửi', async () => {
     const a = await t.login('tp.mkt'); const b = await t.login('nv.mkt');
-    const alias = await a.post('/mail/aliases', { address: 'marketing@vcworkspace.test', displayName: 'Marketing' }, { idem: 'alias-marketing-08' });
-    expect(alias.body).toMatchObject({ ownerEmail: 'tp.mkt@vcworkspace.test', address: 'marketing@vcworkspace.test', active: true });
+    // Audit 7/12: người dùng thường chỉ tạo alias dạng <tên mình>+<nhãn>; tên tự do do HCNS/quản trị cấp.
+    const alias = await a.post('/mail/aliases', { address: 'tp.mkt+marketing@vcworkspace.test', displayName: 'Marketing' }, { idem: 'alias-marketing-08' });
+    expect(alias.body).toMatchObject({ ownerEmail: 'tp.mkt@vcworkspace.test', address: 'tp.mkt+marketing@vcworkspace.test', active: true });
     expect((await a.get('/mail/aliases')).body.items).toHaveLength(1);
     const sent = await a.post('/mail/send', { fromIdentity: alias.body.address, to: ['nv.mkt@vcworkspace.test'], subject: 'Từ alias', text: 'alias body' }, { idem: 'alias-send-08' });
     expect(sent.body.from).toBe(alias.body.address);
     const inbox = await b.get('/mail/messages?folder=inbox&q=T%E1%BB%AB%20alias&scope=subject'); expect(inbox.body.items[0].from).toBe(alias.body.address);
     expect((await b.post('/mail/send', { fromIdentity: alias.body.address, to: ['tp.mkt@vcworkspace.test'], subject: 'spoof', text: 'x' }, { idem: 'alias-spoof-08' })).status).toBe(403);
     expect((await a.post('/mail/aliases', { address: 'nv.mkt@vcworkspace.test', displayName: 'Giả mạo B' }, { idem: 'alias-primary-collision-08' })).status).toBe(409);
-    expect((await a.post('/mail/shared-mailboxes', { address: alias.body.address, name: 'Trùng alias' }, { idem: 'shared-alias-collision-08' })).status).toBe(409);
+    expect((await (await t.login('it')).post('/mail/shared-mailboxes', { address: alias.body.address, name: 'Trùng alias' }, { idem: 'shared-alias-collision-08' })).status).toBe(409);
     expect((await a.post('/mail/send', { fromIdentity: alias.body.address, to: ['nv.mkt@vcworkspace.test'], subject: 'khác', text: 'x' }, { idem: 'alias-send-08' })).status).toBe(409);
     await b.post('/mail/send', { to: [alias.body.address], subject: `Trả lời vào alias ${runTag}`, text: 'alias inbound body' }, { idem: 'alias-inbound-08' });
     const inbound = await a.get(`/mail/messages?folder=inbox&q=${encodeURIComponent(runTag)}&scope=subject`);
@@ -61,8 +62,11 @@ describe('Quản lý Email VCworkspace', () => {
 
   it('shared mailbox tách quyền read/send/manage và thu hồi có hiệu lực ngay', async () => {
     const manager = await t.login('tp.mkt'); const member = await t.login('nv.mkt');
-    const shared = await manager.post('/mail/shared-mailboxes', { address: 'mkt-team@vcworkspace.test', name: 'Nhóm MKT' }, { idem: 'shared-create-08' });
+    // Audit 7/12: chỉ HCNS/quản trị tạo hộp thư nhóm rồi giao quyền quản lý cho trưởng phòng.
+    const admin = await t.login('it');
+    const shared = await admin.post('/mail/shared-mailboxes', { address: 'mkt-team@vcworkspace.test', name: 'Nhóm MKT' }, { idem: 'shared-create-08' });
     expect(shared.body.members[0].roles).toEqual(expect.arrayContaining(['read', 'send', 'manage']));
+    expect((await admin.patch(`/mail/shared-mailboxes/${shared.body.id}/members`, { email: 'tp.mkt@vcworkspace.test', roles: ['read', 'send', 'manage'] })).status).toBe(200);
     const granted = await manager.patch(`/mail/shared-mailboxes/${shared.body.id}/members`, { email: 'nv.mkt@vcworkspace.test', roles: ['read', 'send'] });
     expect(granted.body.members.find((x: any) => x.email === 'nv.mkt@vcworkspace.test').roles).toEqual(['read', 'send']);
     expect((await member.get('/mail/shared-mailboxes')).body.items).toHaveLength(1);

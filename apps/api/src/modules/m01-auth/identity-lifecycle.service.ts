@@ -6,13 +6,14 @@ import { Errors } from '../../common/errors';
 import { randomToken, sha256 } from '../../common/util';
 import { Db } from '../../db/db.service';
 import { OidcService } from './oidc.service';
+import { MailBasicService } from '../mail-basic/mail-basic.service';
 import { IDENTITY_LIFECYCLE_PORT, IdentityLifecyclePort, IdentityProjection } from './identity-lifecycle.port';
 
 const STEP_NAMES = ['app-deny', 'authentik', 'nextcloud', 'app-commit'] as const;
 
 @Injectable()
 export class IdentityLifecycleService {
-  constructor(private readonly db: Db, private readonly oidc: OidcService, private readonly audit: AuditService, @Inject(IDENTITY_LIFECYCLE_PORT) private readonly port: IdentityLifecyclePort) {}
+  constructor(private readonly db: Db, private readonly oidc: OidcService, private readonly audit: AuditService, @Inject(IDENTITY_LIFECYCLE_PORT) private readonly port: IdentityLifecyclePort, private readonly mail: MailBasicService) {}
 
   private api(row: any) {
     return { id: String(row._id), subject: row.subject, subjectRevision: row.subjectRevision, desired: row.desired, status: row.status, steps: row.steps, version: row.version, ...(row.lastError ? { lastError: row.lastError } : {}), ...(row.completedAt ? { completedAt: row.completedAt } : {}), createdAt: row.createdAt, updatedAt: row.updatedAt };
@@ -195,7 +196,9 @@ export class IdentityLifecycleService {
     const duplicate = await this.db.m.User.exists({ companyId: cid, email: desired.email, _id: { $ne: binding.userId } });
     if (duplicate) throw new Error('APP_EMAIL_CONFLICT');
     const roles = this.oidc.roles(desired.groups);
+    const before = await this.db.m.User.findOne({ _id: binding.userId, companyId: cid }, { email: 1 }).lean<any>();
     await this.db.m.User.updateOne({ _id: binding.userId, companyId: cid }, { $set: { email: desired.email, systemRoles: roles, isSuspended: !desired.active } });
+    if (before?.email !== desired.email) await this.mail.releaseAddressFor({ companyId: String(cid), userId: String(binding.userId) }, desired.email);
     await this.assertFence(cid, desired.subject, revision, leaseToken);
     const committed = await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid, projectionPendingRevision: revision }, { $set: { email: desired.email, groups: desired.groups, active: desired.active, lastSeenAt: new Date() }, $unset: { projectionPendingRevision: 1 } });
     if (committed.matchedCount !== 1) throw new Error('APP_BINDING_PENDING_REVISION_MISMATCH');

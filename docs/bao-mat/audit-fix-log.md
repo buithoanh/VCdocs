@@ -5,6 +5,63 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 7/12 — Ai đăng nhập cũng chiếm được địa chỉ nội bộ bằng alias hoặc hộp thư nhóm
+
+- **Fingerprint:** `mail-basic/self-service-address-claim`.
+- **Nhánh:** `claude/audit-fix-07-address-claim-0a082f` (cắt từ `claude/audit-fix-06-editor-callback-jwt-b6ea2c`, commit 9274401).
+- **Kết luận:** lỗi **có thật**, đã tái hiện bằng harness Jest với mail port giả và Google giả. Không chạy Stalwart thật.
+
+### Tái hiện trước khi sửa
+
+Test dò tạm (đã xoá sau khi chạy) theo đúng kế hoạch trong audit: `tp.mkt` (không có R3/R9) `POST /mail/aliases {address: newhire@vcworkspace.test}`, rồi `newhire@vcprosperous.com` đăng nhập lần đầu qua Google giả (đường `User.create` thật), `nv.mkt` gửi thư tới `newhire@vcworkspace.test`, `tp.mkt` gửi với `fromIdentity: newhire@vcworkspace.test`. Kết quả:
+
+`{"alias":201,"mailboxOwner":"tp.mkt@vcworkspace.test","nhInbox":false,"aInbox":true,"spoof":201,"from":"newhire@vcworkspace.test"}`
+
+Tức là: alias tạo được; dòng thư đến được gắn hộp `tp.mkt`; người mới không thấy thư, `tp.mkt` thấy; `tp.mkt` gửi được dưới tên người mới. Mail port giả cũng chuyển thư ở mức engine về chủ alias (`aliases` được ưu tiên), nên `tp.mkt` còn nhận lại thư qua đồng bộ engine.
+
+Test hồi quy `apps/api/test/mail-address-claim.e2e-spec.ts` (5 ca), trước khi sửa `Tests: 5 failed, 5 total`:
+
+1. `người dùng thường chỉ tạo alias dạng <tên mình>+<nhãn>`: `tp.mkt` tạo `newhire@` nhận 201 (mong 403).
+2. `chỉ HCNS (R3) hoặc quản trị (R9) tạo hộp thư nhóm như hr@`: `nv.mkt` tạo `hr@` nhận 201 (mong 403).
+3. `user mới đăng nhập lần đầu lấy lại địa chỉ từ alias`: alias `newstaff@` do `it` (R9) tạo trước, `newstaff` đăng nhập, `nv.mkt` gửi thư tới: dòng thư có `mailboxOwner = it@vcworkspace.test` (mong `newstaff@`).
+4. `đồng bộ danh bạ tạo user cũng giải phóng alias`: sau `GoogleSyncService.syncAll` tạo `synchire`, alias `synchire@` vẫn `active: true`.
+5. `hộp thư nhóm cũ trùng địa chỉ người dùng thật bị gắn cờ`: hộp nhóm `ketoan.moi@` (dữ liệu cũ, `tp.mkt` quản lý) không sinh audit cờ khi `ketoan.moi` đăng nhập.
+
+### Cách sửa
+
+Giả định và lựa chọn:
+
+- **Hộp thư nhóm:** `POST /mail/shared-mailboxes` thêm `@Roles('R3','R9')`, giống offboarding. Lý do: R3 (HCNS) quản vòng đời nhân sự và đã có quyền offboarding mail; R9 là quản trị hệ thống. Người tạo vẫn nhận read/send/manage và có thể giao manage cho trưởng phòng bằng `PATCH …/members`.
+- **Alias:** R3/R9 tạo được tên tự do (thuộc chính họ). Người khác chỉ tạo `<local-part mình>+<nhãn>@vcworkspace.test`, nhãn `[a-z0-9._-]+`; tên khác 403. Biến thể `+` không trùng được email Google Workspace (Google không cho `+` trong tên người dùng). Kiểm trùng (409) chạy trước kiểm quyền để giữ thông báo trùng hộp thư cá nhân như cũ.
+- **Hộp thư cá nhân luôn thắng** (`isPersonalMailbox`: địa chỉ suy ra email của một `User` đang có): `recipientMailbox` xét hộp cá nhân trước alias/hộp nhóm; `sendingIdentity` từ chối alias trùng hộp cá nhân; `shared()` (đọc/gửi/quản lý hộp nhóm) từ chối khi địa chỉ là hộp cá nhân của người khác. Lớp này giữ an toàn cả với dữ liệu cũ và user chèn thẳng DB.
+- **Khi tạo user hoặc đổi email** gọi `MailBasicService.releaseAddressFor`: alias đang giữ địa chỉ bị `active: false` và gỡ ở engine (`MailPort.releaseAlias`, mới: Stalwart xoá alias khỏi tài khoản chủ rồi đọc lại; port giả xoá ánh xạ), ghi audit `workspace_mail.alias.release` (`previousOwner`, `engineReleased`). Hộp nhóm trùng chỉ gắn cờ: audit `workspace_mail.shared.conflict` và log cảnh báo; quyền đọc/gửi hộp đó đã bị chặn bởi lớp trên. Không chặn đăng nhập của người mới; engine lỗi thì vẫn tắt ở app và ghi `engineReleased: false`.
+  - Đường gọi: OIDC tạo user và đổi email theo claim đã verified (`auth.controller.ts`), Google đăng nhập lần đầu, `google-sync.service.ts` tạo user, `identity-lifecycle.service.ts` `commitApp` đổi email. `M01Module` import `MailBasicModule`.
+
+### Test có sẵn phải đổi
+
+`test/mail-management.e2e-spec.ts`: alias `marketing@` của `tp.mkt` đổi thành `tp.mkt+marketing@`; ca trùng alias↔hộp nhóm do `it` (R9) gọi; hộp `mkt-team@` do `it` tạo rồi giao read/send/manage cho `tp.mkt`, phần còn lại giữ nguyên. Không bỏ hay nới assertion nào. Biến thể chạy với Stalwart thật (`RUN_MAIL_ENGINE_MANAGEMENT=1`) **chưa chạy**; ở chế độ đó `it` cần có tài khoản mail thử.
+
+Thêm ca vào `test/oidc-auth.e2e-spec.ts`: user OIDC mới và email đổi tắt alias đang giữ địa chỉ (viết sau khi sửa, không chạy trước sửa).
+
+### Hợp đồng
+
+Không sửa `contract/openapi.yaml` (không được giao thay đổi hợp đồng). Hai route trả 403 chưa khai báo; đề nghị R5 ở `apps/api/DE_NGHI_SUA_HOP_DONG.md`. Test 403 gọi thẳng agent.
+
+### Việc của chủ dự án
+
+- Rà `workspace_mail_aliases` và `workspace_shared_mailboxes` hiện có so với danh sách nhân sự và địa chỉ vai trò (hr@, ketoan@…): alias/hộp nhóm tên tự do do người không có R3/R9 tạo từ trước vẫn còn (bản sửa chỉ tự xử lý khi có user trùng địa chỉ).
+- Kiểm hành vi Stalwart thật: `releaseAlias` gỡ alias khỏi tài khoản chủ có làm thư tới địa chỉ đó vào tài khoản người mới hay không (blocker của audit, chưa chạy).
+- FE `/email` vẫn hiện nút tạo alias tên tự do và tạo hộp nhóm cho mọi người; BE trả 403.
+
+### Sau khi sửa
+
+- `test/mail-address-claim.e2e-spec.ts`: `Tests: 5 passed, 5 total`.
+- `mail-management` 5/5, `mail-basic` 2/2, `mail-durability` 7/7, `mailbox-owner` 3/3, `workspace-interop` 4/4, `oidc-auth` 8/8, `identity-lifecycle` 10/10, `m01-auth` 17/17.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 275 passed, 284 total`, độ phủ hợp đồng 145/145 (chạy trước khi viết tài liệu; sau đó chỉ sửa tài liệu).
+- Chưa chạy `pnpm ai:check:full`, chưa thử với Stalwart thật.
+
+---
+
 ## 2026-10-25 · Đầu mối 6/12 — Callback ONLYOFFICE nhận mọi JWT ký bằng khoá editor và tin body chưa ký
 
 - **Fingerprint:** `drive-basic/editor-callback/jwt-signature-only-unbound-payload`.

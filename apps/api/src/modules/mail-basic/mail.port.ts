@@ -12,6 +12,8 @@ export interface MailPort {
   setLabels(accessOwner: string, engineId: string, labels: string[], previousLabels?: string[], folder?: string, engineMailbox?: string): Promise<void>;
   installFilters(owner: string, filters: MailFilterRule[]): Promise<void>;
   provisionAlias(owner: string, address: string): Promise<void>;
+  /** Gỡ alias khỏi tài khoản owner ở engine (địa chỉ được trả cho người dùng thật). */
+  releaseAlias(owner: string, address: string): Promise<void>;
   provisionShared(address: string): Promise<void>;
   setSharedMember(address: string, member: string, enabled: boolean): Promise<void>;
   offboardUser(address: string): Promise<void>;
@@ -57,6 +59,7 @@ export class FakeMailPort implements MailPort {
   async setLabels() {}
   async installFilters(_owner:string,filters:MailFilterRule[]) {if(this.filterInstallHook)await this.filterInstallHook();this.installedFilters=structuredClone(filters);}
   async provisionAlias(owner: string, address: string) { this.aliases.set(address.toLowerCase(), owner.toLowerCase()); }
+  async releaseAlias(owner: string, address: string) { if (this.aliases.get(address.toLowerCase()) === owner.toLowerCase()) this.aliases.delete(address.toLowerCase()); }
   async provisionShared() {}
   async setSharedMember() {}
   async offboardUser() {}

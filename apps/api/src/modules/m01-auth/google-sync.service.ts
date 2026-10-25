@@ -5,6 +5,7 @@ import { GOOGLE, GooglePorts } from '../../google/ports';
 import { AccessService, DeptInfo } from '../../access/access.service';
 import { APP_CONFIG, AppConfig } from '../../config/config';
 import { DriveRole, SystemRole, maxDriveRole, SYSTEM_ROLES } from '../../common/enums';
+import { MailBasicService } from '../mail-basic/mail-basic.service';
 
 /**
  * Nhóm Google ↔ vai trò (US-01.2). Quy ước tên nhóm (giả định, chờ chủ dự án
@@ -38,6 +39,7 @@ export class GoogleSyncService {
     private readonly access: AccessService,
     @Inject(GOOGLE) private readonly google: GooglePorts,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    private readonly mail: MailBasicService,
   ) {}
 
   rolesFromGroups(groupEmails: string[], depts: DeptInfo[]): { roles: SystemRole[]; departmentId?: string } {
@@ -142,6 +144,7 @@ export class GoogleSyncService {
         if (!existing) {
           const u = await this.db.m.User.create({ companyId: cid, email, name: du.name, title: du.title, isSuspended: du.suspended });
           userId = String(u._id);
+          await this.mail.releaseAddressFor({ companyId, userId }, email);
           created++;
         } else {
           userId = String(existing._id);

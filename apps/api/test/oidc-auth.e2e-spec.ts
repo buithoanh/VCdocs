@@ -181,4 +181,21 @@ describe('OIDC ứng dụng thật', () => {
       await app2.close();
     }
   });
+
+  it('audit 7/12: user OIDC mới và email đổi lấy lại địa chỉ mail đang bị alias giữ', async () => {
+    const cid = t.ids.companyId;
+    await t.db.m.WorkspaceMailAlias.create({ companyId: cid, ownerEmail: 'tp.mkt@vcworkspace.test', address: 'oidc.hire@vcworkspace.test', active: true });
+    await t.db.m.WorkspaceMailAlias.create({ companyId: cid, ownerEmail: 'tp.mkt@vcworkspace.test', address: 'oidc.hire.moi@vcworkspace.test', active: true });
+    const agent = require('supertest').agent(t.app.getHttpServer());
+    let location = await begin(agent);
+    let now = Math.floor(Date.now() / 1000);
+    tokenClaims = { iss: issuer, sub: 'subject-hire', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'oidc.hire@vcprosperous.com', email_verified: true, groups: [] };
+    expect((await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=hire`)).headers.location).toBe('http://localhost:3000/bo-nho');
+    expect((await t.db.m.WorkspaceMailAlias.findOne({ companyId: cid, address: 'oidc.hire@vcworkspace.test' }).lean<any>()).active).toBe(false);
+    expect((await t.db.m.WorkspaceMailAlias.findOne({ companyId: cid, address: 'oidc.hire.moi@vcworkspace.test' }).lean<any>()).active).toBe(true);
+    location = await begin(agent); now = Math.floor(Date.now() / 1000);
+    tokenClaims = { iss: issuer, sub: 'subject-hire', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'oidc.hire.moi@vcprosperous.com', email_verified: true, groups: [] };
+    expect((await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=hire-rename`)).headers.location).toBe('http://localhost:3000/bo-nho');
+    expect((await t.db.m.WorkspaceMailAlias.findOne({ companyId: cid, address: 'oidc.hire.moi@vcworkspace.test' }).lean<any>()).active).toBe(false);
+  });
 });

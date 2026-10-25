@@ -34,7 +34,8 @@ export class MailBasicController {
   @Get('aliases') aliases(@CurrentCtx() ctx: Ctx) { return this.service.aliases(ctx); }
   @Post('aliases') @HttpCode(201) createAlias(@CurrentCtx() ctx: Ctx, @Body() body: any) { return this.service.createAlias(ctx, body); }
   @Get('shared-mailboxes') sharedMailboxes(@CurrentCtx() ctx: Ctx) { return this.service.sharedMailboxes(ctx); }
-  @Post('shared-mailboxes') @HttpCode(201) createSharedMailbox(@CurrentCtx() ctx: Ctx, @Body() body: any) { return this.service.createSharedMailbox(ctx, body); }
+  // Audit 7/12: hộp thư nhóm (hr@, ketoan@…) chiếm một địa chỉ nội bộ nên chỉ HCNS hoặc quản trị hệ thống tạo, như offboarding.
+  @Post('shared-mailboxes') @HttpCode(201) @Roles('R3','R9') createSharedMailbox(@CurrentCtx() ctx: Ctx, @Body() body: any) { return this.service.createSharedMailbox(ctx, body); }
   @Patch('shared-mailboxes/:id/members') setSharedMembers(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Body() body: any) { return this.service.setSharedMembers(ctx, id, body); }
   @Post('offboarding/:userId') @Roles('R3','R9') offboardUser(@CurrentCtx() ctx:Ctx,@Param('userId') userId:string){return this.service.offboardUser(ctx,userId);}
 }
