@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 6/12 — callback ONLYOFFICE ràng buộc JWT với payload
+
+- Nhánh `claude/audit-fix-06-editor-callback-jwt-b6ea2c` (cắt từ nhánh 5/12). Fingerprint `drive-basic/editor-callback/jwt-signature-only-unbound-payload` **tái hiện được**: manager dùng `config.token` của trình duyệt làm token callback, API tải url tuỳ ý trên `internalOrigin` và lưu thành phiên bản mới; url trong body được dùng thay url đã ký; token thiếu `exp` vẫn nhận.
+- Sửa `drive-basic.service.ts`: `verifyJwt` chỉ nhận HS256, bắt buộc `exp`, trả nội dung đã ký (`payload.payload` hoặc payload); `editorCallback` lấy key/status/url từ đó. Token API tự ký mang `iss: vcworkspace-api` + `exp`, callback từ chối `iss` này. Vé editor tách `content` (15 phút) và `callback` (24 giờ, sửa O1). Test mới `test/editor-callback-jwt.e2e-spec.ts` (trước sửa 4 fail/1 pass, sau sửa 5 pass); helper jwt test cũ thêm `exp`. `pnpm ai:check` PASS (BE 269 pass, 9 skip). Không đổi hợp đồng. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 6 đầu mối audit còn lại (phiên 7/12 cắt từ nhánh này); O2 (forcesave làm callback sau bị coi là cũ) chưa sửa, chờ chủ dự án chốt ngữ nghĩa vì mâu thuẫn test stale chat04; chưa chạy lại ONLYOFFICE thật; vé editor cấp trước khi triển khai mất hiệu lực; chưa chạy `ai:check:full`.
+
 ### 2026-10-25 · Sửa audit 5/12 — quyền không gian Drive theo phòng ban và R4 hiện tại
 
 - Nhánh `claude/audit-fix-05-space-membership-54dd1c` (cắt từ nhánh 4/12). Fingerprint `drive-basic/space-membership/never-reconciled-after-role-or-department-change` **tái hiện được**: user chuyển phòng vẫn đọc, tải, nhận link Drive phòng cũ; trưởng phòng mất R4 (đồng bộ Google hoặc R9 gỡ R4 tay) vẫn upload, tạo thư mục; vé editor cấp trước vẫn lưu được phiên bản mới.

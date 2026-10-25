@@ -17,7 +17,12 @@ import { canonical } from '../../audit/audit.service';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-type EditorTicket = { fileId: string; companyId: string; userId: string; email: string; exp: number; mode: 'edit' | 'view' };
+type EditorTicket = { fileId: string; companyId: string; userId: string; email: string; exp: number; mode: 'edit' | 'view';
+  purpose: 'content' | 'callback' };
+// Token API tự ký (cấu hình trình duyệt, converter) mang iss này; callback từ chối mọi token có iss này.
+const API_JWT_ISSUER = 'vcworkspace-api';
+// Vé callback sống lâu hơn phiên soạn; callback vẫn cần JWT Document Server còn hạn và quyền manager hiện tại.
+const CALLBACK_TICKET_MS = 24 * 60 * 60_000;
 
 @Injectable()
 export class DriveBasicService {
@@ -420,18 +425,20 @@ export class DriveBasicService {
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     return body + '.' + this.sign(body);
   }
-  private readTicket(value: string): EditorTicket {
+  private readTicket(value: string, purpose: EditorTicket['purpose']): EditorTicket {
     const [body, signature] = String(value || '').split('.');
     const expected = this.sign(body || '');
     if (!body || !signature || signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected)))
       throw Errors.forbidden('Vé editor không hợp lệ');
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as EditorTicket;
+    if (payload.purpose !== purpose) throw Errors.forbidden('Vé editor không hợp lệ');
     if (!payload.exp || payload.exp < Date.now()) throw Errors.forbidden('Vé editor đã hết hạn');
     return payload;
   }
-  private jwt(payload: any) {
+  private jwt(payload: any, ttlMs: number) {
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const body = Buffer.from(JSON.stringify({ ...payload, iss: API_JWT_ISSUER,
+      exp: Math.floor((Date.now() + ttlMs) / 1000) })).toString('base64url');
     return `${header}.${body}.${this.sign(`${header}.${body}`)}`;
   }
 
@@ -442,20 +449,22 @@ export class DriveBasicService {
     if (!kind) throw Errors.validation('ONLYOFFICE chỉ mở DOCX, XLSX hoặc PPTX trong phạm vi hiện tại');
     const member = await this.member(ctx, file.spaceId);
     const mode = member.role === 'manager' ? 'edit' : 'view';
-    const editorTicket = this.ticket({ fileId, companyId: ctx.companyId, userId: ctx.user.id,
-      email: ctx.user.email, exp: Date.now() + 15 * 60_000, mode });
+    const contentTicket = this.ticket({ fileId, companyId: ctx.companyId, userId: ctx.user.id,
+      email: ctx.user.email, exp: Date.now() + 15 * 60_000, mode, purpose: 'content' });
+    const callbackTicket = this.ticket({ fileId, companyId: ctx.companyId, userId: ctx.user.id,
+      email: ctx.user.email, exp: Date.now() + CALLBACK_TICKET_MS, mode, purpose: 'callback' });
     const api = this.cfg.documentEditor.apiOriginForEditor.replace(/\/$/, '');
     const config: any = {
       documentType: kind === 'document' ? 'word' : kind === 'spreadsheet' ? 'cell' : 'slide',
       document: { fileType: kind === 'document' ? 'docx' : kind === 'spreadsheet' ? 'xlsx' : 'pptx', key: `vcw-${fileId}-v${file.versionNumber}`, title: file.name,
-        url: `${api}/api/v1/drive/editor/content?ticket=${encodeURIComponent(editorTicket)}`,
+        url: `${api}/api/v1/drive/editor/content?ticket=${encodeURIComponent(contentTicket)}`,
         permissions: { edit: mode === 'edit', download: true, print: true, comment: mode === 'edit' },
         referenceData: { fileKey: fileId, instanceId: api } },
-      editorConfig: { mode, lang: 'vi', callbackUrl: `${api}/api/v1/drive/editor/callback?ticket=${encodeURIComponent(editorTicket)}`,
+      editorConfig: { mode, lang: 'vi', callbackUrl: `${api}/api/v1/drive/editor/callback?ticket=${encodeURIComponent(callbackTicket)}`,
         coEditing: { mode: 'fast', change: false }, user: { id: ctx.user.id, name: ctx.user.name },
         customization: { autosave: true, forcesave: true } },
     };
-    return { documentServerUrl: this.cfg.documentEditor.publicOrigin.replace(/\/$/, ''), config: { ...config, token: this.jwt(config) }, mode };
+    return { documentServerUrl: this.cfg.documentEditor.publicOrigin.replace(/\/$/, ''), config: { ...config, token: this.jwt(config, CALLBACK_TICKET_MS) }, mode };
   }
 
   async exportDocument(ctx: Ctx, fileId: string, format: 'docx' | 'xlsx' | 'pptx' | 'pdf') {
@@ -469,15 +478,16 @@ export class DriveBasicService {
     }
     if (format !== 'pdf') throw Errors.validation('Định dạng xuất không hỗ trợ');
     const ticket = this.ticket({ fileId, companyId: ctx.companyId, userId: ctx.user.id,
-      email: ctx.user.email, exp: Date.now() + 5 * 60_000, mode: 'view' });
+      email: ctx.user.email, exp: Date.now() + 5 * 60_000, mode: 'view', purpose: 'content' });
     const api = this.cfg.documentEditor.apiOriginForEditor.replace(/\/$/, '');
     const payload = { async: false, filetype: nativeFormat, outputtype: 'pdf',
       key: `export-${fileId}-v${file.versionNumber}`, title: file.name,
       url: `${api}/api/v1/drive/editor/content?ticket=${encodeURIComponent(ticket)}` };
     const origin = this.cfg.documentEditor.internalOrigin.replace(/\/$/, '');
+    const token = this.jwt(payload, 5 * 60_000);
     const response = await fetch(`${origin}/converter`, { method: 'POST', headers: {
-      'Content-Type': 'application/json', Authorization: `Bearer ${this.jwt(payload)}` },
-      body: JSON.stringify({ ...payload, token: this.jwt(payload) }), signal: AbortSignal.timeout(60_000) });
+      'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...payload, token }), signal: AbortSignal.timeout(60_000) });
     if (!response.ok) throw Errors.storageUnavailable('Editor không xuất được PDF');
     const converted: any = await response.json();
     if (!converted.endConvert || !converted.fileUrl) throw Errors.storageUnavailable('Editor chưa hoàn tất xuất PDF');
@@ -492,7 +502,7 @@ export class DriveBasicService {
 
   async editorContent(ticketValue: string) {
     if (!this.cfg.documentEditor.enabled) throw Errors.notFound('Không tìm thấy văn bản');
-    const ticket = this.readTicket(ticketValue);
+    const ticket = this.readTicket(ticketValue, 'content');
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId,
       kind: 'file', trashedAt: { $exists: false } }).lean<any>();
     if (!row || !await this.ticketRole(ticket, row.spaceId)) throw Errors.notFound('Không tìm thấy văn bản');
@@ -503,25 +513,27 @@ export class DriveBasicService {
 
   async editorCallback(ticketValue: string, body: any, authorization?: string) {
     if (!this.cfg.documentEditor.enabled) return { error: 1 };
-    const ticket = this.readTicket(ticketValue);
+    const ticket = this.readTicket(ticketValue, 'callback');
     if (ticket.mode !== 'edit') return { error: 1 };
-    // Document Server ký toàn bộ callback; không nhận callback không xác thực.
+    // Document Server ký toàn bộ callback; key/status/url chỉ lấy từ payload đã ký, bỏ qua body.
     const token = String(authorization || '').replace(/^Bearer\s+/i, '') || body?.token;
-    if (!this.verifyJwt(token)) return { error: 1 };
-    if (![2, 6].includes(Number(body?.status))) return { error: 0 };
-    const editorKey = String(body?.key || ''); const url = String(body?.url || '');
+    const signed = this.verifyJwt(token);
+    if (!signed) return { error: 1 };
+    const status = Number(signed.status);
+    if (![2, 6].includes(status)) return { error: 0 };
+    const editorKey = String(signed.key || ''); const url = String(signed.url || '');
     const expectedKeyPrefix = `vcw-${ticket.fileId}-v`;
     if (!editorKey.startsWith(expectedKeyPrefix)) return { error: 1 };
     let parsed: URL;
     try { parsed = new URL(url); } catch { return { error: 1 }; }
     const allowed = new URL(this.cfg.documentEditor.internalOrigin);
     if (parsed.protocol !== allowed.protocol || parsed.hostname !== allowed.hostname || (parsed.port || '') !== (allowed.port || '')) return { error: 1 };
-    const fingerprint = sha256(`${editorKey}|${body.status}|${url}`);
+    const fingerprint = sha256(`${editorKey}|${status}|${url}`);
     const existing = await this.db.m.WorkspaceEditorSave.findOne({ companyId: ticket.companyId, fileId: ticket.fileId, callbackFingerprint: fingerprint }).lean<any>();
     if (existing?.status === 'saved') {
       const auditId = await this.audit.write({ companyId: ticket.companyId, userId: ticket.userId, email: ticket.email }, {
         action: 'workspace_drive.editor.callback.replay', objectType: 'workspace_drive_item', objectId: ticket.fileId,
-        after: { editorKey, status: body.status, replayed: true },
+        after: { editorKey, status, replayed: true },
       });
       return { error: 0, auditId };
     }
@@ -552,7 +564,7 @@ export class DriveBasicService {
       await this.db.m.WorkspaceEditorSave.updateOne({ _id: save._id, companyId: ticket.companyId }, { $set: { status: 'saved', versionId: version._id } });
       const auditId = await this.audit.write({ companyId: ticket.companyId, userId: ticket.userId, email: ticket.email }, {
         action: 'workspace_drive.editor.save', objectType: 'workspace_drive_item', objectId: ticket.fileId,
-        after: { editorKey, status: body.status, versionId: String(version._id), number, size: bytes.length, contentSha256: stored.sha256 },
+        after: { editorKey, status, versionId: String(version._id), number, size: bytes.length, contentSha256: stored.sha256 },
       });
       return { error: 0, auditId };
     } catch (error: any) {
@@ -561,10 +573,25 @@ export class DriveBasicService {
     }
   }
 
-  private verifyJwt(token: string) {
-    const [header, body, signature] = String(token || '').split('.');
-    if (!header || !body || !signature) return false;
+  // Token callback của Document Server (outbox): HS256, có exp. Token trong header bọc nội dung callback
+  // trong `payload`, token trong body mang thẳng các trường. Trả về nội dung callback đã ký.
+  private verifyJwt(token: string): Record<string, any> | undefined {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3 || parts.some((part) => !part)) return undefined;
+    const [header, body, signature] = parts;
     const expected = this.sign(`${header}.${body}`);
-    return signature.length === expected.length && timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return undefined;
+    let head: any; let payload: any;
+    try {
+      head = JSON.parse(Buffer.from(header, 'base64url').toString());
+      payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+    } catch { return undefined; }
+    if (head?.alg !== 'HS256' || !payload || typeof payload !== 'object') return undefined;
+    const now = Date.now() / 1000;
+    if (typeof payload.exp !== 'number' || payload.exp <= now) return undefined;
+    if (payload.nbf !== undefined && !(typeof payload.nbf === 'number' && payload.nbf <= now + 60)) return undefined;
+    const claims = payload.payload && typeof payload.payload === 'object' ? payload.payload : payload;
+    if (payload.iss === API_JWT_ISSUER || claims.iss === API_JWT_ISSUER) return undefined;
+    return claims;
   }
 }

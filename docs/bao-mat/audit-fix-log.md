@@ -5,6 +5,65 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 6/12 — Callback ONLYOFFICE nhận mọi JWT ký bằng khoá editor và tin body chưa ký
+
+- **Fingerprint:** `drive-basic/editor-callback/jwt-signature-only-unbound-payload`.
+- **Nhánh:** `claude/audit-fix-06-editor-callback-jwt-b6ea2c` (cắt từ `claude/audit-fix-05-space-membership-54dd1c`, commit 8924e50).
+- **Kết luận:** lỗi **có thật**, đã tái hiện bằng harness Jest, editor bật, server fixture loopback đóng vai Document Server (`internalOrigin`). Không chạy ONLYOFFICE thật.
+
+### Tái hiện trước khi sửa
+
+Thêm file `apps/api/test/editor-callback-jwt.e2e-spec.ts`. Fixture trả DOCX hợp lệ ở `/saved…` (bản "Document Server lưu") và ở `/cache/other/…` (đóng vai output của tài liệu khác trong cache), ghi lại mọi đường dẫn bị gọi.
+
+1. `token cấu hình trình duyệt không dùng được làm token callback`: `tp.mkt` (manager) lấy `config.token` từ `editor-config`, gửi callback `status 2`, key hiện tại, url `<internalOrigin>/cache/other/output.docx`, token ở header rồi ở `body.token`. Trước khi sửa: **FAIL**, nhận `{error:0}`; API tải `/cache/other/output.docx` và lưu thành phiên bản 2.
+2. `key/status/url lấy từ payload đã ký, không lấy từ body`: token ký đúng (`url` = `/saved.docx`) nhưng body ghi url `/cache/other/output.docx`. Trước khi sửa: **FAIL**, API tải đường dẫn trong body. Ca phụ: payload ký `status 1`, body `status 2` thì không được lưu.
+3. `bắt buộc HS256 và exp còn hạn`: token thiếu `exp`, `exp` đã qua, header `alg: none` và `alg: HS512` (chữ ký vẫn HMAC-SHA256), khoá khác. Trước khi sửa: **FAIL** ngay ở token thiếu `exp` (`{error:0}`).
+4. `nhận đúng hai dạng token của ONLYOFFICE`: token trong header bọc nội dung trong `payload` (kèm `iat`, `exp`), và token trong body mang thẳng các trường. Đạt cả trước và sau khi sửa (ca tương thích).
+5. `O1: callback sau 15 phút vẫn lưu, còn vé callback không dùng để tải nội dung`: vé ở `callbackUrl` gọi `editor/content`, rồi giả đồng hồ +40 phút gửi callback. Trước khi sửa: **FAIL**, vé callback tải được nội dung (200) vì một vé dùng chung cho content và callback.
+
+Kết quả trước khi sửa (`ALLOW_PARTIAL_COVERAGE=1 pnpm --filter @vcdocs/api run test --runInBand test/editor-callback-jwt.e2e-spec.ts`): `Tests: 4 failed, 1 passed, 5 total`.
+
+### Cách sửa
+
+Chỉ `apps/api/src/modules/drive-basic/drive-basic.service.ts`:
+
+- `verifyJwt` trả về nội dung callback đã ký hoặc `undefined`: đúng 3 phần, chữ ký HMAC-SHA256 so bằng `timingSafeEqual`, header phải `alg: HS256`, payload phải có `exp` dạng số còn hạn (`nbf` nếu có phải đã tới, lệch tối đa 60 giây). Nội dung callback là `payload.payload` khi có (token ONLYOFFICE ở header), ngược lại là chính payload (token ở body).
+- `editorCallback` lấy `key`, `status`, `url` từ nội dung đã ký, bỏ qua body. Dấu vân tay chống lặp và audit dùng giá trị đã ký. Các kiểm sẵn có giữ nguyên: tiền tố key theo fileId, key đúng phiên bản hiện tại, url cùng protocol/host/port `internalOrigin`, không theo redirect, kiểm OOXML, quyền manager hiện tại (5/12).
+- **Tách token trình duyệt khỏi token callback bằng claim:** `jwt()` (token cấu hình trình duyệt, token converter) luôn thêm `iss: "vcworkspace-api"` và `exp` (cấu hình trình duyệt 24 giờ, converter 5 phút). `verifyJwt` từ chối token có `iss` này ở cả lớp ngoài và `payload`. Ngoài ra token cấu hình không có `status`/`url` ở cấp đầu nên cũng không thể là callback lưu.
+  - Không chọn khoá riêng cho outbox: Compose `poc/onlyoffice/docker-compose.yml` đặt một `JWT_SECRET` chung cho browser/inbox/outbox; dùng khoá riêng cần đổi cấu hình Document Server (`local.json`) ở phía vận hành. Đây vẫn là khuyến nghị cho chủ dự án (xem dưới).
+- **Vé editor có mục đích (`purpose: content | callback`).** `editorConfig` cấp hai vé: vé content 15 phút cho `document.url`, vé callback 24 giờ cho `callbackUrl`. `readTicket` kiểm đúng mục đích. Vé export PDF là `content`. Vé cũ (không có `purpose`) cấp trước khi triển khai bị từ chối; phiên đang mở lúc triển khai cần mở lại editor.
+
+Tương thích ONLYOFFICE thật (theo bàn giao chat04 và tài liệu callback handler): Document Server 9.4 bật JWT ký callback outbox bằng HS256 và thêm `exp` (mặc định `services.CoAuthoring.token.outbox.expires` 5 phút). Token ở header `Authorization` bọc nội dung trong `payload`, token ở body mang thẳng trường. Cả hai dạng có trong test 4. Token cấu hình trình duyệt nay có thêm `iss` và `exp`; Document Server bỏ qua claim lạ và kiểm `exp`. **Chưa chạy lại** với Document Server thật (`poc/onlyoffice/run-integration.mjs` và luồng trình duyệt chat04).
+
+### Lỗi chức năng liên quan (review QA 2026-10-25)
+
+- **O1 (đã sửa):** callback dùng vé 15 phút nên phiên soạn dài hơn 15 phút lưu khi đóng bị 403. Nay vé callback sống 24 giờ. Rủi ro của vé dài được bù bằng: callback bắt buộc JWT Document Server còn hạn ràng buộc key/status/url, và quyền manager được tra lại lúc callback (5/12). Phiên soạn dài hơn 24 giờ vẫn sẽ bị từ chối khi lưu.
+- **O2 (chưa sửa):** forcesave (status 6) tăng phiên bản, các callback sau cùng key bị loại `EDITOR_STALE_VERSION`. Không sửa trong phiên này: sửa O2 nghĩa là chấp nhận callback cùng key sau khi key đó đã tạo phiên bản, mâu thuẫn với assertion "callback thứ hai mang key cũ sau khi version mới đã persist bị từ chối" trong `drive-documents`, `drive-spreadsheets`, `drive-presentations` (quyết định ở bàn giao chat04). Cần chủ dự án chốt ngữ nghĩa trước: với ONLYOFFICE, cùng key nghĩa là cùng phiên đồng soạn, nên hướng đề xuất là nhớ phiên bản do mỗi key tạo và nhận callback cùng key khi phiên bản hiện tại chính là phiên bản key đó đã tạo.
+- O5 (body không ký) được xử lý bởi bản sửa này; phần "thùng rác và quyền thành viên lúc callback" đã có từ 5/12 (callback tìm tệp không lọc thùng rác vẫn còn, chưa sửa).
+
+### Test có sẵn phải đổi
+
+Helper `jwt()` trong `drive-documents`, `drive-spreadsheets`, `drive-presentations`, `space-membership` ký callback không có `exp`. Đã thêm `exp` (now + 300 giây), đúng như Document Server thật gửi. Không đổi assertion nào.
+
+### Không đổi hợp đồng
+
+`contract/openapi.yaml` không đổi: `config.token` vẫn là chuỗi, callback vẫn trả `{error}`. Không ghi đề nghị hợp đồng.
+
+### Việc của chủ dự án
+
+- Kiểm `local.json` Document Server triển khai: nếu tách `secret.browser`/`inbox`/`outbox`, `DOCUMENT_EDITOR_JWT_SECRET` phải khớp cả browser (API ký cấu hình), inbox (converter) và outbox (callback). Muốn tách khoá outbox cần thêm cấu hình riêng ở API (chưa làm).
+- Kiểm `DOCUMENT_EDITOR_INTERNAL_ORIGIN` chỉ trỏ tới Document Server, và đường cache/output có secure-link md5/expires. Bản sửa chặn url do người dùng chọn, nhưng url do Document Server ký vẫn được tải từ `internalOrigin`.
+- Chạy lại bài tích hợp ONLYOFFICE thật trước khi triển khai.
+
+### Sau khi sửa
+
+- `test/editor-callback-jwt.e2e-spec.ts`: `Tests: 5 passed, 5 total`.
+- Cùng `drive-documents`, `drive-spreadsheets`, `drive-presentations`, `space-membership`, `review-fixes`, `drive-basic*`: `Tests: 1 skipped, 25 passed, 26 total`.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 269 passed, 278 total`, độ phủ hợp đồng 145/145.
+- Chưa chạy `pnpm ai:check:full`, chưa thử với ONLYOFFICE thật.
+
+---
+
 ## 2026-10-25 · Đầu mối 5/12 — Quyền không gian Drive không thu hồi khi đổi phòng hoặc mất R4
 
 - **Fingerprint:** `drive-basic/space-membership/never-reconciled-after-role-or-department-change`.

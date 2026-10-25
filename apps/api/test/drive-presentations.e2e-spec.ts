@@ -8,7 +8,8 @@ const SECRET = 'chat06-isolated-test-secret';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 function jwt(payload: unknown) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  // Document Server ký callback kèm exp (outbox mặc định 5 phút).
+  const body = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 300, ...(payload as object) })).toString('base64url');
   const signature = createHmac('sha256', SECRET).update(`${header}.${body}`).digest('base64url');
   return `${header}.${body}.${signature}`;
 }
