@@ -58,11 +58,14 @@ export class ApprovalsController {
   private async load(ctx: Ctx, id: string) {
     const a = await this.approvals.get(ctx.companyId, oid(id));
     if (!a) throw Errors.notFound('Không tìm thấy phiếu');
-    if (!this.approvals.isRelated(ctx, a) && !this.access.hasRole(ctx, 'R3')) {
-      await this.access.assertVisible(ctx, a.driveId);
-      throw Errors.forbidden('Chỉ người liên quan xem được phiếu');
+    if (this.approvals.isRelated(ctx, a)) return a;
+    // R3 xem phiếu mọi drive trừ drive Mật không là thành viên (→ 404 như đối tượng Mật khác)
+    if (this.access.hasRole(ctx, 'R3')) {
+      await this.access.assertVisibleOrR3(ctx, a.driveId);
+      return a;
     }
-    return a;
+    await this.access.assertVisible(ctx, a.driveId);
+    throw Errors.forbidden('Chỉ người liên quan xem được phiếu');
   }
 
   @Get(':id')

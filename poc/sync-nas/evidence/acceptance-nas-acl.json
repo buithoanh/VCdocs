@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-10-25T09:19:28.368Z",
+  "marker": "acl15-1792919966081",
+  "leaver": {
+    "name": "manager-a",
+    "state": "offboarded in chat13: Nextcloud disabled, tokens revoked, still member of Team A group"
+  },
+  "webdav": {
+    "manager-a": {
+      "rootStatus": 401,
+      "seesTeamA": false,
+      "seesTeamB": false,
+      "propfind_a": 401,
+      "put_a": 401,
+      "propfind_b": 401,
+      "put_b": 401
+    },
+    "member-a": {
+      "rootStatus": 207,
+      "seesTeamA": true,
+      "seesTeamB": false,
+      "propfind_a": 207,
+      "put_a": 201,
+      "propfind_b": 404,
+      "put_b": 404
+    },
+    "successor-a": {
+      "rootStatus": 207,
+      "seesTeamA": true,
+      "seesTeamB": false,
+      "propfind_a": 207,
+      "put_a": 201,
+      "propfind_b": 404,
+      "put_b": 404
+    },
+    "manager-b": {
+      "rootStatus": 207,
+      "seesTeamA": false,
+      "seesTeamB": true,
+      "propfind_a": 404,
+      "put_a": 404,
+      "propfind_b": 207,
+      "put_b": 201
+    },
+    "member-b": {
+      "rootStatus": 207,
+      "seesTeamA": false,
+      "seesTeamB": true,
+      "propfind_a": 404,
+      "put_a": 404,
+      "propfind_b": 207,
+      "put_b": 201
+    },
+    "outsider": {
+      "rootStatus": 207,
+      "seesTeamA": false,
+      "seesTeamB": false,
+      "propfind_a": 404,
+      "put_a": 404,
+      "propfind_b": 404,
+      "put_b": 404
+    }
+  },
+  "crossUser": {
+    "manager-b→member-a/NAS-TeamA": 404,
+    "outsider→member-a/NAS-TeamA": 404,
+    "member-a→manager-b/NAS-TeamB": 404,
+    "outsider PUT member-a/NAS-TeamA": 404
+  },
+  "directSmb": {
+    "nas-member-a@team-a": "ALLOWED",
+    "nas-member-a@team-b": "NT_STATUS_ACCESS_DENIED",
+    "nas-manager-b@team-b": "ALLOWED",
+    "nas-manager-b@team-a": "NT_STATUS_ACCESS_DENIED",
+    "nas-outsider@team-a": "NT_STATUS_ACCESS_DENIED",
+    "nas-outsider@team-b": "NT_STATUS_ACCESS_DENIED",
+    "anonymous@team-a": "NT_STATUS_ACCESS_DENIED",
+    "anonymous@team-b": "NT_STATUS_ACCESS_DENIED",
+    "svc-nc-team-a@team-b": "NT_STATUS_ACCESS_DENIED",
+    "svc-nc-team-b@team-a": "NT_STATUS_ACCESS_DENIED",
+    "nas-member-a@team-a ls ../team-b": "NT_STATUS_OBJECT_NAME_NOT_FOUND"
+  },
+  "checks": {
+    "webdavPass": true,
+    "crossPass": true,
+    "directPass": true
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

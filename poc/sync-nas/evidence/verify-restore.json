@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-10-25T09:56:09.929Z",
+  "base": "127.0.0.1:18153 (restore stack)",
+  "mountsVerify": {
+    "1": "- status: ok",
+    "2": "- status: ok"
+  },
+  "webdavAcl": {
+    "manager-a": {
+      "teamA": 401,
+      "teamB": 401
+    },
+    "member-a": {
+      "teamA": 207,
+      "teamB": 404
+    },
+    "successor-a": {
+      "teamA": 207,
+      "teamB": 404
+    },
+    "manager-b": {
+      "teamA": 404,
+      "teamB": 207
+    },
+    "member-b": {
+      "teamA": 404,
+      "teamB": 207
+    },
+    "outsider": {
+      "teamA": 404,
+      "teamB": 404
+    }
+  },
+  "directSmb": {
+    "nas-member-a@team-a": "ALLOWED",
+    "nas-member-a@team-b": "NT_STATUS_ACCESS_DENIED",
+    "nas-manager-b@team-b": "ALLOWED",
+    "nas-manager-b@team-a": "NT_STATUS_ACCESS_DENIED",
+    "nas-outsider@team-a": "NT_STATUS_ACCESS_DENIED",
+    "anonymous@team-a": "NT_STATUS_ACCESS_DENIED"
+  },
+  "decorated": {
+    "fileIdLive": 799,
+    "fileIdRestored": 799,
+    "sameFileId": true,
+    "tag": true,
+    "comment": true,
+    "share": true,
+    "sha256Equal": true
+  },
+  "flowCore": {
+    "memberReadsMat": 404,
+    "ownerReadsMat": 200
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

@@ -89,7 +89,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
     { NODE_ENV: 'test', GOOGLE_MODE: 'fake' } as any,
     { mongoUri: uri, jobsPollMs: 0, schedulerEnabled: false, seedDemo: false, vaultDir: ':memory:', cookieSecure: false, uploadTmpDir: path.join(require('os').tmpdir(), `vcdocs-up-${process.pid}`), ...overrides },
   );
-  const app = await createApp(cfg, { logger: false });
+  const app = await createApp(cfg, { logger: process.env.TEST_LOGGER === '1' });
   const db = app.get(Db);
   const fake = app.get(GOOGLE) as FakeGoogle;
   const ids = await seedDemo(db.m, fake);
@@ -98,13 +98,18 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
 
   const loginEmail = async (email: string): Promise<Client> => {
     const agent = request.agent(server);
-    const start = await agent.get(`${PREFIX}/auth/google`);
+    const startMode = cfg.authMode;
+    cfg.authMode = 'google';
+    const start = await Promise.resolve(agent.get(`${PREFIX}/auth/google`)).finally(() => { cfg.authMode = startMode; });
     expectContract('GET', `${PREFIX}/auth/google`, start);
     const loc = new URL(start.headers.location);
     const state = loc.searchParams.get('state')!;
     const nonce = loc.searchParams.get('nonce')!;
     const cbUrl = `${PREFIX}/auth/google/callback?state=${encodeURIComponent(state)}&code=${encodeURIComponent(`fake|${email}|${nonce}`)}`;
-    const cb = await agent.get(cbUrl);
+    // Test chạy AUTH_MODE=oidc vẫn dùng Google giả làm lối tắt tạo phiên; production chặn route này.
+    const mode = cfg.authMode;
+    cfg.authMode = 'google';
+    const cb = await Promise.resolve(agent.get(cbUrl)).finally(() => { cfg.authMode = mode; });
     expectContract('GET', cbUrl, cb);
     if (cb.status !== 302 || String(cb.headers.location).includes('/dang-nhap?loi=')) throw new Error(`Đăng nhập ${email} lỗi: ${cb.status} ${cb.headers.location}`);
     const me = await agent.get(`${PREFIX}/me`);

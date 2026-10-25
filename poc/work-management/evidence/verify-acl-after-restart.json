@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-10-25T07:59:34.667Z",
+  "label": "after-restart",
+  "ncBase": "http://nc13.localtest.me:18130",
+  "results": {
+    "deck": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 403,
+      "outsider": 403
+    },
+    "deck-attachment": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 403,
+      "outsider": 403
+    },
+    "deck-comments": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 403,
+      "outsider": 403
+    },
+    "notes": {
+      "manager-a": 200,
+      "member-a": 404,
+      "manager-b": 404,
+      "outsider": 404
+    },
+    "notes-shared-file": {
+      "member-a": 200,
+      "manager-b": 404,
+      "outsider": 404
+    },
+    "forms": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 403,
+      "outsider": 403
+    },
+    "forms-results": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 403,
+      "outsider": 403
+    },
+    "tables-rows": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 404,
+      "outsider": 404
+    },
+    "collectives-page": {
+      "manager-a": 200,
+      "member-a": 200,
+      "manager-b": 404,
+      "outsider": 404
+    },
+    "collectives-file": {
+      "member-a": 200,
+      "manager-b": 404,
+      "outsider": 404
+    }
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

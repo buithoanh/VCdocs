@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-10-25T07:16:06.873Z",
+  "marker": "work13-deck-1792912565643",
+  "resources": {
+    "boardId": 4,
+    "stackId": 10,
+    "cardId": 12,
+    "attachmentId": 3,
+    "commentId": 2
+  },
+  "manager": {
+    "boardCreated": true,
+    "aclGroup": "vcw-team-a (federated id)",
+    "attachmentDownloadSha256": "dfeccd5e5b28d3dac82772a12d1421720e63ab59f5f99458132ab838cb0ccea4",
+    "commentsVisible": 1
+  },
+  "member": {
+    "readBoard": true,
+    "commented": true,
+    "attached": 3,
+    "reshareWithoutManage": 403
+  },
+  "deny": {
+    "manager-b": {
+      "listBoards": "not listed",
+      "readBoard": 403,
+      "readCard": 403,
+      "createCard": 403,
+      "comment": 403,
+      "readComments": 403,
+      "downloadAttachment": 403,
+      "grantSelfAcl": 403
+    },
+    "outsider": {
+      "listBoards": "not listed",
+      "readBoard": 403,
+      "readCard": 403,
+      "createCard": 403,
+      "comment": 403,
+      "readComments": 403,
+      "downloadAttachment": 403,
+      "grantSelfAcl": 403
+    }
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

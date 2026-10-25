@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-10-25T10:45:35.950Z",
+  "collections": [
+    {
+      "owner": "successor-a",
+      "ownerUid": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "kind": "cal",
+      "uri": "cal16-team-a",
+      "path": "/remote.php/dav/calendars/a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35/cal16-team-a/",
+      "created": "existed",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read-write"
+        }
+      ]
+    },
+    {
+      "owner": "successor-a",
+      "ownerUid": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "kind": "cal",
+      "uri": "cal16-team-a-thongbao",
+      "path": "/remote.php/dav/calendars/a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35/cal16-team-a-thongbao/",
+      "created": "existed",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "owner": "successor-a",
+      "ownerUid": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "kind": "ab",
+      "uri": "ab16-team-a",
+      "path": "/remote.php/dav/addressbooks/users/a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35/ab16-team-a/",
+      "created": "existed",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+          "access": "read-write"
+        }
+      ]
+    },
+    {
+      "owner": "manager-b",
+      "ownerUid": "67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2",
+      "kind": "cal",
+      "uri": "cal16-team-b",
+      "path": "/remote.php/dav/calendars/67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2/cal16-team-b/",
+      "created": "existed",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+          "access": "read-write"
+        }
+      ]
+    },
+    {
+      "owner": "manager-b",
+      "ownerUid": "67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2",
+      "kind": "ab",
+      "uri": "ab16-team-b",
+      "path": "/remote.php/dav/addressbooks/users/67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2/ab16-team-b/",
+      "created": "existed",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+          "access": "read-write"
+        }
+      ]
+    },
+    {
+      "owner": "member-b",
+      "ownerUid": "f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5",
+      "kind": "cal",
+      "uri": "cal16-member-b",
+      "path": "/remote.php/dav/calendars/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/cal16-member-b/",
+      "created": "created",
+      "sharees": [
+        {
+          "href": "principal:principals/groups/3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "owner": "member-b",
+      "ownerUid": "f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5",
+      "kind": "ab",
+      "uri": "ab16-member-b",
+      "path": "/remote.php/dav/addressbooks/users/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/ab16-member-b/",
+      "created": "existed",
+      "sharees": []
+    }
+  ],
+  "fixtures": [
+    {
+      "owner": "successor-a",
+      "uri": "cal16-team-a",
+      "name": "cal16-fixture-a.ics",
+      "created": false
+    },
+    {
+      "owner": "manager-b",
+      "uri": "cal16-team-b",
+      "name": "cal16-fixture-b.ics",
+      "created": false
+    },
+    {
+      "owner": "successor-a",
+      "uri": "ab16-team-a",
+      "name": "cal16-fixture-card-a.vcf",
+      "created": false
+    },
+    {
+      "owner": "manager-b",
+      "uri": "ab16-team-b",
+      "name": "cal16-fixture-card-b.vcf",
+      "created": false
+    }
+  ],
+  "secretsIncluded": false
+}

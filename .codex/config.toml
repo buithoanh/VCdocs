@@ -1,0 +1,25 @@
+# VCworkspace: applies after project trust/restart; managed settings take precedence.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+allow_login_shell = false
+
+[sandbox_workspace_write]
+network_access = false
+
+[shell_environment_policy]
+inherit = "core"
+ignore_default_excludes = false
+
+[shell_environment_policy.set]
+GOOGLE_MODE = "fake"
+NODE_ENV = "test"
+NEXT_TELEMETRY_DISABLED = "1"
+
+[shell_environment_policy.filters]
+"GOOGLE_*" = "exclude"
+"CLOUDSDK_*" = "exclude"
+"AWS_*" = "exclude"
+"AZURE_*" = "exclude"
+"GH_*" = "exclude"
+"GITHUB_*" = "exclude"
+"MONGODB_URI" = "exclude"

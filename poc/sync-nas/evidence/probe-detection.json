@@ -1,0 +1,290 @@
+{
+  "generatedAt": "2026-10-25T09:30:40.050Z",
+  "marker": "det15-1792920406073",
+  "mount": "NAS-TeamA (filesystem_check_changes=1)",
+  "results": {
+    "notifyOn_smbClient": {
+      "n": 6,
+      "visibleWithin15s": 6,
+      "visibleMs": {
+        "n": 6,
+        "min": 69,
+        "p50": 70,
+        "p95": 74,
+        "max": 74,
+        "mean": 71
+      },
+      "rows": [
+        {
+          "visibleMs": 71
+        },
+        {
+          "visibleMs": 70
+        },
+        {
+          "visibleMs": 72
+        },
+        {
+          "visibleMs": 74
+        },
+        {
+          "visibleMs": 69
+        },
+        {
+          "visibleMs": 69
+        }
+      ]
+    },
+    "notifyOn_nasFilesystem": {
+      "n": 6,
+      "visibleWithin15s": 6,
+      "visibleMs": {
+        "n": 6,
+        "min": 84,
+        "p50": 87,
+        "p95": 93,
+        "max": 93,
+        "mean": 88
+      },
+      "rows": [
+        {
+          "visibleMs": 90
+        },
+        {
+          "visibleMs": 87
+        },
+        {
+          "visibleMs": 84
+        },
+        {
+          "visibleMs": 84
+        },
+        {
+          "visibleMs": 92
+        },
+        {
+          "visibleMs": 93
+        }
+      ]
+    },
+    "burst_notifyOn_smbClient": {
+      "n": 4,
+      "secondVisibleWithin15s": 4,
+      "rows": [
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 326,
+          "secondVisibleMs": 74
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 329,
+          "secondVisibleMs": 78
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 342,
+          "secondVisibleMs": 73
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 336,
+          "secondVisibleMs": 72
+        }
+      ]
+    },
+    "burst_notifyOn_nasFilesystem": {
+      "n": 4,
+      "secondVisibleWithin15s": 0,
+      "rows": [
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 217,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 313,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 225,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 347,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 219,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 368,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 216,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 244,
+          "listedAfterScan": true
+        }
+      ]
+    },
+    "notifyOff_smbClient": {
+      "n": 6,
+      "visibleWithin15s": 6,
+      "visibleMs": {
+        "n": 6,
+        "min": 83,
+        "p50": 86,
+        "p95": 94,
+        "max": 94,
+        "mean": 89
+      },
+      "rows": [
+        {
+          "visibleMs": 83
+        },
+        {
+          "visibleMs": 86
+        },
+        {
+          "visibleMs": 94
+        },
+        {
+          "visibleMs": 92
+        },
+        {
+          "visibleMs": 86
+        },
+        {
+          "visibleMs": 92
+        }
+      ]
+    },
+    "notifyOff_nasFilesystem": {
+      "n": 6,
+      "visibleWithin15s": 6,
+      "visibleMs": {
+        "n": 6,
+        "min": 98,
+        "p50": 101,
+        "p95": 106,
+        "max": 106,
+        "mean": 102
+      },
+      "rows": [
+        {
+          "visibleMs": 106
+        },
+        {
+          "visibleMs": 105
+        },
+        {
+          "visibleMs": 101
+        },
+        {
+          "visibleMs": 101
+        },
+        {
+          "visibleMs": 102
+        },
+        {
+          "visibleMs": 98
+        }
+      ]
+    },
+    "burst_notifyOff_smbClient": {
+      "n": 4,
+      "secondVisibleWithin15s": 0,
+      "rows": [
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 329,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 264,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 312,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 341,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 342,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 327,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 322,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 248,
+          "listedAfterScan": true
+        }
+      ]
+    },
+    "burst_notifyOff_nasFilesystem": {
+      "n": 4,
+      "secondVisibleWithin15s": 0,
+      "rows": [
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 231,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 266,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 190,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 484,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 216,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 405,
+          "listedAfterScan": true
+        },
+        {
+          "listedFirst": true,
+          "secondWrittenAtMsOfSecond": 228,
+          "secondVisibleMs": null,
+          "directAccessStatus": 207,
+          "listedAfterDirectAccess": true,
+          "scanMs": 426,
+          "listedAfterScan": true
+        }
+      ]
+    }
+  },
+  "notifyListenerSawNasFilesystemWrites": false,
+  "result": "LOCAL (đo đạc)",
+  "secretsIncluded": false
+}

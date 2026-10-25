@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-10-25T11:54:08.948Z",
+  "run": "mvnrs2hz",
+  "calendarToTalk": {
+    "roomType": 2,
+    "objectType": "event",
+    "attendeeResolution": {
+      "member-a@team-a.test": "resolved-user",
+      "manager-b@team-b.test": "ignored (private room)",
+      "partner@partner.test": "ignored (private room)"
+    }
+  },
+  "invitation": {
+    "putStatus": 201,
+    "scheduleStatus": {
+      "member-a@team-a.test": "1.1",
+      "manager-b@team-b.test": "1.1",
+      "partner@partner.test": "1.1"
+    },
+    "memberACopyHasLink": true
+  },
+  "linkAccess": {
+    "member-a": {
+      "getRoom": 200,
+      "join": 200
+    },
+    "manager-b": {
+      "getRoom": 404,
+      "join": 404
+    },
+    "outsider": {
+      "getRoom": 404,
+      "join": 404
+    },
+    "anonymous": {
+      "getRoom": 404,
+      "join": 404
+    }
+  },
+  "scheduleMeetingWithoutUserTimezone": {
+    "timezoneBefore": "Asia/Ho_Chi_Minh",
+    "status": 200
+  },
+  "talkToCalendar": {
+    "status": 200,
+    "error": null,
+    "organizer": {
+      "status": 207,
+      "found": true,
+      "hasTalkLink": true,
+      "attendeeCount": 2
+    },
+    "member-a": {
+      "status": 207,
+      "found": true,
+      "hasTalkLink": true,
+      "attendeeCount": 2
+    },
+    "manager-b": {
+      "status": 207,
+      "found": false,
+      "hasTalkLink": false,
+      "attendeeCount": 0
+    }
+  },
+  "secretsIncluded": false
+}

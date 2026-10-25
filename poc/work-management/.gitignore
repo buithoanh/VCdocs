@@ -1,0 +1,4 @@
+secrets/
+backup/
+chrome-profile/
+evidence/*.private.json

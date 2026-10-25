@@ -1,0 +1,76 @@
+name: vcworkspace-sync15-restore
+# Chat15 independent restore target: own volumes, own internal network,
+# loopback port 18153 only. Restores Nextcloud (DB + volume) and the simulated
+# NAS (volume) from backup/; the restored SMB mounts resolve "nas15" to the
+# restored NAS on this network. Authentik is not restored (persona app
+# passwords are in the restored DB); OIDC login on the restore is NOT_TESTED.
+services:
+  restore-nc-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+    secrets: [nc_db_password]
+    volumes: [restore_nc_db:/var/lib/postgresql]
+    networks:
+      restore_internal:
+        aliases: [nc-db]
+
+  restore-redis:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    networks:
+      restore_internal:
+        aliases: [redis]
+
+  restore-nas15:
+    image: vcworkspace-sync15/nas:alpine3.22.2-1
+    restart: "no"
+    volumes:
+      - restore_nas:/srv/nas
+      - ./secrets/nas:/run/nas-secrets:ro
+    networks:
+      restore_internal:
+        aliases: [nas15]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, FSETID, SETUID, SETGID, NET_BIND_SERVICE, KILL]
+
+  restore-smb-client:
+    image: vcworkspace-sync15/nas:alpine3.22.2-1
+    restart: "no"
+    entrypoint: ["sleep", "infinity"]
+    volumes: [./secrets/smbauth:/auth:ro]
+    networks: [restore_internal]
+    cap_drop: [ALL]
+
+  restore-nextcloud:
+    image: vcworkspace-sync15/nextcloud-smb:33.0.10-1
+    platform: linux/arm64
+    restart: "no"
+    depends_on: [restore-nc-db, restore-redis, restore-nas15]
+    volumes: [restore_nextcloud:/var/www/html]
+    networks: [restore_internal]
+    mem_limit: 2g
+
+  restore-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18153", "-e", "nc", "restore-nextcloud", "80"]
+    depends_on: [restore-nextcloud]
+    ports: ["127.0.0.1:18153:18153"]
+    networks: [restore_internal, restore_host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+networks:
+  restore_internal: {internal: true}
+  restore_host_edge: {}
+volumes:
+  restore_nc_db: {name: vcworkspace_sync15_restore_nc_db}
+  restore_nextcloud: {name: vcworkspace_sync15_restore_nextcloud}
+  restore_nas: {name: vcworkspace_sync15_restore_nas}
+secrets:
+  nc_db_password:
+    file: "${WORK13_SECRETS_DIR:?set WORK13_SECRETS_DIR}/nc_db_password"

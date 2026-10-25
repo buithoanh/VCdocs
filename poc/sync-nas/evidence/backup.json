@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-10-25T09:55:18.333Z",
+  "files": {
+    "nextcloud.dump": {
+      "sha256": "e6e89158b63d43018737ae5f97b8d4c1d6ae8010d39b3d4b06ec09f1361af64c",
+      "bytes": 2627861
+    },
+    "nextcloud-html.tgz": {
+      "sha256": "cda63e348671176d2ec50e9109eac0b64ea23ab214d5dbd50334d8758221d09f",
+      "bytes": 818754324
+    },
+    "nas.tgz": {
+      "sha256": "7196b80c0ad069fca20a14fdeb0a00ecd2824af49abfb339d39a03ccde1887dd",
+      "bytes": 35119628
+    }
+  },
+  "maintenanceModeMs": 34270,
+  "mode": "0600",
+  "location": "poc/sync-nas/backup/ (git-ignored)",
+  "excluded": [
+    "NAS team-a/Chat15-big15-* (file 1 GiB thử)"
+  ],
+  "note": "NAS account DB (Samba passdb) không nằm trong volume: tạo lại từ secrets/ khi container NAS khởi động",
+  "secretsIncluded": false
+}

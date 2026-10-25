@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-10-25T11:57:58.538Z",
+  "previousValue": "[]",
+  "withAllowedGroups": {
+    "outsiderListRooms": 403,
+    "outsiderCreateRoom": 403,
+    "moderatorAddsOutsiderByUid": 200,
+    "outsiderReadsThatRoom": 403,
+    "outsiderCapabilitiesHasSpreed": false,
+    "moderatorAddsTeamBByUid": 200,
+    "teamBStillUsesTalk": 200,
+    "roomShareStatus": 200,
+    "outsiderGetsFileViaFiles": 200
+  },
+  "restoredTo": "[]",
+  "secretsIncluded": false
+}

@@ -1,0 +1,178 @@
+{
+  "generatedAt": "2026-10-25T11:53:53.543Z",
+  "run": "mvnrrkz0",
+  "visible": {
+    "successor-a": [
+      "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+      "talk17-team-a"
+    ],
+    "member-a": [
+      "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "talk17-team-a"
+    ],
+    "manager-b": [
+      "talk17-team-b"
+    ],
+    "member-b": [
+      "talk17-team-b"
+    ],
+    "outsider": []
+  },
+  "chat": {
+    "postStatus": 201,
+    "ownerSawMessageMs": 102
+  },
+  "mentions": {
+    "mentionPost": 201,
+    "allPost": 201,
+    "messageParameters": {
+      "mention-user1": {
+        "type": "user",
+        "id": "successor-a",
+        "mentionDisplayName": "yes"
+      },
+      "mention-user2": {
+        "type": "user",
+        "id": "outsider",
+        "mentionDisplayName": "yes"
+      }
+    },
+    "messageTemplate": "{mention-user1} xem giup file nay, va {mention-user2} (khong o trong phong) <run>",
+    "notifications": {
+      "successor-a": [
+        {
+          "subject": "Member A nhắc đến bạn trong cuộc trò chuyện talk17-team-a",
+          "object_type": "chat",
+          "object_id": "xd6s8ccu/223",
+          "messageHasPlaceholder": true
+        },
+        {
+          "subject": "Member A gửi tin nhắn trong cuộc trò chuyệntalk17-team-a",
+          "object_type": "chat",
+          "object_id": "xd6s8ccu/222",
+          "messageHasPlaceholder": false
+        }
+      ],
+      "member-a": [
+        {
+          "subject": "Successor A mentioned everyone in conversation talk17-team-a",
+          "object_type": "chat"
+        }
+      ],
+      "outsider": [],
+      "manager-b": []
+    },
+    "ownerNotificationsAfterOwnPost": 0,
+    "notificationContainsMessageText": true
+  },
+  "mentionAutocomplete": {
+    "memberA_search_successor": [
+      "successor-a"
+    ],
+    "memberA_search_manager_b": [],
+    "memberA_search_outsider": []
+  },
+  "typedEmailEchoedAsGuestCandidate": [
+    "member-a:member-b@team-b.test",
+    "member-a:manager-a@outsider.test",
+    "manager-b:successor-a@team-a.test",
+    "outsider:member-a@team-a.test"
+  ],
+  "userSearch": {
+    "member-a": {
+      "Successor": [
+        "users:successor-a"
+      ],
+      "Manager B": [],
+      "member-b": [],
+      "member-b@team-b.test": [],
+      "<uid manager-b>": [],
+      "outsider": [],
+      "manager-a@outsider.test": [],
+      "Team": [
+        "users:successor-a",
+        "groups:team-a",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:bich@team-a.test",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:bich@team-a.test",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:bich@team-a.test",
+        "emails:bich@team-a.test",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:bich@team-a.test",
+        "emails:anh.nguyen@team-a.test",
+        "emails:anh@partner.test",
+        "emails:bich@team-a.test",
+        "emails:fixture-a@partner.test",
+        "emails:anh.nguyen@team-a.test",
+        "circles:385n3jvqUgku7IowY7TIybci6hz92hw",
+        "circles:dR9CpMSAvHJCgRRyVgmFZ1OgVoscnGF"
+      ],
+      "vcw-team-b": []
+    },
+    "manager-b": {
+      "Member B": [
+        "users:member-b"
+      ],
+      "Member A": [],
+      "successor-a@team-a.test": [],
+      "<uid successor-a>": [],
+      "outsider": []
+    },
+    "outsider": {
+      "Member": [],
+      "Manager": [],
+      "Successor": [],
+      "member-a@team-a.test": [],
+      "<uid member-a>": [],
+      "team": []
+    }
+  },
+  "userSearchCrossGroupHits": {
+    "member-a": [],
+    "manager-b": [],
+    "outsider": []
+  },
+  "listedRooms": {
+    "member-a": [],
+    "manager-b": [],
+    "outsider": []
+  },
+  "crossGroupPolicyProbes": {
+    "moderatorAddsTeamBUserByUid": 200,
+    "moderatorAddsOutsiderByUid": 200,
+    "moderatorAddsOutsidersGroupById": 200,
+    "moderatorAddsEmailGuest": {
+      "status": 200,
+      "roomBecame": 3,
+      "error": null
+    },
+    "outsiderSeesProbeRoom": true,
+    "outsiderCanPost": 201,
+    "oneToOneWithOutsiderByUid": {
+      "status": 403,
+      "error": "invite"
+    },
+    "oneToOneWithTeamBByUid": {
+      "status": 403,
+      "error": "invite"
+    }
+  },
+  "groupSync": {
+    "before": false,
+    "afterAddUser": true,
+    "addVisibleMs": 275,
+    "memberBReadAfterAdd": 200,
+    "afterRemoveUser": false,
+    "memberBReadAfterRemove": 404,
+    "memberAAfterGroupDeleted": true
+  },
+  "secretsIncluded": false
+}

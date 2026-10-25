@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import { API, server } from '@/test/server';
 import { errorBody } from '@/test/fixtures';
-import { ApiError, api, errorText, getPerson, idem, setCsrfToken, setUnauthorizedHandler, unwrap } from './client';
+import { ApiError, api, authenticatedReturnTo, errorText, getPerson, idem, setCsrfToken, setUnauthorizedHandler, unwrap } from './client';
 
 describe('lớp gọi API', () => {
   it('gửi X-Request-Id cho mọi yêu cầu, không gửi CSRF cho GET', async () => {
@@ -30,6 +30,13 @@ describe('lớp gọi API', () => {
     server.use(http.get(`${API}/drives`, () => HttpResponse.json(errorBody('UNAUTHENTICATED', 'Chưa đăng nhập'), { status: 401 })));
     await expect(unwrap(api.GET('/drives'))).rejects.toBeInstanceOf(ApiError);
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it('giữ token qua sessionStorage nhưng không đưa vào query đăng nhập', () => {
+    const storage={setItem:vi.fn()};
+    expect(authenticatedReturnTo({ pathname:'/bo-nho/lien-ket', search:'', hash:'#token-khong-vao-access-log' } as Location,storage))
+      .toBe('/bo-nho/lien-ket');
+    expect(storage.setItem).toHaveBeenCalledWith('vcworkspace.drive-link-token','token-khong-vao-access-log');
   });
 
   it('lỗi hiện error.message; 422 kèm mã BR', async () => {

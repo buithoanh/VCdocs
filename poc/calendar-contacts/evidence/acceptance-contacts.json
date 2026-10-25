@@ -1,0 +1,556 @@
+{
+  "generatedAt": "2026-10-25T10:46:12.844Z",
+  "run": "mvnpci5w",
+  "directory": {
+    "policyBefore": {
+      "shareapi_only_share_with_group_members": "yes",
+      "shareapi_allow_share_dialog_user_enumeration": "<default>",
+      "shareapi_restrict_user_enumeration_to_group": "yes",
+      "shareapi_restrict_user_enumeration_full_match": "no"
+    },
+    "defaultsSnapshot": {
+      "policy": {
+        "shareapi_only_share_with_group_members": "yes",
+        "shareapi_allow_share_dialog_user_enumeration": "<default>",
+        "shareapi_restrict_user_enumeration_to_group": "<default>",
+        "shareapi_restrict_user_enumeration_full_match": "<default>"
+      },
+      "systemAddressBook": {
+        "member-a": {
+          "status": 207,
+          "cards": [
+            "outsider",
+            "admin13…",
+            "member-a",
+            "manager-b",
+            "successor-a",
+            "member-b"
+          ]
+        },
+        "manager-b": {
+          "status": 207,
+          "cards": [
+            "outsider",
+            "admin13…",
+            "member-a",
+            "manager-b",
+            "successor-a",
+            "member-b"
+          ]
+        },
+        "outsider": {
+          "status": 207,
+          "cards": [
+            "outsider",
+            "admin13…",
+            "member-a",
+            "manager-b",
+            "successor-a",
+            "member-b"
+          ]
+        }
+      },
+      "search": {
+        "outsider→\"Member A\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "outsider→member-a@team-a.test": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "manager-b→\"Successor\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "member-a→\"Outsider\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "member-a→\"Member\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": [
+              "member-a@team-a.test"
+            ]
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": [
+              "member-a"
+            ]
+          }
+        },
+        "member-a→\"Successor\" (đối chứng dương)": {
+          "autocomplete": {
+            "status": 200,
+            "ids": [
+              "successor-a"
+            ]
+          },
+          "sharees": {
+            "status": 200,
+            "ids": [
+              "successor-a"
+            ]
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": [
+              "Successor A"
+            ]
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": [
+              "successor-a@team-a.test"
+            ]
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": [
+              "successor-a"
+            ]
+          }
+        }
+      }
+    },
+    "policyAfter": {
+      "shareapi_only_share_with_group_members": "yes",
+      "shareapi_allow_share_dialog_user_enumeration": "<default>",
+      "shareapi_restrict_user_enumeration_to_group": "yes",
+      "shareapi_restrict_user_enumeration_full_match": "no"
+    },
+    "restricted": {
+      "systemAddressBook": {
+        "member-a": {
+          "status": 207,
+          "cards": [
+            "member-a",
+            "successor-a"
+          ]
+        },
+        "manager-b": {
+          "status": 207,
+          "cards": [
+            "manager-b",
+            "member-b"
+          ]
+        },
+        "outsider": {
+          "status": 207,
+          "cards": [
+            "outsider"
+          ]
+        }
+      },
+      "search": {
+        "outsider→\"Member A\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "outsider→member-a@team-a.test": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "manager-b→\"Successor\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "member-a→\"Outsider\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": []
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": []
+          }
+        },
+        "member-a→\"Member\"": {
+          "autocomplete": {
+            "status": 200,
+            "ids": []
+          },
+          "sharees": {
+            "status": 200,
+            "ids": []
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": []
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": [
+              "member-a@team-a.test"
+            ]
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": [
+              "member-a"
+            ]
+          }
+        },
+        "member-a→\"Successor\" (đối chứng dương)": {
+          "autocomplete": {
+            "status": 200,
+            "ids": [
+              "successor-a"
+            ]
+          },
+          "sharees": {
+            "status": 200,
+            "ids": [
+              "successor-a"
+            ]
+          },
+          "unifiedSearchContacts": {
+            "status": 200,
+            "titles": []
+          },
+          "contactsMenu": {
+            "status": 200,
+            "names": [
+              "Successor A"
+            ]
+          },
+          "calendarAttendeeAutocomplete": {
+            "status": 200,
+            "emails": [
+              "successor-a@team-a.test"
+            ]
+          },
+          "principalSearch": {
+            "status": 207,
+            "principals": [
+              "successor-a"
+            ]
+          }
+        }
+      }
+    },
+    "outsiderDirectGetOfMemberCard": 403,
+    "outsiderSystemSyncCollection": {
+      "status": 207,
+      "changedHrefs": [
+        "outsider"
+      ],
+      "otherHrefs": [],
+      "removed": 0
+    },
+    "outsiderIncrementalAfterHiddenCardChange": {
+      "status": 207,
+      "changed": [],
+      "otherHrefs": [],
+      "removedHrefs": [],
+      "rawHasMemberUid": false,
+      "phoneSetBefore": true
+    },
+    "memberAFullSyncCount": 2,
+    "teamAIncrementalSeesTheChange": [
+      "member-a"
+    ]
+  },
+  "groupAddressBook": {
+    "memberCreates": 201,
+    "ownerReads": 200,
+    "teamBSeesShare": false,
+    "outsiderSeesShare": false
+  },
+  "vcard": {
+    "v3": {
+      "put": 201,
+      "get": 200,
+      "contentType": "text/vcard; charset=utf-8",
+      "missingAfterRoundTrip": [],
+      "addedByServer": []
+    },
+    "v4DefaultGet": {
+      "put": 201,
+      "get": 200,
+      "contentType": "text/vcard; charset=utf-8",
+      "missingAfterRoundTrip": [
+        "VERSION:4.0",
+        "KIND:individual",
+        "EMAIL;TYPE=work;PREF=1:bich@team-a.test",
+        "TEL;VALUE=uri;TYPE=cell:tel:+84-91-000-1111",
+        "PHOTO:data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      ],
+      "addedByServer": [
+        "VERSION:3.0",
+        "PRODID:-//Sabre//Sabre VObject 4.5.6//EN",
+        "EMAIL;TYPE=work,PREF:bich@team-a.test",
+        "TEL;TYPE=cell;VALUE=URI:tel:+84-91-000-1111",
+        "PHOTO;ENCODING=b;TYPE=PNG:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQV"
+      ]
+    },
+    "v4WithAcceptVersion4": {
+      "put": 204,
+      "get": 200,
+      "contentType": "text/vcard; version=4.0; charset=utf-8",
+      "missingAfterRoundTrip": [],
+      "addedByServer": []
+    },
+    "export": {
+      "status": 200,
+      "contentType": "text/directory;charset=UTF-8",
+      "cards": 23,
+      "runCards": 2
+    },
+    "reimport": [
+      {
+        "uid": "rt3-mvnpci5w",
+        "put": 201,
+        "fnPreserved": true,
+        "photoPreserved": true
+      },
+      {
+        "uid": "urnuuidrt4-mvnpci5w",
+        "put": 201,
+        "fnPreserved": true,
+        "photoPreserved": true
+      }
+    ],
+    "ownAddressBook": "/remote.php/dav/addressbooks/users/<successor-a>/contacts/"
+  },
+  "syncToken": {
+    "initialCount": 23,
+    "afterAdd": {
+      "status": 207,
+      "token": "40",
+      "changed": [
+        "sync-mvnpci5w.vcf"
+      ],
+      "removed": []
+    },
+    "ifMatch": {
+      "update": 204,
+      "staleEtag": 412
+    },
+    "afterModify": {
+      "status": 207,
+      "token": "41",
+      "changed": [
+        "sync-mvnpci5w.vcf"
+      ],
+      "removed": []
+    },
+    "afterDelete": {
+      "status": 207,
+      "token": "42",
+      "changed": [],
+      "removed": [
+        "sync-mvnpci5w.vcf"
+      ]
+    },
+    "noChange": {
+      "status": 207,
+      "token": "42",
+      "changed": [],
+      "removed": []
+    },
+    "invalidToken": 403,
+    "teamBWithValidToken": 404
+  },
+  "groupIds": {
+    "teamA": "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+    "teamB": "3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf"
+  },
+  "secretsIncluded": false
+}

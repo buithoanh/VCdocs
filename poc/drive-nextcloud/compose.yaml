@@ -1,0 +1,24 @@
+name: vcworkspace-drive-poc
+services:
+  nextcloud:
+    image: nextcloud@sha256:f6653516c000dd83a8ead6d7eda3ccdc6437fee78153bae71702c70f727dd79b
+    platform: linux/arm64
+    restart: "no"
+    ports:
+      - "127.0.0.1:18080:80"
+    environment:
+      NEXTCLOUD_ADMIN_USER: ${POC_ADMIN_USER:?set in .poc-secrets}
+      NEXTCLOUD_ADMIN_PASSWORD: ${POC_ADMIN_PASSWORD:?set in .poc-secrets}
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost
+      SQLITE_DATABASE: nextcloud
+      PHP_MEMORY_LIMIT: 512M
+      PHP_UPLOAD_LIMIT: 10M
+    volumes:
+      - vcworkspace_drive_poc_nextcloud:/var/www/html
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 256
+
+volumes:
+  vcworkspace_drive_poc_nextcloud:
+    name: vcworkspace_drive_poc_nextcloud

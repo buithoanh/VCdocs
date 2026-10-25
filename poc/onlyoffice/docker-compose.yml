@@ -1,0 +1,27 @@
+services:
+  documentserver:
+    image: onlyoffice/documentserver:9.4.0.1
+    # Manifest arm64 9.4.0.1 hiện trả exec format error trên host thử;
+    # ghim manifest amd64 chính thức và dùng emulation Docker Desktop.
+    platform: linux/amd64
+    container_name: vcworkspace-onlyoffice-chat04
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18082:80"
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: "${DOCUMENT_EDITOR_JWT_SECRET:?set in isolated shell}"
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [chat04]
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  chat04:
+    name: vcworkspace-chat04
+    internal: false

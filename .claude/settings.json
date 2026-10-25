@@ -1,0 +1,69 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(yarn *)",
+      "Bash(bun *)",
+      "Bash(bunx *)",
+      "Bash(gcloud *)",
+      "Bash(gsutil *)",
+      "Bash(terraform *)",
+      "Bash(kubectl *)",
+      "Bash(mongosh *)",
+      "Bash(mongorestore *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(gh pr merge *)",
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.production)",
+      "Read(./deploy/api.env)",
+      "Read(./deploy/secrets/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.ssh/**)",
+      "Edit(./apps/web/src/api/schema.d.ts)"
+    ]
+  },
+  "env": {
+    "GOOGLE_MODE": "fake",
+    "NODE_ENV": "test",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/ai/hook.mjs\" start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/ai/hook.mjs\" pre",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/ai/hook.mjs\" stop",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

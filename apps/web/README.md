@@ -1,4 +1,4 @@
-# @vcdocs/web – giao diện VCdocs
+# @vcdocs/web – giao diện VCworkspace
 
 Next.js (App Router) + TypeScript. Gọi API theo `contract/openapi.yaml` (giai đoạn 1: M01–M09, M14, /jobs).
 
@@ -105,3 +105,7 @@ trong `next.config.ts`).
 | `/thong-bao`, `/viec-nen` | M14 thông báo, việc nền |
 
 Theo hợp đồng `1.1.0-gd1` (gộp từ `giai-doan-1`). Đề nghị sửa hợp đồng và tình trạng xử lý: `DE_NGHI_SUA_HOP_DONG.md`.
+
+> Tên dự án hiện tại là VCworkspace (từ 2026-10-23). Các định danh `vcdocs`,
+> package `@vcdocs/*` và cấu hình hạ tầng trong ví dụ vẫn đang dùng tên kỹ thuật cũ.
+> Phiên code AI: xem [quy tắc chung](../../AGENTS.md) trước khi khởi động dịch vụ thật.

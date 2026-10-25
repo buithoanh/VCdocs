@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-10-25T10:45:33.655Z",
+  "nextcloud": {
+    "version": "33.0.10",
+    "edition": "community"
+  },
+  "apps": {
+    "calendar": "6.6.3",
+    "contacts": "8.9.2",
+    "calendar_resource_management": "0.12.2",
+    "dav": "1.36.1",
+    "contactsinteraction": "1.14.1",
+    "user_oidc": "8.11.0",
+    "webhook_listeners": "1.5.0"
+  },
+  "stalwart": "0.16.27 (stalwartlabs/stalwart@sha256:c429b311…836c, như chat07)",
+  "containers": {
+    "vcworkspace-work13-nextcloud-1": {
+      "image": "vcworkspace-sync15/nextcloud-smb:33.0.10-1",
+      "imageId": "sha256:50377d5fe623",
+      "state": "running"
+    },
+    "vcworkspace-work13-nc-db-1": {
+      "image": "postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29",
+      "imageId": "sha256:91f1036a9148",
+      "state": "running"
+    },
+    "vcworkspace-work13-redis-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    },
+    "vcworkspace-cal16-mail16-1": {
+      "image": "stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c",
+      "imageId": "sha256:e105324cab68",
+      "state": "running"
+    },
+    "vcworkspace-cal16-mail16-relay-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    },
+    "vcworkspace-flow14-webhook-worker-1": {
+      "image": "nextcloud@sha256:431d389fd8e28b2421149cc877df6c54105f1baaee8c77a3c66ff6cf87d7df33",
+      "imageId": "sha256:db00bb1be0e3",
+      "state": "running"
+    },
+    "vcworkspace-work13-hook-sink-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    }
+  },
+  "secretsIncluded": false
+}

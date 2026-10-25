@@ -1,0 +1,51 @@
+{
+  "runId": "chat04-2026-10-23",
+  "scope": "local-isolated",
+  "documentServer": {
+    "image": "onlyoffice/documentserver:9.4.0.1",
+    "platform": "linux/amd64",
+    "published": "127.0.0.1:18082",
+    "health": true,
+    "jwt": true
+  },
+  "browser": {
+    "managerLogin": true,
+    "createdDocument": "Bien-ban-UI-chat04.docx",
+    "fileId": "6adb46a6f74e6fe769f0398d",
+    "editorMode": "edit",
+    "typedMarker": "NOI DUNG CHAT04 DA LUU 2026-10-23",
+    "saveStatus": "Đã lưu mọi thay đổi",
+    "persistedVersion": 2,
+    "persistedSizeBytes": 25428,
+    "reopenedEditorMode": "edit",
+    "currentDocxSha256": "06df653a85d6d91ea617e447e0840a547d20e7bb6be669e3104628e9c0d6971f",
+    "currentPdfSha256": "36110c53f73ce0ea9cc88492aca7cadc7d372b8314a4c4fab787ee5f27c20a55",
+    "currentDocxMarkerPresent": true,
+    "currentPdfExtractedMarkerPresent": true
+  },
+  "repeatableIntegration": {
+    "command": "node poc/onlyoffice/run-integration.mjs",
+    "result": "pass",
+    "fileId": "6adb488aa1401009a6f94595",
+    "docxMagic": "PK",
+    "docxMarkerPresent": true,
+    "pdfMagic": "%PDF-",
+    "pdfBytes": 35102,
+    "pdfExtractedMarkerPresent": true,
+    "managerMode": "edit",
+    "readerMode": "view"
+  },
+  "security": {
+    "readerCallbackDenied": true,
+    "invalidJwtDenied": true,
+    "metadataIpDenied": true,
+    "callbackReplayIdempotent": true,
+    "staleSecondSessionCallbackDenied": true
+  },
+  "notes": [
+    "Browser editor was exercised before the browser automation transport closed during a download dialog.",
+    "The exact browser-saved V2 was reopened and exported; its DOCX XML and extracted PDF text both contain the edited marker.",
+    "A separate repeatable real-engine integration test also verifies DOCX and PDF conversion.",
+    "No production data, real Google account, deployment, commit, or push was used."
+  ]
+}

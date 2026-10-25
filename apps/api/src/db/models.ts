@@ -38,6 +38,53 @@ const User = mk({
 });
 User.index({ companyId: 1, email: 1 }, { unique: true });
 
+const OidcIdentity = mk({
+  issuer: { type: String, required: true },
+  subject: { type: String, required: true },
+  userId: { type: OID, required: true },
+  email: { type: String, required: true, lowercase: true },
+  groups: { type: [String], default: [] },
+  active: { type: Boolean, default: true },
+  lastSeenAt: { type: Date, required: true },
+  projectionPendingRevision: Number,
+  /** Revision lifecycle cuối đã commit: từ đó email/vai trò ở app là nguồn sự thật, token IdP phải khớp (audit 8/12). */
+  projectionRevision: Number,
+});
+// Một danh tính upstream không bao giờ được bind sang hai tenant.
+OidcIdentity.index({ issuer: 1, subject: 1 }, { unique: true });
+OidcIdentity.index({ companyId: 1, userId: 1 }, { unique: true });
+
+const IdentityLifecycleOperation = mk({
+  idempotencyKey: { type: String, required: true },
+  fingerprint: { type: String, required: true },
+  subject: { type: String, required: true },
+  desired: { type: Mixed, required: true },
+  status: { type: String, enum: ['pending', 'running', 'partial', 'superseded', 'done'], default: 'pending' },
+  subjectRevision: { type: Number, required: true },
+  steps: { type: [Mixed], default: [] },
+  version: { type: Number, default: 0 },
+  leaseToken: String,
+  leaseUntil: Date,
+  lastError: String,
+  completedAt: Date,
+  createdBy: OID,
+  updatedBy: OID,
+});
+IdentityLifecycleOperation.index({ companyId: 1, idempotencyKey: 1 }, { unique: true });
+
+const IdentityLifecycleSubject = mk({
+  subject: { type: String, required: true },
+  revision: { type: Number, default: 0 },
+  appliedRevision: { type: Number, default: 0 },
+  desiredFingerprint: String,
+  status: { type: String, enum: ['pending', 'running', 'partial', 'done'], default: 'pending' },
+  leaseToken: String,
+  leaseUntil: Date,
+  reservedOperationId: OID,
+  reservedRevision: Number,
+});
+IdentityLifecycleSubject.index({ companyId: 1, subject: 1 }, { unique: true });
+
 const Session = new Schema(
   {
     sidHash: { type: String, required: true, unique: true },
@@ -47,6 +94,8 @@ const Session = new Schema(
     expiresAt: { type: Date, required: true },
     ip: String,
     device: String,
+    authProvider: { type: String, enum: ['google', 'oidc'], default: 'google' },
+    identityId: OID,
   },
   opts,
 );
@@ -56,6 +105,8 @@ const OAuthState = new Schema(
   {
     state: { type: String, required: true, unique: true },
     nonce: { type: String, required: true },
+    provider: { type: String, enum: ['google', 'oidc'], default: 'google' },
+    codeVerifier: String,
     returnTo: String,
     expiresAt: { type: Date, required: true },
   },
@@ -142,6 +193,253 @@ const Notification = mk({
   emailState: { type: String, enum: ['none', 'pending', 'sent', 'failed'], default: 'none' },
 });
 Notification.index({ companyId: 1, userId: 1, isRead: 1, createdAt: -1 });
+
+// ── Flow (chat14): journal event Nextcloud và hiệu ứng đã làm ──
+const FlowEvent = mk({
+  /** sha256(lớp event | tài nguyên | time): lặp lại (replay, gửi trùng) không tạo dòng mới */
+  dedupeKey: { type: String, required: true },
+  source: { type: String, enum: ['webhook', 'reconcile'], required: true },
+  eventClass: { type: String, required: true },
+  /** Chỉ số nguyên lấy từ payload để định tuyến; dữ liệu nghiệp vụ luôn đọc lại qua API */
+  resource: { type: Mixed, required: true },
+  resourceKey: { type: String, required: true },
+  orderingKey: { type: String, required: true },
+  /** time của Nextcloud (giây) đổi sang Date */
+  eventTime: { type: Date, required: true },
+  /** uid người gây event theo payload: chỉ ghi nhận, không dùng để cấp quyền */
+  claimedActorUid: String,
+  payloadSha256: { type: String, required: true },
+  ruleIds: { type: [String], default: [] },
+  status: { type: String, enum: ['queued', 'running', 'done', 'skipped', 'failed'], required: true },
+  attempts: { type: Number, default: 0 },
+  nextAttemptAt: Date,
+  lockedUntil: Date,
+  receivedAt: { type: Date, required: true },
+  startedAt: Date,
+  finishedAt: Date,
+  /** Id tương quan gắn vào mọi dòng audit của event (requestId) */
+  correlationId: { type: String, required: true },
+  replayCount: { type: Number, default: 0 },
+  results: { type: [Mixed], default: [] },
+  lastError: String,
+});
+FlowEvent.index({ companyId: 1, dedupeKey: 1 }, { unique: true });
+FlowEvent.index({ companyId: 1, status: 1, eventTime: 1 });
+FlowEvent.index({ companyId: 1, orderingKey: 1, status: 1 });
+
+const FlowEffect = mk({
+  ruleId: { type: String, required: true },
+  /** Khoá nghiệp vụ, vd submission:5:10 — một hiệu ứng cho một tài nguyên dù event đến mấy lần */
+  effectKey: { type: String, required: true },
+  state: { type: String, enum: ['pending', 'done'], required: true },
+  output: { type: Mixed },
+  eventIds: { type: [OID], default: [] },
+});
+FlowEffect.index({ companyId: 1, ruleId: 1, effectKey: 1 }, { unique: true });
+
+const FlowCursor = mk({
+  ruleId: { type: String, required: true },
+  /** Lần đầu rule được nạp: đối soát chỉ bù tài nguyên tạo từ mốc này */
+  activatedAt: { type: Date, required: true },
+  lastReconcileAt: Date,
+  /** Chat15: lần đầu đối soát thư mục của rule Files (ảnh chụp fileid/ETag gốc) */
+  filesBaselineAt: Date,
+});
+FlowCursor.index({ companyId: 1, ruleId: 1 }, { unique: true });
+
+/** Chat15: ảnh chụp fileid → ETag của thư mục rule Files để đối soát thay đổi không có webhook */
+const FlowFileState = mk({
+  ruleId: { type: String, required: true },
+  fileId: { type: Number, required: true },
+  etag: { type: String, required: true },
+  seenAt: { type: Date, required: true },
+});
+FlowFileState.index({ companyId: 1, ruleId: 1, fileId: 1 }, { unique: true });
+
+// ── Drive cơ bản VCworkspace ──
+const WorkspaceSpace = mk({
+  kind: { type: String, enum: ['department', 'personal'], required: true },
+  name: { type: String, required: true },
+  rootStorageKey: { type: String, required: true },
+  // Khoá nhận diện không gian theo ID, không theo tên hiển thị (trùng tên ≠ cùng không gian)
+  ownerUserId: OID,
+  departmentId: OID,
+});
+WorkspaceSpace.index({ companyId: 1, ownerUserId: 1 }, { unique: true, partialFilterExpression: { kind: 'personal' } });
+WorkspaceSpace.index({ companyId: 1, departmentId: 1 }, { unique: true, partialFilterExpression: { kind: 'department' } });
+
+const WorkspaceSpaceMember = mk({
+  spaceId: { type: OID, required: true },
+  userId: { type: OID, required: true },
+  role: { type: String, enum: ['manager', 'reader'], required: true },
+});
+WorkspaceSpaceMember.index({ companyId: 1, spaceId: 1, userId: 1 }, { unique: true });
+
+const WorkspaceDriveItem = mk({
+  spaceId: { type: OID, required: true },
+  parentId: OID,
+  kind: { type: String, enum: ['folder', 'file'], required: true },
+  name: { type: String, required: true },
+  mimeType: String,
+  size: Number,
+  contentSha256: String,
+  storageKey: { type: String, required: true },
+  currentVersionId: OID,
+  versionNumber: Number,
+  trashedAt: Date,
+  trashedFromParentId: OID,
+  trashedRootId: OID,
+});
+WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1 }, { unique: true });
+
+const WorkspaceDriveVersion = mk({
+  fileId: { type: OID, required: true },
+  number: { type: Number, required: true },
+  storageKey: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  contentSha256: { type: String, required: true },
+  provenance: Mixed,
+});
+WorkspaceDriveVersion.index({ companyId: 1, fileId: 1, number: 1 }, { unique: true });
+
+const UploadAttempt = mk({
+  userId: { type: OID, required: true },
+  spaceId: { type: OID, required: true },
+  idempotencyKey: { type: String, required: true },
+  fingerprint: { type: String, required: true },
+  state: { type: String, enum: ['pending', 'done', 'failed'], required: true },
+  itemId: OID,
+  errorCode: String,
+});
+UploadAttempt.index({ companyId: 1, userId: 1, idempotencyKey: 1 }, { unique: true });
+
+const WorkspaceEditorSave = mk({
+  fileId: { type: OID, required: true },
+  editorKey: { type: String, required: true },
+  callbackFingerprint: { type: String, required: true },
+  status: { type: String, enum: ['saving', 'saved', 'failed'], required: true },
+  versionId: OID,
+  errorCode: String,
+});
+WorkspaceEditorSave.index({ companyId: 1, fileId: 1, callbackFingerprint: 1 }, { unique: true });
+
+const WorkspaceDriveShareLink = mk({
+  fileId: { type: OID, required: true },
+  versionId: { type: OID, required: true },
+  contentSha256: { type: String, required: true },
+  recipients: { type: [String], required: true },
+  idempotencyKey: { type: String, required: true },
+  fingerprint: { type: String, required: true },
+  token: { type: String, required: true },
+  tokenHash: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  revokedAt: Date,
+});
+WorkspaceDriveShareLink.index({ companyId: 1, tokenHash: 1 }, { unique: true });
+WorkspaceDriveShareLink.index({ companyId: 1, createdBy: 1, idempotencyKey: 1 }, { unique: true });
+WorkspaceDriveShareLink.index({ companyId: 1, expiresAt: 1 });
+
+// MIME/raw vẫn thuộc mail server. Mongo chỉ giữ mapping và metadata nghiệp vụ
+// (ACL, nhãn, chỉ mục tìm kiếm/lọc) để không biến API thành một mail engine thứ hai.
+const WorkspaceMailMessage = mk({
+  mailboxOwner: { type: String, required: true, lowercase: true },
+  engineOwner: { type: String, required: true, lowercase: true },
+  engineId: { type: String, required: true },
+  threadId: { type: String, required: true },
+  internetMessageId: { type: String, required: true },
+  inReplyTo: String,
+  references: { type: [String], default: [] },
+  from: { type: String, required: true },
+  to: { type: [String], required: true },
+  subject: { type: String, required: true },
+  sentAt: { type: Date, required: true },
+  folder: { type: String, required: true },
+  labels: { type: [String], default: [] },
+  searchText: { type: String, default: '' },
+  searchBody: { type: String, default: '' },
+  deliveryStatus: { type: String, enum: ['accepted', 'failed'], required: true },
+});
+WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, engineId: 1 }, { unique: true });
+WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, threadId: 1, sentAt: 1 });
+WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, folder: 1, sentAt: -1 });
+
+const WorkspaceMailDraft = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  to: { type: [String], default: [] }, subject: { type: String, default: '' },
+  text: { type: String, default: '' }, html: String,
+  inReplyTo: String, references: { type: [String], default: [] },
+  attachmentNames: { type: [String], default: [] },
+});
+WorkspaceMailDraft.index({ companyId: 1, ownerEmail: 1, _id: 1 });
+
+const WorkspaceMailSend = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  idempotencyKey: { type: String, required: true },
+  fingerprint: { type: String, required: true },
+  state: { type: String, enum: ['sending', 'reconciling', 'sent', 'failed'], required: true },
+  messageId: OID,
+  internetMessageId: String,
+  sentMailbox: String,
+  engineIds: Mixed,
+  deliveredAt: Date,
+  leaseToken: String,
+  leaseUntil: Date,
+  errorCode: String,
+});
+WorkspaceMailSend.index({ companyId: 1, ownerEmail: 1, idempotencyKey: 1 }, { unique: true });
+
+const WorkspaceMailLabel = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  name: { type: String, required: true },
+  color: String,
+});
+WorkspaceMailLabel.index({ companyId: 1, ownerEmail: 1, name: 1 }, { unique: true });
+
+const WorkspaceMailFilter = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  name: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
+  field: { type: String, enum: ['from', 'to', 'subject', 'body'], required: true },
+  operator: { type: String, enum: ['equals', 'contains'], required: true },
+  value: { type: String, required: true },
+  addLabels: { type: [String], default: [] },
+  moveToFolder: String,
+  stop: { type: Boolean, default: false },
+  publishStatus: { type: String, enum: ['pending', 'active'], default: 'active' },
+  revision: Number,
+});
+WorkspaceMailFilter.index({ companyId: 1, ownerEmail: 1, _id: 1 });
+
+// Journal/CAS này là khóa liên tiến trình và bằng chứng trạng thái engine.
+// Không dùng mutex trong RAM vì API có thể chạy nhiều process hoặc restart giữa chừng.
+const WorkspaceMailFilterState = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  revision: { type: Number, default: 0 },
+  appliedRevision: { type: Number, default: 0 },
+  status: { type: String, enum: ['idle', 'applying', 'applied', 'failed'], default: 'idle' },
+  leaseToken: String,
+  leaseUntil: Date,
+  desiredFilters: Mixed,
+  previousFilters: Mixed,
+  lastError: String,
+});
+WorkspaceMailFilterState.index({ companyId: 1, ownerEmail: 1 }, { unique: true });
+
+const WorkspaceMailAlias = mk({
+  ownerEmail: { type: String, required: true, lowercase: true },
+  address: { type: String, required: true, lowercase: true },
+  displayName: String,
+  active: { type: Boolean, default: true },
+});
+WorkspaceMailAlias.index({ companyId: 1, address: 1 }, { unique: true });
+
+const WorkspaceSharedMailbox = mk({
+  address: { type: String, required: true, lowercase: true },
+  name: { type: String, required: true },
+  members: [{ email: { type: String, required: true, lowercase: true }, roles: { type: [String], default: [] } }],
+});
+WorkspaceSharedMailbox.index({ companyId: 1, address: 1 }, { unique: true });
 
 // ── M02 ──
 const Block = mk({ code: { type: String, required: true }, name: { type: String, required: true }, directorId: OID });
@@ -365,12 +663,34 @@ export const MODEL_DEFS = {
   Company: { schema: Company, collection: 'companies' },
   User: { schema: User, collection: 'users' },
   Session: { schema: Session, collection: 'sessions' },
+  OidcIdentity: { schema: OidcIdentity, collection: 'oidc_identities' },
+  IdentityLifecycleOperation: { schema: IdentityLifecycleOperation, collection: 'identity_lifecycle_operations' },
+  IdentityLifecycleSubject: { schema: IdentityLifecycleSubject, collection: 'identity_lifecycle_subjects' },
   OAuthState: { schema: OAuthState, collection: 'oauth_states' },
   Counter: { schema: Counter, collection: 'counters' },
   Idempotency: { schema: Idempotency, collection: 'idempotency_keys' },
   AuditLog: { schema: AuditLog, collection: 'audit_logs' },
   Job: { schema: Job, collection: 'jobs' },
   Notification: { schema: Notification, collection: 'notifications' },
+  FlowEvent: { schema: FlowEvent, collection: 'flow_events' },
+  FlowEffect: { schema: FlowEffect, collection: 'flow_effects' },
+  FlowCursor: { schema: FlowCursor, collection: 'flow_cursors' },
+  FlowFileState: { schema: FlowFileState, collection: 'flow_file_states' },
+  WorkspaceSpace: { schema: WorkspaceSpace, collection: 'workspace_spaces' },
+  WorkspaceSpaceMember: { schema: WorkspaceSpaceMember, collection: 'workspace_space_members' },
+  WorkspaceDriveItem: { schema: WorkspaceDriveItem, collection: 'workspace_drive_items' },
+  WorkspaceDriveVersion: { schema: WorkspaceDriveVersion, collection: 'workspace_drive_versions' },
+  UploadAttempt: { schema: UploadAttempt, collection: 'upload_attempts' },
+  WorkspaceEditorSave: { schema: WorkspaceEditorSave, collection: 'workspace_editor_saves' },
+  WorkspaceDriveShareLink: { schema: WorkspaceDriveShareLink, collection: 'workspace_drive_share_links' },
+  WorkspaceMailMessage: { schema: WorkspaceMailMessage, collection: 'workspace_mail_messages' },
+  WorkspaceMailDraft: { schema: WorkspaceMailDraft, collection: 'workspace_mail_drafts' },
+  WorkspaceMailSend: { schema: WorkspaceMailSend, collection: 'workspace_mail_sends' },
+  WorkspaceMailLabel: { schema: WorkspaceMailLabel, collection: 'workspace_mail_labels' },
+  WorkspaceMailFilter: { schema: WorkspaceMailFilter, collection: 'workspace_mail_filters' },
+  WorkspaceMailFilterState: { schema: WorkspaceMailFilterState, collection: 'workspace_mail_filter_states' },
+  WorkspaceMailAlias: { schema: WorkspaceMailAlias, collection: 'workspace_mail_aliases' },
+  WorkspaceSharedMailbox: { schema: WorkspaceSharedMailbox, collection: 'workspace_shared_mailboxes' },
   Block: { schema: Block, collection: 'blocks' },
   Department: { schema: Department, collection: 'departments' },
   Division: { schema: Division, collection: 'divisions' },

@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-10-24T14:34:57.328Z",
+  "browser": "Google Chrome headless",
+  "subject": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+  "email": "manager@tenant-a.test",
+  "groups": [
+    "vcw-team-a"
+  ],
+  "pkceS256": true,
+  "stateAndNonce": true,
+  "sessionFixationRotated": true,
+  "replayDenied": true,
+  "localLogout": true,
+  "idpSessionSurvivedLocalLogout": true,
+  "idpApplicationLogoutReached": true,
+  "idpSsoSurvivedApplicationLogout": true,
+  "globalRevoke": {
+    "portalSessionsRevoked": 1,
+    "idpSessionsRevoked": 1,
+    "portalAfterStatus": 401,
+    "identityAndNextcloudRestored": true
+  },
+  "secretsIncluded": false
+}

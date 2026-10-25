@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-10-25T07:28:44.622Z",
+  "bindings": [
+    {
+      "username": "manager-a",
+      "authentikPk": 5,
+      "authentikUid": "f2d979e68e82949eb1ff74bdaf39f92236a9538fd0626d450d4ceb42e17d572d",
+      "nextcloudUserId": "732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622",
+      "email": "manager-a@team-a.test",
+      "groups": [
+        "vcw-team-a"
+      ]
+    },
+    {
+      "username": "member-a",
+      "authentikPk": 6,
+      "authentikUid": "6409ea3cb990888a16eb7fe40372419e623e474495f8db7d4fcb734cebb2d1bb",
+      "nextcloudUserId": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+      "email": "member-a@team-a.test",
+      "groups": [
+        "vcw-team-a"
+      ]
+    },
+    {
+      "username": "successor-a",
+      "authentikPk": 10,
+      "authentikUid": "db614028b99ff9efe299ed86f6584187a9c430cd8928bc7a44a46a31244019f0",
+      "nextcloudUserId": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "email": "successor-a@team-a.test",
+      "groups": [
+        "vcw-team-a"
+      ]
+    },
+    {
+      "username": "manager-b",
+      "authentikPk": 7,
+      "authentikUid": "32a6a3a7d3f0bf690ccd6b465df3c9861ca720ef550c0775a9cce07e32b2b23e",
+      "nextcloudUserId": "67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2",
+      "email": "manager-b@team-b.test",
+      "groups": [
+        "vcw-team-b"
+      ]
+    },
+    {
+      "username": "member-b",
+      "authentikPk": 8,
+      "authentikUid": "f3d9993153aa55db2616ce0ea49b94712d812560a9b709dac870e94d48776a34",
+      "nextcloudUserId": "f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5",
+      "email": "member-b@team-b.test",
+      "groups": [
+        "vcw-team-b"
+      ]
+    },
+    {
+      "username": "outsider",
+      "authentikPk": 9,
+      "authentikUid": "f524880f5a8e56cb5e05d1e40b0dbfdcea81e4946a1d46e5b253b8a4faf25181",
+      "nextcloudUserId": "d165c8b876f880629e77212f98d0fe0e3e478764330a0adc3910e693fd164f80",
+      "email": "manager-a@outsider.test",
+      "groups": [
+        "vcw-outsiders"
+      ]
+    }
+  ],
+  "secretsIncluded": false
+}

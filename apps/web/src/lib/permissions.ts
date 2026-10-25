@@ -77,6 +77,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/tai-lieu', label: 'Tài liệu', group: 'chinh' },
   { href: '/chia-se', label: 'Chia sẻ ra ngoài', roles: ROLE_RULES.viewShareRegister, group: 'chinh' },
   { href: '/thu-muc', label: 'Cây thư mục', group: 'danh-muc' },
+  { href: '/bo-nho', label: 'Bộ nhớ VCworkspace', group: 'chinh' },
+  { href: '/email', label: 'Email', group: 'chinh' },
   { href: '/danh-muc-ho-so', label: 'Danh mục hồ sơ', group: 'danh-muc' },
   { href: '/bang-ma', label: 'Bảng mã', group: 'danh-muc' },
   { href: '/danh-muc', label: 'Khối, phòng, division', group: 'danh-muc' },

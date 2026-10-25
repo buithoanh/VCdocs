@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-10-25T08:52:50.385Z",
+  "marker": "flow14-c-1792918364882",
+  "fileIds": {
+    "plain": 649,
+    "secret": 650,
+    "private": 651
+  },
+  "journal": {
+    "plain": [
+      {
+        "eventClass": "NodeCreatedEvent",
+        "status": "done",
+        "outcome": "tag_verified",
+        "tags": [
+          "flow14-hoso"
+        ],
+        "attempts": 1
+      },
+      {
+        "eventClass": "NodeWrittenEvent",
+        "status": "done",
+        "outcome": "tag_verified",
+        "tags": [
+          "flow14-hoso"
+        ],
+        "attempts": 1
+      }
+    ],
+    "secret": [
+      {
+        "eventClass": "NodeCreatedEvent",
+        "status": "done",
+        "outcome": "tag_verified",
+        "tags": [
+          "flow14-hoso",
+          "flow14-mat"
+        ],
+        "attempts": 1
+      },
+      {
+        "eventClass": "NodeWrittenEvent",
+        "status": "done",
+        "outcome": "tag_verified",
+        "tags": [
+          "flow14-hoso",
+          "flow14-mat"
+        ],
+        "attempts": 1
+      }
+    ],
+    "private": [
+      {
+        "eventClass": "NodeCreatedEvent",
+        "status": "skipped",
+        "outcome": "not_visible_to_runner",
+        "tags": null,
+        "attempts": 1
+      },
+      {
+        "eventClass": "NodeWrittenEvent",
+        "status": "skipped",
+        "outcome": "not_visible_to_runner",
+        "tags": null,
+        "attempts": 1
+      }
+    ]
+  },
+  "latencyDoneAfterUploadStartMs": {
+    "n": 6,
+    "min": 886,
+    "p50": 990,
+    "p95": 1089,
+    "max": 1089,
+    "mean": 1007
+  },
+  "access": {
+    "ownerPlain": 200,
+    "ownerSecret": 200,
+    "memberPlain": 200,
+    "memberSecret": 404,
+    "manager-b": 404,
+    "outsider": 404,
+    "outsiderUploadIntoOwnerFolder": 404
+  },
+  "note": "Webhook file lọc theo user.uid ∈ Team A (PHPMongoQuery không có $regex); receiver lọc thư mục bằng readback",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

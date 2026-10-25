@@ -1,0 +1,106 @@
+{
+  "correlationId": "7d6c3662-3db4-4fd1-a130-48c27390de74",
+  "count": 11,
+  "records": [
+    {
+      "time": "2026-10-24T14:34:41+00:00",
+      "user": "--",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87/Team%20A/chat12-acl.txt",
+      "message": "Login attempt: \"6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:41+00:00",
+      "user": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87/Team%20A/chat12-acl.txt",
+      "message": "Login successful: \"6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:41+00:00",
+      "user": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87/Team%20A/chat12-acl.txt",
+      "message": "Cache entry inserted for fileid \"334\", path \"versions/191/1792851297\" on storageid \"3\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87/Team%20A/chat12-acl.txt",
+      "message": "File with id \"191\" written to: \"/6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87/files/Team A/chat12-acl.txt\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "--",
+      "app": "admin_audit",
+      "method": "GET",
+      "url": "/remote.php/dav/files/85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45/Team%20A/chat12-acl.txt",
+      "message": "Login attempt: \"85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+      "app": "admin_audit",
+      "method": "GET",
+      "url": "/remote.php/dav/files/85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45/Team%20A/chat12-acl.txt",
+      "message": "Login successful: \"85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+      "app": "admin_audit",
+      "method": "GET",
+      "url": "/remote.php/dav/files/85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45/Team%20A/chat12-acl.txt",
+      "message": "File with id \"191\" accessed: \"/85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45/files/Team A/chat12-acl.txt\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "--",
+      "app": "admin_audit",
+      "method": "GET",
+      "url": "/remote.php/dav/files/2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a/Team%20A/chat12-acl.txt",
+      "message": "Login attempt: \"2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+      "app": "admin_audit",
+      "method": "GET",
+      "url": "/remote.php/dav/files/2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a/Team%20A/chat12-acl.txt",
+      "message": "Login successful: \"2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "--",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a/Team%20A/outsider.txt",
+      "message": "Login attempt: \"2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    },
+    {
+      "time": "2026-10-24T14:34:42+00:00",
+      "user": "2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a",
+      "app": "admin_audit",
+      "method": "PUT",
+      "url": "/remote.php/dav/files/2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a/Team%20A/outsider.txt",
+      "message": "Login successful: \"2791982bfc4b9c3a67d35bc752769cb3746f5621ce942a61336d943f3fe7fe3a\"",
+      "clientReqId": "7d6c3662-3db4-4fd1-a130-48c27390de74"
+    }
+  ],
+  "secretsIncluded": false
+}

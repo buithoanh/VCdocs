@@ -39,6 +39,17 @@ export class AuthGuard implements CanActivate {
     const sid = (req as any).cookies?.[SESSION_COOKIE];
     const session = sid ? await this.sessions.find(sid) : undefined;
     if (session) {
+      if (session.authProvider === 'oidc') {
+        const identity = session.identityId
+          ? await this.db.m.OidcIdentity.findOne({ _id: session.identityId, companyId: session.companyId }).lean<any>()
+          : undefined;
+        const maxAgeMs = this.cfg.oidc.projectionMaxAgeSeconds * 1000;
+        if (!identity || identity.active === false || identity.projectionPendingRevision != null || Date.now() - identity.lastSeenAt.getTime() > maxAgeMs) {
+          await this.sessions.destroy(sid!);
+          if (!isPublic) throw Errors.unauthenticated();
+          return true;
+        }
+      }
       const user = await this.db.m.User.findOne({ _id: session.userId, companyId: session.companyId }).lean<any>();
       if (user && user.status !== 'left' && !user.isSuspended) {
         ctx.companyId = String(user.companyId);

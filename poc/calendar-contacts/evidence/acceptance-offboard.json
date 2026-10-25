@@ -1,0 +1,176 @@
+{
+  "generatedAt": "2026-10-25T10:46:50.449Z",
+  "run": "mvnpd2z0",
+  "leaver": "member-b",
+  "successor": "manager-b",
+  "export": {
+    "calendarViaOcc": {
+      "events": 2,
+      "containsRunEvents": true
+    },
+    "addressBookViaLeaverToken": {
+      "status": 200,
+      "cards": 8
+    }
+  },
+  "transfer": {
+    "moveCalendar": "      <67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2> as            <cal16-member-b-3>",
+    "calendarUriAtSuccessor": "cal16-member-b-3",
+    "addressBookImportStatuses": [
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201
+    ]
+  },
+  "revoke": {
+    "device1RevokedAfterMs": 9309,
+    "timeline": [
+      {
+        "ms": 208,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 779,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 1349,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 1916,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 2479,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 3045,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 3615,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 4185,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 4754,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 5322,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 5890,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 6459,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 7032,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 7600,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 8173,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 8740,
+        "device1": 207,
+        "device2": 207
+      },
+      {
+        "ms": 9309,
+        "device1": 401,
+        "device2": 207
+      }
+    ],
+    "afterDisable": [
+      {
+        "ms": 236,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      },
+      {
+        "ms": 812,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      },
+      {
+        "ms": 1388,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      },
+      {
+        "ms": 1961,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      },
+      {
+        "ms": 2536,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      },
+      {
+        "ms": 3111,
+        "device2Propfind": 503,
+        "device2AddressBookHome": 503
+      }
+    ],
+    "device2AfterAllTokensDeleted": {
+      "final": 401,
+      "reached401AfterMs": 8780,
+      "statuses": [
+        503,
+        401
+      ]
+    }
+  },
+  "readback": {
+    "successorOwnsCalendar": true,
+    "successorEvents": 2,
+    "calendarStillSharedWithTeamB": true,
+    "organizerOfMovedEvent": "ORGANIZER;CN=Member B:mailto:member-b@team-b.test",
+    "managerBAttendeeCopyOrganizer": "ORGANIZER;CN=Member B:mailto:member-b@team-b.test",
+    "importedCards": 8,
+    "oldPathAfterMove": 404,
+    "outsiderOnMovedCalendar": 404
+  },
+  "personaRestored": {
+    "enabled": true,
+    "newTokenMinted": true,
+    "note": "Chỉ khôi phục persona thử để chạy lại PoC; offboard thật dừng ở bước 5."
+  },
+  "secretsIncluded": false
+}

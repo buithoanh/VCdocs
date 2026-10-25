@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-10-25T09:31:17.040Z",
+  "marker": "rep15-1792920672984",
+  "original": {
+    "case_sensitive": true,
+    "encoding_compatibility": false
+  },
+  "caseOnlyMove": {
+    "homeStorage": {
+      "put": 201,
+      "move": 201,
+      "sameFileId": true,
+      "getNewName": 200,
+      "getOldName": 404,
+      "contentKept": true,
+      "onNas": "n/a (home storage)"
+    },
+    "smbCaseSensitiveTrue": {
+      "put": 201,
+      "move": 500,
+      "sameFileId": false,
+      "getNewName": 404,
+      "getOldName": 404,
+      "contentKept": false,
+      "onNas": []
+    },
+    "smbCaseSensitiveFalse": {
+      "put": 201,
+      "move": 500,
+      "sameFileId": false,
+      "getNewName": 404,
+      "getOldName": 200,
+      "contentKept": false,
+      "onNas": [
+        "csfalse-rep15-1792920672984.txt"
+      ]
+    }
+  },
+  "nfd": {
+    "compatOff": {
+      "listed": [],
+      "getByNfc": 404
+    },
+    "compatOn": {
+      "listed": [
+        "Tài liệu rep15-1792920672984.txt"
+      ],
+      "listedForm": [
+        "NFC"
+      ],
+      "getByNfc": 200,
+      "visibleMs": 64
+    },
+    "nasStillNfd": [
+      "NFD"
+    ]
+  },
+  "findings": {
+    "caseOnlyMoveHomeOk": true,
+    "caseOnlyMoveSmbDefaultLosesFile": true,
+    "caseOnlyMoveSmbCaseInsensitiveOk": false,
+    "nfdHiddenWithoutCompat": true,
+    "nfdVisibleWithCompat": true
+  },
+  "result": "LOCAL (repro)",
+  "secretsIncluded": false
+}

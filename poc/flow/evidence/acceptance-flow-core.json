@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-10-25T08:26:23.153Z",
+  "marker": "flow14-core-1792916781890",
+  "rules": [
+    "flow14-tag-hoso",
+    "flow14-tag-mat",
+    "flow14-deny-mat"
+  ],
+  "upload": {
+    "plain": 201,
+    "secret": 201
+  },
+  "fileIds": {
+    "plain": 644,
+    "secret": 645
+  },
+  "tags": {
+    "plain": [
+      "flow14-hoso"
+    ],
+    "secret": [
+      "flow14-hoso",
+      "flow14-mat"
+    ]
+  },
+  "access": {
+    "ownerReadsPlain": 200,
+    "ownerReadsSecret": 200,
+    "memberReadsPlain": 200,
+    "memberReadsSecret": 404,
+    "memberOverwritesSecret": 403,
+    "memberDeletesSecret": 403
+  },
+  "deny": {
+    "manager-b": {
+      "readPlainViaOwnerPath": 404,
+      "readPlainOwnPath": 404,
+      "tagsOfPlain": 404
+    },
+    "outsider": {
+      "readPlainViaOwnerPath": 404,
+      "readPlainOwnPath": 404,
+      "tagsOfPlain": 404
+    }
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

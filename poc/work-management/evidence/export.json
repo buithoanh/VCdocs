@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-10-25T08:02:54.036Z",
+  "container": "vcworkspace-work13-nextcloud-1",
+  "location": "poc/work-management/backup/ (git-ignored, 0600)",
+  "exports": {
+    "deck-export.json": {
+      "bytes": 36441,
+      "sha256": "023ce8bdb724914e16142d47e9ac3bce040e0da4ccc51375da6ffd255949c646",
+      "contains": 2,
+      "missing": []
+    },
+    "note.md": {
+      "bytes": 264,
+      "sha256": "11107916dcd330b8195bcc492b15630af41b7cf25b69cc70580c51d8b75ab6aa",
+      "contains": 2,
+      "missing": []
+    },
+    "forms-submissions.csv": {
+      "bytes": 1138,
+      "sha256": "93e095c00ebf90256b60e14ea8b38d230f13036d8e30c3122ed106c0096dc12c",
+      "contains": 2,
+      "missing": []
+    },
+    "tables-export.json": {
+      "bytes": 5720,
+      "sha256": "8a5d7f46f97eefe20f65a59ddd25e5e5f42621d984d6351c4fcd57407e0173bf",
+      "contains": 2,
+      "missing": []
+    },
+    "collective.zip": {
+      "bytes": 2642,
+      "sha256": "01e0729d13466e12de4a002de49e1d5131b3905ea7da50096550eeb873f1e4af",
+      "contains": 0,
+      "missing": [],
+      "entries": [
+        "Team A wiki work13-wiki-1792912839221/.templates/Readme.md",
+        "Team A wiki work13-wiki-1792912839221/Readme.md",
+        "Team A wiki work13-wiki-1792912839221/Runbook work13-wiki-1792912839221.md",
+        "Team A wiki work13-wiki-1792912839221/.attachments.525/",
+        "Team A wiki work13-wiki-1792912839221/.attachments.525/work13-wiki-1792912839221.txt"
+      ]
+    }
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

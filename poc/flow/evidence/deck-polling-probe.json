@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-10-25T08:50:44.283Z",
+  "marker": "flow14-deck-1792918224624",
+  "boardId": 4,
+  "webhookRegistration": {
+    "status": 400,
+    "message": "OCA\\Deck\\Event\\CardCreatedEvent is not an event class compatible with webhooks"
+  },
+  "pollIntervalMs": 1000,
+  "results": [
+    {
+      "cardId": 78,
+      "detectCreateViaStacksMs": 198,
+      "detectEditViaStacksMs": 359,
+      "detectCreateViaActivityMs": 241,
+      "activityType": "deck",
+      "activityByMember": true
+    },
+    {
+      "cardId": 79,
+      "detectCreateViaStacksMs": 1053,
+      "detectEditViaStacksMs": 972,
+      "detectCreateViaActivityMs": 97,
+      "activityType": "deck",
+      "activityByMember": true
+    },
+    {
+      "cardId": 80,
+      "detectCreateViaStacksMs": 393,
+      "detectEditViaStacksMs": 461,
+      "detectCreateViaActivityMs": 444,
+      "activityType": "deck",
+      "activityByMember": true
+    },
+    {
+      "cardId": 81,
+      "detectCreateViaStacksMs": 252,
+      "detectEditViaStacksMs": 205,
+      "detectCreateViaActivityMs": 298,
+      "activityType": "deck",
+      "activityByMember": true
+    },
+    {
+      "cardId": 82,
+      "detectCreateViaStacksMs": 731,
+      "detectEditViaStacksMs": 710,
+      "detectCreateViaActivityMs": 777,
+      "activityType": "deck",
+      "activityByMember": true
+    }
+  ],
+  "latency": {
+    "createViaStacksMs": {
+      "n": 5,
+      "min": 198,
+      "p50": 393,
+      "p95": 1053,
+      "max": 1053,
+      "mean": 525
+    },
+    "editViaStacksMs": {
+      "n": 5,
+      "min": 205,
+      "p50": 461,
+      "p95": 972,
+      "max": 972,
+      "mean": 541
+    },
+    "createViaActivityMs": {
+      "n": 5,
+      "min": 97,
+      "p50": 298,
+      "p95": 777,
+      "max": 777,
+      "mean": 371
+    }
+  },
+  "cost": {
+    "stacks": {
+      "requests": 19,
+      "bytes": 18472,
+      "deltaItems": 24,
+      "uniqueChanges": 10
+    },
+    "activity": {
+      "requests": 19,
+      "bytes": 14122
+    }
+  },
+  "deny": {
+    "outsiderPollStatus": 403,
+    "outsiderActivitySeesMarker": false
+  },
+  "conclusion": "Deck không phát event webhook; polling bằng quyền chủ board phát hiện được tạo/sửa thẻ với độ trễ ≈ nhịp poll, đổi lại request liên tục (cả khi không có thay đổi). Đề xuất chat14: Deck chỉ làm ĐÍCH; nếu cần nguồn thì poller If-Modified-Since + checkpoint + khử trùng (cardId, lastModified), không viết app Nextcloud riêng.",
+  "secretsIncluded": false
+}

@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-10-25T10:54:36.420Z",
+  "source": "https://apps.nextcloud.com/api/v1/platform/33.0.10/apps.json",
+  "platform": "33.0.10",
+  "checkedAt": "2026-10-25",
+  "apps": [
+    {
+      "id": "spreed",
+      "listed": true,
+      "stableVersion": "23.0.12",
+      "platformSpec": ">=33 <=33",
+      "phpSpec": "*",
+      "released": "2026-10-15",
+      "download": "https://github.com/nextcloud-releases/spreed/releases/download/v23.0.12/spreed-v23.0.12.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true,
+      "otherStableForPlatform": [
+        "23.0.11",
+        "23.0.10",
+        "23.0.9"
+      ],
+      "roadmapCandidate": "23.0.11 (chat11)"
+    }
+  ],
+  "secretsIncluded": false
+}

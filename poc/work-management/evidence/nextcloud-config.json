@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-10-25T07:49:33.402Z",
+  "nextcloud": "33.0.10",
+  "apps": {
+    "user_oidc": "8.11.0",
+    "deck": "1.17.8",
+    "notes": "6.1.0",
+    "forms": "5.4.1",
+    "tables": "2.3.2",
+    "collectives": "4.7.1",
+    "admin_audit": "1.23.0",
+    "circles": "33.0.0",
+    "text": "7.0.1",
+    "comments": "1.23.0",
+    "activity": "6.0.0",
+    "webhook_listeners": "1.5.0"
+  },
+  "pinnedFromPreflight": {
+    "user_oidc": "8.11.0",
+    "deck": "1.17.8",
+    "notes": "6.1.0",
+    "forms": "5.4.1",
+    "tables": "2.3.2",
+    "collectives": "4.7.1"
+  },
+  "integrity": {
+    "user_oidc": "PASS",
+    "deck": "PASS",
+    "notes": "PASS",
+    "forms": "PASS",
+    "tables": "PASS",
+    "collectives": "PASS"
+  },
+  "oidcProviderId": 1,
+  "federatedGroups": {
+    "vcw-team-a": "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+    "vcw-team-b": "3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+    "vcw-outsiders": "1711d9beb2ebb106567e858205df4e2630fd27a73f0c399bb1d67fe6f30f0f44"
+  },
+  "sharing": {
+    "onlyShareWithGroupMembers": true,
+    "publicLinks": false
+  },
+  "localOnlyExceptions": [
+    "user_oidc.allow_insecure_http",
+    "allow_local_remote_servers"
+  ],
+  "secretsIncluded": false
+}

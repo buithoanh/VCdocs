@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-10-25T11:56:07.393Z",
+  "nextcloudNetworks": [
+    "vcworkspace-work13_work13"
+  ],
+  "work13NetworkInternal": "true",
+  "relayHostPorts": [
+    "18130/tcp -> 127.0.0.1:18130"
+  ],
+  "egressProbe1111": "blocked (exit 1)",
+  "egressProbeStunNextcloud": "blocked (exit 1)",
+  "hasInternetConnection": "false",
+  "signalingSettingsForClients": {
+    "stunservers": [],
+    "turnservers": 0,
+    "server": "",
+    "signalingMode": "internal"
+  },
+  "restoreStackRunning": 0,
+  "secretsIncluded": false
+}

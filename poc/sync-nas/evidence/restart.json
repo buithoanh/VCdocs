@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-10-25T09:53:13.821Z",
+  "containers": [
+    "vcworkspace-sync15-nas15-1",
+    "vcworkspace-sync15-smb-client-1",
+    "vcworkspace-sync15-files-notify-1",
+    "vcworkspace-work13-nextcloud-1"
+  ],
+  "before": {
+    "vcworkspace-sync15-nas15-1": "2026-10-25T09:17:40.624786427Z running",
+    "vcworkspace-sync15-smb-client-1": "2026-10-25T09:17:40.564978302Z running",
+    "vcworkspace-sync15-files-notify-1": "2026-10-25T09:51:53.261124919Z running",
+    "vcworkspace-work13-nextcloud-1": "2026-10-25T09:18:03.063035715Z running"
+  },
+  "after": {
+    "vcworkspace-sync15-nas15-1": "2026-10-25T09:53:04.071855799Z running",
+    "vcworkspace-sync15-smb-client-1": "2026-10-25T09:53:07.248267508Z running",
+    "vcworkspace-sync15-files-notify-1": "2026-10-25T09:53:10.396491385Z running",
+    "vcworkspace-work13-nextcloud-1": "2026-10-25T09:53:11.594339219Z running"
+  },
+  "readyAfterMs": 1491,
+  "totalMs": 9897,
+  "mountsVerify": {
+    "1": "- status: ok",
+    "2": "- status: ok"
+  },
+  "nasChangeVisibleAfterRestartMs": 101,
+  "davPathChecked": "/remote.php/dav/files/<member-a uid>/NAS-TeamA",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

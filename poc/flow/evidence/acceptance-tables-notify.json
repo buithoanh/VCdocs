@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-10-25T08:44:56.545Z",
+  "marker": "flow14-b-1792917881569",
+  "samples": [
+    {
+      "rowId": 30,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 57,
+      "doneAfterActionStartMs": 386,
+      "receivedAfterActionStartMs": 220,
+      "processingMs": 166
+    },
+    {
+      "rowId": 31,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 58,
+      "doneAfterActionStartMs": 1022,
+      "receivedAfterActionStartMs": 862,
+      "processingMs": 160
+    },
+    {
+      "rowId": 32,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 47,
+      "doneAfterActionStartMs": 1109,
+      "receivedAfterActionStartMs": 946,
+      "processingMs": 163
+    },
+    {
+      "rowId": 33,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 46,
+      "doneAfterActionStartMs": 1082,
+      "receivedAfterActionStartMs": 927,
+      "processingMs": 155
+    },
+    {
+      "rowId": 34,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 50,
+      "doneAfterActionStartMs": 1079,
+      "receivedAfterActionStartMs": 923,
+      "processingMs": 156
+    },
+    {
+      "rowId": 35,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 53,
+      "doneAfterActionStartMs": 1074,
+      "receivedAfterActionStartMs": 912,
+      "processingMs": 162
+    },
+    {
+      "rowId": 36,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 53,
+      "doneAfterActionStartMs": 1068,
+      "receivedAfterActionStartMs": 905,
+      "processingMs": 163
+    },
+    {
+      "rowId": 37,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 52,
+      "doneAfterActionStartMs": 1069,
+      "receivedAfterActionStartMs": 908,
+      "processingMs": 161
+    },
+    {
+      "rowId": 38,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 53,
+      "doneAfterActionStartMs": 1062,
+      "receivedAfterActionStartMs": 900,
+      "processingMs": 162
+    },
+    {
+      "rowId": 39,
+      "status": "done",
+      "outcome": "notified",
+      "delivered": 2,
+      "denied": [
+        "no_table_read",
+        "no_table_read"
+      ],
+      "addRowMs": 54,
+      "doneAfterActionStartMs": 1030,
+      "receivedAfterActionStartMs": 871,
+      "processingMs": 159
+    }
+  ],
+  "latency": {
+    "doneAfterActionStartMs": {
+      "n": 10,
+      "min": 386,
+      "p50": 1068,
+      "p95": 1109,
+      "max": 1109,
+      "mean": 998
+    },
+    "receivedAfterActionStartMs": {
+      "n": 10,
+      "min": 220,
+      "p50": 905,
+      "p95": 946,
+      "max": 946,
+      "mean": 837
+    },
+    "processingMs": {
+      "n": 10,
+      "min": 155,
+      "p50": 161,
+      "p95": 166,
+      "max": 166,
+      "mean": 161
+    }
+  },
+  "notifications": {
+    "successor-a": 10,
+    "member-a": 10,
+    "manager-b": 0,
+    "outsider": 0
+  },
+  "notificationShape": {
+    "type": "flow.tables.row_added",
+    "title": "Dòng mới trong bảng \"Flow14 Sự cố\"",
+    "hasBody": true,
+    "link": "/flow/nextcloud/tables/5/rows/39"
+  },
+  "deny": {
+    "manager-b": {
+      "addRow": 404,
+      "readRow": 403
+    },
+    "outsider": {
+      "addRow": 404,
+      "readRow": 403
+    }
+  },
+  "recentJournalRows": 10,
+  "email": {
+    "fakeOutboxBefore": 0,
+    "fakeOutboxAfter": 0,
+    "sent": 0
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

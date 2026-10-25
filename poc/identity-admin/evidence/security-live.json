@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-10-24T15:13:30.477Z",
+  "unauthorizedAdminRevokeStatus": 403,
+  "authorizationStatus": 302,
+  "exactRedirectUri": "http://portal.localtest.me:18122/callback",
+  "pkceMethod": "S256",
+  "statePresent": true,
+  "noncePresent": true,
+  "secretsIncluded": false
+}

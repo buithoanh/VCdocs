@@ -1,0 +1,106 @@
+{
+  "generatedAt": "2026-10-25T11:54:03.756Z",
+  "run": "mvnrrypf",
+  "capabilities": {
+    "version": "23.0.12",
+    "forcePasswords": true,
+    "externalSignalingConfigured": false,
+    "recording": false,
+    "sipEnabled": false,
+    "federation": false,
+    "canCreate": true
+  },
+  "createPublicWithoutPassword": {
+    "status": 400,
+    "error": "password"
+  },
+  "makePublicWithoutPassword": {
+    "status": 400,
+    "error": "password"
+  },
+  "makePublicWeakPassword": {
+    "status": 400,
+    "error": "password"
+  },
+  "makePublicWithPassword": {
+    "status": 200,
+    "error": null
+  },
+  "memberMakesPublic": {
+    "status": 403,
+    "error": null
+  },
+  "linkSharingPolicy": "core shareapi_allow_links=no (chat13) is NOT consulted by Talk: public conversation still created",
+  "guestJoinNoPassword": {
+    "status": 403,
+    "error": "password"
+  },
+  "guestReadWithoutJoin": 404,
+  "guestWrongPasswordStatuses": [
+    403,
+    403,
+    403,
+    403,
+    403,
+    403
+  ],
+  "guestJoinCorrectPassword": {
+    "status": 200,
+    "actorType": "guests",
+    "participantType": 4
+  },
+  "guestReadsChat": {
+    "status": 200,
+    "seesMessage": true
+  },
+  "guestPosts": 201,
+  "guestParticipantList": 403,
+  "guestSearchUsers": 401,
+  "guestSharedFiles": 200,
+  "otherTeamSelfJoin": {
+    "withoutPassword": {
+      "status": 403,
+      "error": "password"
+    },
+    "withPassword": {
+      "status": 200,
+      "error": null
+    },
+    "participantType": 5
+  },
+  "lobbyOn": 200,
+  "lobby": {
+    "guestJoinRoom": 200,
+    "guestReadChat": 412,
+    "guestPost": 412,
+    "guestJoinCall": 412,
+    "guestParticipants": 412,
+    "memberReadChat": 412,
+    "memberJoinCall": 412,
+    "moderatorReadChat": 200
+  },
+  "lobbyOff": 200,
+  "afterLobbyOff": {
+    "guestReadChat": 200
+  },
+  "afterPasswordChange": {
+    "existingGuestRead": 200,
+    "newGuestOldPassword": 403
+  },
+  "emailGuestMakesRoomPublic": {
+    "addStatus": 200,
+    "typeAfter": 3,
+    "hasPasswordAfter": false,
+    "anyoneWithLinkJoinsWithoutPassword": 200,
+    "anyoneWithLinkReadsChat": {
+      "status": 200,
+      "seesInternalMessage": true
+    }
+  },
+  "calendarPublicRoomWithoutPassword": {
+    "status": 400,
+    "error": "password"
+  },
+  "cleanedUp": 2,
+  "secretsIncluded": false
+}

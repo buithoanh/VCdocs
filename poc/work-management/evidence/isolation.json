@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-10-25T08:02:24.258Z",
+  "appNetworks": {
+    "vcworkspace-work13-nextcloud-1": [
+      "vcworkspace-work13_work13"
+    ],
+    "vcworkspace-work13-authentik-server-1": [
+      "vcworkspace-work13_work13"
+    ],
+    "vcworkspace-work13-authentik-worker-1": [
+      "vcworkspace-work13_work13"
+    ],
+    "vcworkspace-work13-hook-sink-1": [
+      "vcworkspace-work13_work13"
+    ]
+  },
+  "internalNetwork": true,
+  "relayBindings": {
+    "vcworkspace-work13-nextcloud-loopback-relay-1": [
+      "127.0.0.1:18130"
+    ],
+    "vcworkspace-work13-authentik-loopback-relay-1": [
+      "127.0.0.1:18131"
+    ]
+  },
+  "relaysWithoutSecretOrBindMounts": true,
+  "egressProbe": {
+    "target": "https://apps.nextcloud.com/",
+    "exitCode": 6
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

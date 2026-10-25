@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-10-25T10:40:30.817Z",
+  "containers": [
+    "vcworkspace-work13-redis-1",
+    "vcworkspace-work13-nextcloud-1",
+    "vcworkspace-cal16-mail16-1"
+  ],
+  "readyAfterMs": {
+    "nextcloud": 2785,
+    "stalwart": 6295
+  },
+  "mailboxCountsBefore": {
+    "partner@partner.test": 13,
+    "manager-b@team-b.test": 16,
+    "member-a@team-a.test": 15
+  },
+  "mailboxCountsAfter": {
+    "partner@partner.test": 13,
+    "manager-b@team-b.test": 16,
+    "member-a@team-a.test": 15
+  },
+  "mailPersisted": true,
+  "secretsIncluded": false
+}

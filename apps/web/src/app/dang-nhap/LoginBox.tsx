@@ -10,6 +10,8 @@ const ERRORS: Record<string, string> = {
   expired: 'Phiên đăng nhập đã hết, vui lòng đăng nhập lại.',
   state: 'Lượt đăng nhập đã quá hạn hoặc bị gián đoạn, vui lòng bấm đăng nhập lại.',
   setup: 'Hệ thống chưa được khởi tạo. Vui lòng liên hệ Quản trị hệ thống.',
+  provider: 'Dịch vụ đăng nhập đang không sẵn sàng hoặc cấu hình không hợp lệ.',
+  identity: 'Danh tính chưa được liên kết an toàn. Vui lòng liên hệ Quản trị hệ thống.',
 };
 
 const IS_MOCK = process.env.NEXT_PUBLIC_MOCK === '1';
@@ -18,7 +20,8 @@ export function LoginBox() {
   const params = useSearchParams();
   const returnTo = safeReturnTo(params.get('returnTo'));
   const err = params.get('loi');
-  const href = `${API_BASE}/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
+  const provider = process.env.NEXT_PUBLIC_AUTH_PROVIDER === 'oidc' ? 'oidc' : 'google';
+  const href = `${API_BASE}/auth/${provider}?returnTo=${encodeURIComponent(returnTo)}`;
 
   function mockLogin() {
     // Chỉ dùng với máy chủ giả: Prism cần cookie vcdocs_sid bất kỳ.
@@ -36,9 +39,9 @@ export function LoginBox() {
         </div>
       )}
       <a className="btn btn-primary btn-block" href={href}>
-        Đăng nhập bằng tài khoản Google công ty
+        Đăng nhập bằng tài khoản công ty
       </a>
-      <p className="hint">Dùng tài khoản @vcprosperous.com. Không cần mật khẩu riêng.</p>
+      <p className="hint">Dùng danh tính công ty đã được quản trị cấp quyền.</p>
       {IS_MOCK && (
         <button className="btn btn-ghost btn-block" onClick={mockLogin}>
           Vào bằng phiên thử (máy chủ giả)

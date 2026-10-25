@@ -1,0 +1,249 @@
+{
+  "generatedAt": "2026-10-25T08:52:44.397Z",
+  "marker": "flow14-a-1792918340892",
+  "samples": [
+    {
+      "submissionId": 35,
+      "submitMs": 57,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 86,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 912,
+      "doneAfterSubmitStartMs": 1224,
+      "doneAfterSubmitResponseMs": 1167,
+      "processingMs": 312
+    },
+    {
+      "submissionId": 36,
+      "submitMs": 53,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 88,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 752,
+      "doneAfterSubmitStartMs": 1038,
+      "doneAfterSubmitResponseMs": 985,
+      "processingMs": 286
+    },
+    {
+      "submissionId": 37,
+      "submitMs": 53,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 90,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 705,
+      "doneAfterSubmitStartMs": 994,
+      "doneAfterSubmitResponseMs": 941,
+      "processingMs": 289
+    },
+    {
+      "submissionId": 38,
+      "submitMs": 55,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 92,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 802,
+      "doneAfterSubmitStartMs": 1084,
+      "doneAfterSubmitResponseMs": 1029,
+      "processingMs": 282
+    },
+    {
+      "submissionId": 39,
+      "submitMs": 54,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 94,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 774,
+      "doneAfterSubmitStartMs": 1058,
+      "doneAfterSubmitResponseMs": 1004,
+      "processingMs": 284
+    },
+    {
+      "submissionId": 40,
+      "submitMs": 52,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 96,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 758,
+      "doneAfterSubmitStartMs": 1046,
+      "doneAfterSubmitResponseMs": 994,
+      "processingMs": 288
+    },
+    {
+      "submissionId": 41,
+      "submitMs": 52,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 98,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 716,
+      "doneAfterSubmitStartMs": 1009,
+      "doneAfterSubmitResponseMs": 957,
+      "processingMs": 293
+    },
+    {
+      "submissionId": 42,
+      "submitMs": 51,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 100,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 791,
+      "doneAfterSubmitStartMs": 1079,
+      "doneAfterSubmitResponseMs": 1028,
+      "processingMs": 288
+    },
+    {
+      "submissionId": 43,
+      "submitMs": 52,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 102,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 757,
+      "doneAfterSubmitStartMs": 1054,
+      "doneAfterSubmitResponseMs": 1002,
+      "processingMs": 297
+    },
+    {
+      "submissionId": 44,
+      "submitMs": 54,
+      "formsDeckCardPresentRightAfterSubmit": true,
+      "receiverStatus": "done",
+      "outcome": "card_created",
+      "nestCardId": 104,
+      "nestCardTitleMatches": true,
+      "nestCardHasAnswers": true,
+      "nestCardMarker": true,
+      "receivedAfterSubmitStartMs": 724,
+      "doneAfterSubmitStartMs": 1013,
+      "doneAfterSubmitResponseMs": 959,
+      "processingMs": 289
+    }
+  ],
+  "latency": {
+    "receiverDoneAfterSubmitStartMs": {
+      "n": 10,
+      "min": 994,
+      "p50": 1046,
+      "p95": 1224,
+      "max": 1224,
+      "mean": 1060
+    },
+    "receiverReceivedAfterSubmitStartMs": {
+      "n": 10,
+      "min": 705,
+      "p50": 757,
+      "p95": 912,
+      "max": 912,
+      "mean": 769
+    },
+    "receiverDoneAfterSubmitResponseMs": {
+      "n": 10,
+      "min": 941,
+      "p50": 994,
+      "p95": 1167,
+      "max": 1167,
+      "mean": 1007
+    },
+    "receiverProcessingMs": {
+      "n": 10,
+      "min": 282,
+      "p50": 288,
+      "p95": 312,
+      "max": 312,
+      "mean": 291
+    },
+    "submitMsWithFormsDeck": {
+      "n": 10,
+      "min": 51,
+      "p50": 53,
+      "p95": 57,
+      "max": 57,
+      "mean": 53
+    },
+    "submitMsWithoutFormsDeck": {
+      "n": 5,
+      "min": 45,
+      "p50": 45,
+      "p95": 48,
+      "max": 48,
+      "mean": 46
+    }
+  },
+  "formsDeckSynchronous": true,
+  "access": {
+    "successor-a": {
+      "board": 200,
+      "nestCard": 200,
+      "formsDeckCard": 200,
+      "listBoardsContains": true
+    },
+    "member-a": {
+      "board": 403,
+      "nestCard": 403,
+      "formsDeckCard": 403,
+      "listBoardsContains": false
+    },
+    "manager-b": {
+      "board": 403,
+      "nestCard": 403,
+      "formsDeckCard": 403,
+      "listBoardsContains": false
+    },
+    "outsider": {
+      "board": 403,
+      "nestCard": 403,
+      "formsDeckCard": 403,
+      "listBoardsContains": false
+    }
+  },
+  "memberSeesOnlyOwnSubmissions": true,
+  "denySubmit": {
+    "outsider": 403,
+    "manager-b": 403
+  },
+  "sharedBoardComparison": {
+    "boardAcl": "vcw-team-a view-only",
+    "receiverOutcome": "board_wider_than_results",
+    "receiverCreatedCard": false,
+    "formsDeckCreatedCard": true,
+    "memberReadsFormsDeckCard": 200,
+    "memberSeesOtherAnswerViaDeck": true
+  },
+  "duplicatesInNestStack": 0,
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

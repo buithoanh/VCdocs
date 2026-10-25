@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-10-25T07:59:29.317Z",
+  "containers": 9,
+  "before": {
+    "vcworkspace-work13-ak-db-1": {
+      "at": "2026-10-25T07:50:39.467935677Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-loopback-relay-1": {
+      "at": "2026-10-25T07:50:39.548192302Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-server-1": {
+      "at": "2026-10-25T07:50:40.214920428Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-worker-1": {
+      "at": "2026-10-25T07:50:42.271360929Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-hook-sink-1": {
+      "at": "2026-10-25T07:50:39.269447969Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nc-db-1": {
+      "at": "2026-10-25T07:50:39.390369677Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nextcloud-1": {
+      "at": "2026-10-25T07:53:32.464428841Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nextcloud-loopback-relay-1": {
+      "at": "2026-10-25T07:50:39.492343469Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-redis-1": {
+      "at": "2026-10-25T07:50:39.517086011Z",
+      "status": "running"
+    }
+  },
+  "after": {
+    "vcworkspace-work13-ak-db-1": {
+      "at": "2026-10-25T07:59:26.332822129Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-loopback-relay-1": {
+      "at": "2026-10-25T07:59:26.413111963Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-server-1": {
+      "at": "2026-10-25T07:59:27.141843463Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-authentik-worker-1": {
+      "at": "2026-10-25T07:59:29.176665381Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-hook-sink-1": {
+      "at": "2026-10-25T07:59:26.209535088Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nc-db-1": {
+      "at": "2026-10-25T07:59:26.354955129Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nextcloud-1": {
+      "at": "2026-10-25T07:59:27.17047263Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-nextcloud-loopback-relay-1": {
+      "at": "2026-10-25T07:59:26.438732504Z",
+      "status": "running"
+    },
+    "vcworkspace-work13-redis-1": {
+      "at": "2026-10-25T07:59:26.312220838Z",
+      "status": "running"
+    }
+  },
+  "result": "all containers restarted and running; see verify-acl-after-restart.json and browser-ui.json",
+  "secretsIncluded": false
+}

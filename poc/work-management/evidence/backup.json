@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-10-25T08:04:05.843Z",
+  "checksums": {
+    "nextcloud.dump": "07c9cf009b9d1c444881f5c976995dcb3b4079bcb272f691c0aa00cd8ef39384",
+    "authentik.dump": "8c42a38212dc9bbeac2f2d24a269e78060423db2b0b057eb3392f3f96b70e875",
+    "nextcloud-html.tgz": "e75a4bddbf311f39a795f016837d1c1ee77511f5f2ec529d7d1c2a62da197826"
+  },
+  "mode": "0600",
+  "maintenanceModeDuringBackup": true,
+  "location": "poc/work-management/backup/ (git-ignored)",
+  "secretsIncluded": false
+}
