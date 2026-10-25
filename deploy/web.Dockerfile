@@ -12,6 +12,10 @@ COPY apps/web apps/web
 # thẳng /api/* sang api, giá trị này chỉ là dự phòng trong mạng nội bộ Docker.
 ARG API_ORIGIN=http://api:4000
 ENV API_ORIGIN=$API_ORIGIN NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone
+# Origin ONLYOFFICE Document Server (phẩy ngăn cách, khớp DOCUMENT_EDITOR_PUBLIC_ORIGIN của API).
+# Được nhúng lúc build vào trang soạn thảo và Content-Security-Policy; để trống thì không nạp editor.
+ARG NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=
+ENV NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=$NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS
 RUN pnpm --filter @vcdocs/web build
 
 FROM node:22-bookworm-slim

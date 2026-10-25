@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-10-24T15:13:40.620Z",
+  "appNetworks": {
+    "vcworkspace-identity12-nextcloud-1": [
+      "vcworkspace-identity12_identity12",
+      "vcworkspace-identity12_loopback"
+    ],
+    "vcworkspace-identity12-authentik-server-1": [
+      "vcworkspace-identity12_identity12",
+      "vcworkspace-identity12_loopback"
+    ]
+  },
+  "internalNetworks": true,
+  "applicationEgressDenied": true,
+  "egressProbeExitCode": 6,
+  "relaysCarryNoSecrets": true,
+  "hostBindings": [
+    "127.0.0.1:18120",
+    "127.0.0.1:18121"
+  ],
+  "secretsIncluded": false
+}

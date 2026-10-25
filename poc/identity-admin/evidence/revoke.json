@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-10-24T15:13:35.569Z",
+  "appPasswordBefore": 207,
+  "appPasswordAfter": 401,
+  "secretsIncluded": false,
+  "browserSessionEvidence": "browser-oidc.json",
+  "distinction": {
+    "localLogout": "portal cookie only",
+    "idpLogout": "provider application logout; Authentik SSO can survive",
+    "globalRevoke": "portal sessions + Authentik SSO sessions + identity + Nextcloud account"
+  }
+}

@@ -1,4 +1,4 @@
-# Sổ tay dự án VCdocs
+# Sổ tay dự án VCworkspace
 
 Nơi các cuộc hội thoại (phiên Claude) trao đổi thông tin với nhau.
 Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết thúc** công việc.
@@ -15,19 +15,34 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 1. Tổng quan dự án
 
-- **Mục tiêu:** Phần mềm quản lý tài liệu – hồ sơ VCdocs cho VCPV. Giao diện Next.js, máy chủ NestJS, MongoDB, tích hợp Google Drive.
+- **Tên hiện tại:** VCworkspace (đổi từ VCdocs theo chủ dự án ngày 2026-10-23). Định danh kỹ thuật và các bản nguồn lịch sử còn tên cũ; chưa di trú runtime.
+- **Mục tiêu:** Phát triển nền tảng VCworkspace cho VCPV; repo hiện chứa nghiệp vụ quản lý tài liệu – hồ sơ từ VCdocs. Giao diện Next.js, máy chủ NestJS, MongoDB, tích hợp Google Drive.
 - **Tài liệu gốc (Claude Docs):**
   - BA và đặc tả người dùng: https://claude.ai/artifact/74kFt4rhgHd3ecPmgitRYc
-  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 22: đủ mục 1–9; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
+  - Hợp đồng API v1: https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT (rev 24: mục 1–10, mục 10 = giai đoạn 2 đợt 1 M10/M15 v1.5, đã vào `openapi.yaml` 1.5.0-gd2 trên nhánh `giai-doan-2`; `giai-doan-1` dừng ở rev 22 / 1.4.0-gd1; thân ghi "ĐÃ CHỐT v1", tên vẫn [Đề xuất]; id connector `e2f31ce1-3cf6-4349-aebe-6445aa5e30b2`)
 - **Chủ dự án:** Bùi Thọ Anh
-- **Trạng thái hiện tại:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
-- **Kho mã:** https://github.com/buithoanh/VCdocs (private), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
+- **Trạng thái code VCworkspace (cập nhật 2026-10-25):** các chat công việc 01–12B (phần lớn do ChatGPT/Codex làm) đã **nghiệm thu LOCAL** và đã **commit** trên nhánh local `vcworkspace/chat01-12b` (cắt từ `claude/nghien-cuu-vcworkspace`: quản trị AI, hợp đồng, BE, FE, PoC, tài liệu, sửa sau review, báo cáo). **Chưa push, chưa có PR** (repo chặn `git push` cho Claude). Review/QA/bảo mật: `docs/ke-hoach/vcworkspace-review-qa-2026-10-25.md` — đã sửa 6 lỗi (F1–F6), còn mở 15 (O1–O15). Đã có:
+  - Hợp đồng `contract/openapi.yaml` **2.3.0-gd2** (từ 1.5.0-gd1 chat02 đến OIDC/lifecycle chat12B; nguồn ghi ở `contract/NGUON.md`).
+  - BE mới: `drive-basic` (Drive, version/trash/restore, DOCX/XLSX/PPTX qua ONLYOFFICE), `mail-basic` (Stalwart: gửi/nhận, MIME, nhãn/lọc/alias/hộp chung, offboard), `workspace-interop` (đính kèm mail → Drive, gửi bản Drive), `m01-auth` thêm OIDC + identity lifecycle (journal/CAS/Idempotency-Key, app→Authentik→Nextcloud). FE mới: `/drive`, `/email` (bố cục kiểu Outlook), `/bo-nho`; đăng nhập OIDC. Google cũ vẫn giữ.
+  - PoC chạy local: Nextcloud 33, ONLYOFFICE 9.4, Stalwart 0.16, Authentik 2026.8 (`poc/`).
+  - Gate cuối 2026-10-25 sau sửa review (chạy trên `vcworkspace/chat01-12b`): guard 44, BE 180 (9 skip), endpoint 145/145, FE đạt, typecheck/build đạt.
+  - Chín nhóm (ma trận `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`): LOCAL PASS Files, Office, Email (một phần) và Admin/SSO; **chưa làm** Sync desktop/mobile, Talk, Work management (chat13 chờ duyệt), Flow, Assistant AI; Calendar/Contacts chưa thử. Chỉ là PoC local, chưa production, chưa deploy, chưa dữ liệu Google thật.
+- **Trạng thái VCdocs cũ:** Nhánh `giai-doan-1` đã ghép FE + BE theo hợp đồng v1.4 (rev 22, D22 `loi=setup`) và lệnh khởi tạo công ty. Build qua, BE 116 test, FE 72 test; chạy thật (Google giả) trọn luồng hồ sơ, vòng đời tài liệu và huỷ bỏ. Đã push; PR #1 (FE) và PR #2 (`giai-doan-1`) đã merge vào `main` (2026-10-20). Google thật: đã có project `vcdocs`, service account `vcdocs-backend`, khoá JSON (chủ dự án giữ, ngoài repo) và domain-wide delegation 8 quyền.
+- **Kho mã:** https://github.com/buithoanh/VCdocs (API kiểm 2026-10-23: public; tên repo chưa đổi), nhánh chính `main`; nhánh `dev` (tạo 2026-10-20 từ `main`) là nơi merge code mới. Bản lưu tài liệu BA, hợp đồng, kiến trúc ở `docs/` (xem `docs/README.md`).
 - **Thư mục local:** `/Users/apple/projects/VCdocs`
 
 ## 2. Quyết định đã chốt
 
 | Ngày | Quyết định | Lý do |
 |------|-----------|-------|
+| 2026-10-24 | Human duyệt mở chat 11 khảo sát lộ trình đủ chín nhóm, chỉ tài liệu/read-only; chưa code lớn, cài app, mua dịch vụ, production hoặc mở chat 12 | Phân biệt nghiệm thu LOCAL Drive–Office–Email của chat 01–10 với mục tiêu đủ chín nhóm; cần ma trận khoảng trống, kiến trúc và acceptance trước bước mới |
+| 2026-10-23 | Human xác nhận trực tiếp đưa đúng tệp thử ui03-renamed-chat03ui2.txt vào thùng rác local rồi khôi phục qua UI | Hoàn tất chat03, review đạt mở04 và tự chạy tiếp; không xoá vĩnh viễn |
+| 2026-10-23 | Chủ dự án giao tự động toàn bộ phát triển/nghiệm thu các task đã thống nhất; điều phối tự review, sửa lỗi, mở chat tuần tự, không hỏi lại quyền đã duyệt | Không mở rộng sang production, mua dịch vụ hoặc dữ liệu thật; hộp quyền công cụ vẫn theo cơ chế hệ thống |
+| 2026-10-23 | Cho phép sửa hook chặn nhầm harness/patch tài liệu, giữ rào chắn thao tác nguy hiểm và bổ sung tests allow/deny | Chủ dự án yêu cầu “sửa hook đi”; tiếp tục browser smoke chat02 sau sửa |
+| 2026-10-23 | Duyệt cài môi trường container local riêng và cập nhật hợp đồng sáu API Drive theo đề xuất; tiếp tục chat 02, review đạt rồi mở chat kế tiếp | Chủ dự án giao rõ trong chat điều phối; thay thế trạng thái chờ duyệt runtime/hợp đồng, không bao gồm production |
+| 2026-10-23 | Duyệt gói PoC Drive: Nextcloud local cô lập, dữ liệu giả, ACL từng người, hai tài khoản và hai không gian phòng/cá nhân, trùng tên 409 không ghi đè, tối đa 10 MiB/tệp thử | Chủ dự án trả lời “Duyệt gói thử đề xuất”; chat 02 chuẩn bị đề nghị sáu API và PoC trước code lớn, chưa được sửa OpenAPI gốc |
+| 2026-10-23 | Tên dự án hiện tại là VCworkspace; triển khai 4 lớp quản trị AI trong repo và hướng dẫn quyền ngoài repo | Chủ dự án yêu cầu; chưa đổi tên folder/remote/runtime, không tự thay quyền dịch vụ |
+| 2026-10-23 | Chủ dự án giao Sol High kiểm bộ luận điểm còn dở, dùng Astra rà điểm khó, cập nhật báo cáo và sổ tay | Phạm vi kiểm chứng tài liệu; chưa chốt stack, mua hạ tầng hay triển khai VCworkspace |
 | 2026-10-20 | Có nhánh `dev`: code mới (nhánh giai đoạn, nhánh phiên `claude/…`) merge vào `dev` trước; `main` chỉ nhận từ `dev` khi chủ dự án cho phép | Chủ dự án yêu cầu; giữ `main` ổn định |
 | 2026-10-20 | Deploy phương án A: 1 máy ảo Compute Engine `e2-medium` ở `asia-southeast1` (project `vcdocs`), Docker Compose (caddy, web, api, mongo), tên miền `vcdocs.vcprosperous.com`; đĩa dữ liệu riêng có snapshot + `deploy/backup.sh` lên Cloud Storage. Cấu hình và hướng dẫn ở `deploy/` | Chạy được ngay không sửa logic; kho PDF nằm trên đĩa và lịch định kỳ chỉ chạy 1 bản nên hợp với 1 máy |
 | 2026-10-19 | Quy trình code: chốt hợp đồng → viết tay `contract/openapi.yaml` → lát mỏng đầu cuối (khung monorepo, đăng nhập Google, `/me`, CSRF, mẫu lỗi) → 2 phiên FE (`apps/web`, chạy trên mock) và BE (`apps/api`, có test kiểm hợp đồng) song song trên 2 worktree, không phiên nào sửa `contract/` → 1 phiên ghép, test đầu cuối | FE và BE làm song song mà không chờ nhau, lệch được phát hiện sớm |
@@ -44,6 +59,135 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
+
+- [ ] **Audit bảo mật Cloudflare skill (quick, 2026-10-25): 12 đầu mối `needs_validation`, 0 confirmed** (không chạy mã vì máy không cưỡng chế được giới hạn bộ nhớ/tiến trình/đĩa). Báo cáo `docs/bao-mat/audit-cloudflare-2026-10-25.md`, chi tiết `...-needs-validation.md`, bản ghi `...-findings.json`; bản đầy đủ (ledger, prompt) ở `~/security-audit-skill/VCdocs/run-1/`. Ưu tiên: OIDC không kiểm tên miền email + hộp thư theo local-part; nhập tài liệu ngoài (service account copy fileId bất kỳ, SSRF theo redirect); quyền không gian Drive không thu hồi; callback ONLYOFFICE tin JWT trình duyệt; ai cũng tạo alias/hộp nhóm; production chấp nhận lifecycle giả. 7 vùng `deferred` chưa săn. Ngoài phạm vi: `.claude/settings.json` chưa chặn đọc `poc/*/secrets/**`.
+
+- [ ] **Sửa 15 lỗi còn mở sau review (O1–O15):** ưu tiên O1–O4 (lưu ONLYOFFICE, OIDC đăng xuất sau 5 phút, quyền hộp thư) trước pilot; cần runtime thật trên Docker.
+
+- [ ] **Chat13 Work management (chủ dự án giao mở 2026-10-25; chat 14–21 mở lần lượt sau):** Deck/Notes/Forms/Tables/Collectives trong stack thử riêng, hai nhóm giả, kiểm quyền/ownership/export/restore/browser/API. Chưa có chat13 đang làm; không deploy hoặc chuyển Google thật.
+
+- [x] **Chat12B tích hợp OIDC vào app thật hoàn tất LOCAL sau review (2026-10-24):** OpenAPI
+  `2.3.0-gd2`; `apps/web`→Authentik→`apps/api` browser tạo session manager R4,
+  `/me` 200. E2E kiểm PKCE/state/nonce/replay, issuer+sub binding, same-email
+  deny, verified rename, server role policy, outage fail-closed và disable
+  session 401. Instance NestJS mới đọc lại binding/session trên cùng MongoDB
+  TEST và binding disable làm `/me` 200→401; production config HTTP/cookie
+  không Secure bị chặn. Coordinator sản phẩm thêm journal Mongo/CAS lease,
+  Idempotency-Key, subject revision/CAS fencing, pending-deny đến commit,
+  readback app→Authentik→Nextcloud và retry partial sau restart. Review blocker
+  đã sửa: two-key delayed race/stale recovery/lease expiry, không ghost-grant,
+  Authentik pagination users/groups/sessions→0, Nextcloud control bridge xóa
+  từng token và đợi cache settle. Live local mover/rename/disable/global
+  revoke active=true/re-enable/restore
+  baseline đạt. Browser đủ manager/member/outsider trên app Drive/Office/Email;
+  OIDC direct API outsider bị 403/404, WebDAV live manager204/member200/
+  outsider404/404; app-password cũ sau global revoke 207→401 trong khi account
+  vẫn active. `ai:check:full` cuối PASS guard44/BE173/
+  endpoint145/145/FE76/typecheck/build. Browser phát
+  hiện/sửa callback khác origin mất cookie; loading shell do browser dev/full
+  build dùng chung `.next`, cache riêng đã hydrate. Manager mở Drive/Office/
+  Email và SSO sang Nextcloud không nhập lại. Script PoC chỉ làm driver/proof;
+  mutation lifecycle cuối đi qua API sản phẩm. Bàn giao
+  `docs/ke-hoach/vcworkspace-12b-ban-giao-sso-ung-dung.md`; chưa mở13.
+
+- [x] **Chat12B tíchhợpSSO vào appthật đã nghiệmthu LOCAL:** `01a16e86-3947-7e12-8a2a-39b10e5eaa1c`, hostlocal. Human trực tiếp đồngý mở12B; Next.js/NestJS thực +OIDC/immutablebinding/session/roles/lifecycle/revoke/browserproof; DBtest/Googlefake, khôngproduction.
+
+- [x] **Chat12 Identity/Admin hoàn tất PoC local (2026-10-24):** stack riêng
+  Nextcloud 33.0.10 + Authentik 2026.8.5, portal harness và Nextcloud là hai
+  relying party thật. Browser chứng minh 3 persona, SSO không nhập lại,
+  immutable sub/email rename, Team A ACL, mover đổi claim rồi relogin mất quyền,
+  current Nextcloud session revoke 200→401. Đã sửa group namespace/binding và
+  regex removal; restart, backup/restore mới, restore ACL đạt. Portal 18122 chưa
+  phải tích hợp `apps/web`/`apps/api`; không Google/data thật/production.
+
+- [x] **Chat11 khảo sát lộ trình đủ chín nhóm hoàn tất tài liệu (2026-10-24):**
+  `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md` ghi ma trận có/thiếu/PoC/
+  NOT_TESTED, component/version/license/dependency cho Nextcloud 33, kiến trúc
+  identity/data/ACL không sửa DB Nextcloud trực tiếp, acceptance và backlog
+  chat12+. Kết luận đúng: chat01–10 có lát cắt LOCAL ba nhóm, sáu nhóm còn cần
+  PoC. Chưa cài app/chạy runtime mới/đổi contract/deploy/push; chưa mở chat12.
+
+- [x] **Chat10 nghiệm thu tổng thể local hoàn tất (2026-10-24):** runtime thật
+  Nextcloud/ONLYOFFICE/Stalwart đạt; fake/fault/race 26/26, Office thật 3/3,
+  mail management thật 5/5, revoke-session và interop thật 1/1 đạt. Full gate
+  cuối guard44, BE157/140 endpoint, FE76, typecheck/build đạt. Sửa harness IMAP
+  CREATE idempotent nhưng bắt buộc LIST/readback; không đổi contract. Bàn giao
+  `docs/ke-hoach/vcworkspace-10-nghiem-thu-tong-the.md`. Chỉ kết luận PoC local,
+  chưa production-ready.
+- [x] **Điều phối nghiệm thu09 local:** đọc final bàn giao/mã/race tests/evidence/login-return/gate exit0; absolute link và fingerprint race đã sửa. BE157/140endpoint/FE76/guard44.
+
+- [x] **Chat09 hoàn tất local (2026-10-24):** OpenAPI
+  `2.2.0-gd2`; lưu MIME attachment vào Drive có provenance/hash/idempotency;
+  gửi đúng Drive version dưới dạng snapshot hoặc link đăng nhập + intended
+  recipient + ACL có sẵn, không cấp quyền ngầm. Target fake E2E 2/2, DOCX trọn
+  luồng và XLSX/PPTX MIME routing; full gate guard44, BE157, endpoint140/140,
+  FE76, typecheck/build đạt. Browser A→B trên Stalwart/Nextcloud/ONLYOFFICE và
+  real integration retry/ACL/expiry/revoke đều đạt; chat10 đã nghiệm thu local.
+  Bàn giao `docs/ke-hoach/vcworkspace-09-ban-giao-lien-thong.md`.
+
+- [x] **Điều phối nghiệm thu08 local:** đọc final bàn giao/review/testdurability/proof; realadapter5/5, principalrevoke đúng, MIMEparser và send/filterfaulttests đạt; finalgate exit0 BE153 endpoint137 FE74 guard44. Không suy production.
+- [x] **Chat09 đã hoàn tất:** `01a16be9-2597-7a31-b38f-0ecd37fdfba2`, host local; điều phối đã nghiệm thu và chat10 đã hoàn tất local.
+
+- [x] **Đã tiếp tục sau mốc tạm dừng:** human đã sửa lịch sang 08:45 thứ Bảy 2026-10-24 giờ VN; hồ sơ resume ở `docs/ke-hoach/vcworkspace-tiep-tuc-khi-het-token.md` đã được thực hiện.
+
+- [x] **Chat08 đã nghiệm thu local:** trạng thái `452`/blocker cũ đã được phần
+  chốt cuối của bàn giao08 thay thế; chat10 xoay credential thử và rerun xác nhận
+  protocol, management 5/5, offboard/revoke-session, filter/alias/shared ACL đạt.
+  Bàn giao `docs/ke-hoach/vcworkspace-08-ban-giao-quan-ly-email.md`.
+
+- [x] **Điều phối nghiệm thu07 local:** finalgate exit0 guard44/BE141/endpoint125/FE73, SMTPAUTH ACK IMAP MIMEhash sau reset chỉ credential thử đạt. Mail engine networkinternal, sidecar fixed ports; forward .eml có testFE. Giới hạn ảnhUI cuối đã ghi, không suy production.
+
+- [x] **Điều phối nghiệm thu06 local:** tự kiểm PPTX/PDF hash, markerV2/ellipse XML và PDFtext, xem render slide2; gate final exit0.
+- [x] **Chat07 Email cơ bản hoàn tất local:** Stalwart 0.16.27 ARM64,
+  SMTP/IMAP TLS, UI/API/draft/thread/reply/MIME/attachment/idempotency/tenant
+  đạt; bàn giao `docs/ke-hoach/vcworkspace-07-ban-giao-email-co-ban.md`.
+  Browser download MIME timeout nên hash browser độc lập chưa có; API/protocol
+  hash đạt. UI email đã được làm lại 2026-10-23 theo bố cục Outlook ba vùng:
+  thư mục, danh sách thư, vùng đọc/soạn; có tìm kiếm, chọn thư, trạng thái,
+  responsive và giữ nguyên API. `ai:check` đạt guard 44, BE 141 với 125/125
+  endpoint, FE 72, typecheck/build. Trình duyệt local trả `/email` 200 nhưng
+  phiên Computer Use đóng transport trước bước đăng nhập nên chưa có ảnh rà
+  trực quan sau cùng. Review bổ sung đã khóa Stalwart vào Docker internal network,
+  dùng sidecar relay cố định từ loopback; kiểm internal không ra Internet và
+  TLS/SMTP qua relay đạt. UI có chuyển tiếp raw MIME dạng `message/rfc822`.
+  Chủ dự án đã cho phép đặt lại recovery admin và đúng hai mailbox local; AUTH,
+  SMTP ACK và IMAP fetch qua topology mới đạt với marker
+  `chat07-1792761321413`, hash attachment `190f41f5…8140`. Test FE chuyển tiếp
+  raw MIME đạt 1/1. Chưa mở08; chờ điều phối mở theo quy trình.
+
+- [x] **Chat06 Slide hoàn tất local:** OpenAPI `1.9.0-gd1`; mẫu PPTX ba slide,
+  API/UI/ONLYOFFICE/Drive version và PDF đạt. Browser manager sửa marker
+  `NOI DUNG CHAT06 V2`, thêm ellipse bố cục, Save V2, mở lại cùng fileId và
+  chạy slideshow 1/3; reader riêng chỉ xem. fileId
+  `6adb4f76f2890f1546ee8087`, V2 PPTX hash `aca135f2…8e7a`, PDF hash
+  `0743fd35…69cb`; XML/relationships/font và render ba trang đạt. Browser còn
+  phát hiện/sửa iframe 150px do height calc không hợp lệ. Full gate cuối PASS:
+  guard44, BE139/coverage118, FE72, typecheck/build. Bàn giao
+  `docs/ke-hoach/vcworkspace-06-ban-giao-slide.md`; chưa tự mở chat07.
+
+- [x] **Chat06 hoàn tất:** Slide, `01a168ab-4e5f-7cf3-b89c-8c32d493c173`, host local; chờ điều phối review để mở07.
+
+- [x] **Điều phối nghiệm thu chat04 local:** Docker phục hồi không mất volume; ONLYOFFICE thật lưu V2/mở lại cùng fileId, DOCX/PDF V2 chứa đúng body marker. Review test tách V1 và V2, callback stale bị từ chối. Gate cuối chat04 BE135/116 endpoint, FE72/build và guard44 đạt.
+- [x] **Chat05 đã được điều phối nghiệm thu local:** OpenAPI `1.8.0-gd1`; XLSX qua ONLYOFFICE thật, công thức/filter/sort, Drive V1→V2, mở lại và xuất XLSX/PDF đã kiểm XML/cached value/PDF text. Fixture fileId `6adb4cfe8dc500771673bc51`, V2 hash `1ffcf25f…cec1b`; reader browser chỉ xem. Bàn giao `docs/ke-hoach/vcworkspace-05-ban-giao-bang-tinh.md`, evidence `poc/onlyoffice/evidence/chat05-browser-v2.*`. Chưa mở06.
+
+- [x] **Điều phối đã nghiệm thu chat03 local:** đúng fixture trash→restore UI, ID/size giữ nguyên, reader chỉ đọc; kết hợp bằng chứng API/Nextcloud/usable restore và final gate.
+- [x] **Chat04 hoàn tất local (2026-10-23):** OpenAPI `1.7.0-gd1`; tạo DOCX từ mẫu, editor JWT edit/view, callback version bất biến/idempotent chống SSRF/JWT/reader, UI và export DOCX/PDF. Docker được phục hồi không purge/reset/xoá volume; image ONLYOFFICE 9.4.0.1 amd64 chính thức chạy qua emulation do manifest arm64 lỗi đóng gói. Browser manager đã tạo/sửa/save editor thật và thấy bản 2; tích hợp lặp lại với Nextcloud + converter thật đạt DOCX `PK`, PDF `%PDF-` 35.102 byte, reader mode view và tìm thấy đúng marker trong cả XML DOCX lẫn text PDF. Bàn giao: `docs/ke-hoach/vcworkspace-04-ban-giao-van-ban.md`; evidence JSON trong `poc/onlyoffice/evidence/`. Chưa suy rộng thành sizing/SLA/production; phiên này không mở chat05.
+
+- [x] **Chat03 hoàn tất local:** OpenAPI `1.6.0-gd1`; API/UI/StoragePort rename/move giữ ID, version/checksum restore và trash/restore cây đều đạt. Usable restore boot Nextcloud volume mới ở cổng 18081 với MongoDB thử đích, tải bằng ID cũ và kiểm checksum/quyền đạt. Browser manager đã restore version, tải, đổi tên/move và trash/restore đúng fixture; reader tải được nhưng không có control ghi. Full gate cuối đạt 133 BE, 111/111 endpoint, 72 FE và build. Bàn giao: `docs/ke-hoach/vcworkspace-03-ban-giao-drive-an-toan.md`. Chat04 chưa mở từ phiên này, chờ điều phối review/mở.
+
+- [x] **Chat02 đã được điều phối nghiệm thu phạm vi local:** đọc final bàn giao và evidence browser mvkqwtie; manager/reader và hash cả hai bản tải khớp. Hook guard đã được điều phối kiểm 43/43; full gate cuối do chat02 chạy đạt BE132/104 endpoint, FE72 và build. Đủ điều kiện mở chat03.
+
+- [ ] **Điều phối tự động tuần tự:** chủ dự án giao theo dõi, review, mở chat kế tiếp và báo quyết định cần chốt (heartbeat `i-u-ph-i-ph-t-tri-n-vcworkspace-tu-n-t`). Đã chạy hết chat 01–12B; đang dừng chờ human duyệt chat13.
+
+- [x] **Tách chat tuần tự (2026-10-23):** đã mở và nghiệm thu tuần tự chat 01–10, rồi 11, 12, 12B.
+
+- [x] **Phát triển tuần tự ba nhóm lõi:** Drive → version/restore → văn bản → bảng tính → slide → email → quản lý email → liên thông → nghiệm thu tổng thể đều LOCAL PASS (chat02–10).
+
+- 2026-10-23 · Giải thích hook Codex: đã đọc cấu hình `SessionStart`, `PreToolUse`, `Stop` và mã policy/gate để trả lời chủ dự án. Chỉ kiểm tra mã; chưa chạy thử hay bật hook, không có quyết định hoặc câu hỏi mở mới.
+
+- [ ] **4 lớp quản trị AI (chủ dự án duyệt triển khai 2026-10-23):** đã cài và kiểm cấu hình trong repo: instructions, 3 skills, deny rules, hooks và CI; 40/40 guard tests, BE 129/129 + FE 72/72, typecheck/build đạt. Codex nhận config/skills; 3 hooks còn untrusted. Chủ dự án còn cần review/trust hooks trong phiên mới, tách identity Google/GCP/GitHub và bật bảo vệ main/dev theo `docs/huong-dan/quan-tri-ai.md`.
+- [ ] **Nghiên cứu VCworkspace**: đã hoàn tất đợt đối chiếu tài liệu 2026-10-23 bằng Sol High, Astra rà điểm khó; cập nhật báo cáo và `docs/nghien-cuu/vcworkspace-kiem-chung-2026-10-23.md`. Số “42” bàn giao sai: đã xét đủ **48 ID** (21 đúng trong phạm vi, 24 đúng một phần, 1 bị bác, 2 chưa đủ bằng chứng). Còn: định danh “AI Jev”, báo giá GCP Singapore đúng SKU, dữ liệu workload/hoá đơn, các PoC tương thích/tải/restore, và 20 câu hỏi mục 13 để chọn A/B/C. Tác vụ định kỳ Claude 2026-10-25 đã chạy, đọc kết quả này và không kiểm lại (xem nhật ký 2026-10-25); nên tắt hoặc sửa prompt tác vụ `vcdocs-nghien-cuu-vcworkspace`. Báo cáo + hồ sơ kiểm chứng vẫn là WIP chưa commit. **Đề xuất mới nhất ở Phụ lục D (23/10): C + Nextcloud, thí điểm trước, 12 điểm cần chủ dự án chốt; chưa được duyệt.** Hồ sơ kiểm chứng đã có 3 mức đọc 20 của 20 / 20 của 100 / 100 của 100 và sơ đồ; phần đầy đủ giữ nguyên.
 - [ ] Chủ dự án đổi tên tài liệu hợp đồng API sang `[Đã chốt]` (thân tài liệu đã ghi "ĐÃ CHỐT v1" từ rev 16)
 - [ ] Rà 15 chỗ `x-gia-dinh` trong `contract/openapi.yaml` (giả định do Claude chọn)
 - [ ] Ghi quy tắc ghép tên thư mục (mã đã chứa tên ngắn thì không lặp) vào hợp đồng – FE #10
@@ -61,14 +205,23 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
+- (VCworkspace, 2026-10-22) "AI Jev" trong yêu cầu là gì: tên một dự án, "AI Dev", hay trợ lý kiểu Jarvis/Jeeves?
+- (VCworkspace) "Đập tính năng cũ" tới mức nào: bỏ hẳn quản lý hồ sơ – tài liệu (BA 15 phân hệ, giai đoạn 1–2 đã code ~22.000 dòng TS), hay giữ thành một ứng dụng chạy trên VCworkspace? Nhánh `giai-doan-2` (M10, M15, chưa gộp vào `dev`) gộp tiếp hay dừng?
+- (VCworkspace) Mốc thời gian muốn thay Google Workspace và ngân sách hạ tầng/tháng chấp nhận được?
 - Sơ đồ tổ chức (mẫu `apps/api/so-do-to-chuc.mau.yaml`): email GĐ 2 khối, trưởng 11 phòng, người giữ R1/R3/R8/R9; xác nhận khối của BDH, IT, VCE, MH, mã XDV, danh sách division. Nhóm "xem" của drive 00 có chứa cả công ty không, hay drive 00 cấp quyền cả tên miền.
-- Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCdocs nhận, hay để VCdocs chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCdocs không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
+- Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCworkspace nhận, hay để VCworkspace chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCworkspace không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
+- (Audit 10/12, 2026-10-25) R3 (kiểm soát tài liệu) có cần xem hoặc nhắc phiếu duyệt ở drive Mật mà mình không là thành viên không? Bản sửa theo hợp đồng hiện tại: 404 cho cả xem lẫn nhắc; R3 vẫn xem/nhắc phiếu ở drive không Mật và drive Mật mình là thành viên. Nếu cần nhắc mà không xem, phải đổi hợp đồng `/approvals/{id}/remind`.
+- (Audit 11/12, 2026-10-25) Đăng ký ngược (`/records/claim`) sang drive khác giờ chỉ cho trưởng phòng nguồn hoặc Quản lý drive nguồn (theo BA dòng 528); người tạo là Đóng góp phải nhờ trưởng phòng. Giữ vậy? Và trên Workspace thử: phiên bản đầu (`revisions.list`) của file shared drive có đúng người tạo không (Docs và file tải lên), lệch bao lâu so với `createdTime`.
+- (Audit 12/12, 2026-10-25) Mail engine production có nhận thư vào hộp `@vcworkspace.test` từ ngoài API không (SMTP internet, SMTP/IMAP APPEND từ client khác)? Engine có tự thêm Message-ID không? Hiện thư thiếu Message-ID ở header bị bỏ qua, không hiện trong VCworkspace.
 
 ## 5. Lưu ý & bài học
 
-- Máy local chưa cài `gh` CLI; thao tác GitHub (tạo, đổi tên, xoá repo) phải làm trên web.
-- Git dùng thông tin đăng nhập trong macOS Keychain. Repo private nên gọi API GitHub không đăng nhập luôn trả 404.
+- Máy local có `gh`, `gcloud` (kiểm 2026-10-22) và Docker (dùng cho PoC từ chat02, kiểm lại 2026-10-25). Ghi chú cũ "chưa có Docker" đã lỗi thời.
+- QA trình duyệt không cần Docker: `RUN_QA_FAKE_SERVER=1` chạy `apps/api/test/qa-fake-server.spec.ts` (API cổng 14100, mọi thứ giả) cùng web `NEXT_DIST_DIR=.next-qa API_ORIGIN=http://127.0.0.1:14100 next dev -p 13100`. Không chạy `node dist/main.js` vì nó nạp `.env` thật.
+- Repo chặn `git push` cho Claude (`.claude/settings.json`): chủ dự án tự push và mở PR.
+- Browser dev và full build dùng chung `apps/web/.next` làm shell đứng ở "Đang mở…"; dùng thư mục build riêng (`.next-oidc12`, `.next-smoke`…) khi chạy song song.
+- Git dùng thông tin đăng nhập trong macOS Keychain. Ghi chú private trước đây đã lỗi thời: API GitHub 2026-10-23 trả `private=false`; main/dev chưa có branch protection và chưa có ruleset.
 - Drive API: bỏ thư mục vào thùng rác thì tệp con vẫn trả `trashed: false` khi đọc riêng; BE kiểm tệp đã xoá phải xét cả thư mục cha hoặc tự bỏ từng tệp.
 - Google Cloud của vcprosperous.com: project `vcdocs`; service account `vcdocs-backend@vcdocs.iam.gserviceaccount.com`, Client ID `112100786889389485867`. Tổ chức chặn tạo khoá (`iam.disableServiceAccountKeyCreation`); đã tắt riêng cho project `vcdocs`. Đã bật API Drive, Admin SDK, Docs, Sheets, Gmail. Domain-wide delegation 8 quyền khớp `apps/api/src/google/real/real-google.ts`; thêm quyền mới ở BE thì phải thêm cả ở admin.google.com. Ảnh hướng dẫn: `docs/huong-dan/anh/`. OAuth client "VCdocs web (local)" (Internal), redirect `http://localhost:4000/api/v1/auth/google/callback`. `apps/api/.env` (git bỏ qua) chạy `GOOGLE_MODE=real`, CSDL `vcdocs_that`, `MAIL_FROM` tạm là mail chủ dự án; Drive dùng chính service account (không mượn quyền) nên chỉ thấy shared drive có thêm nó.
 - Lịch hằng tháng (`folder.ensure_periods` tự động) tạo năm/tháng cho mọi thư mục `hasPeriods`; thư mục nhận từ Drive chỉ bật `hasPeriods` khi các thư mục năm bên trong đều đúng `YYYY-MM`, tránh sinh `2026-10` cạnh `Tháng 10`.
@@ -76,6 +229,674 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Sửa audit 12/12 — client IMAP tách phản hồi theo literal `{N}`
+
+- Nhánh `claude/audit-fix-12-imap-literal` (cắt từ nhánh 11/12, commit 120bd69). Fingerprint `mail-basic/imap-literal-length-ignored` **tái hiện được** bằng transcript IMAP trong bộ nhớ. Dòng `s3 OK`/`s4 OK` cùng `BODY[] {..}` giả nằm trong thân thư 1 làm `listFolder` cắt cụt thư 1 và trả thêm thư giả `victim@`. Thư thiếu Message-ID làm `uid()` lấy UID của thư kế tiếp. `NO` phải chờ timeout 10 giây.
+- Sửa:
+  - `tls-client.ts`: thêm `parseImapResponse`/`readImap`. Đọc đúng N byte literal; chỉ nhận dòng hoàn tất có tag nằm ngoài literal; `OK`/`NO`/`BAD` trả ngay; socket đóng thì báo lỗi ngay.
+  - `StalwartMailPort`: `withImap` luôn đóng socket trong `finally` (SMTP cũng vậy). engineId lấy bằng mailparser trên header. Thư thiếu Message-ID bị bỏ qua.
+  - `syncFolder`: thư hỏng thì bỏ qua, không trả 500.
+  - Test mới `apps/api/test/stalwart-imap-literal.spec.ts` (trước 7/7 fail, sau 7/7 đạt) và 1 ca e2e trong `mail-durability.e2e-spec.ts` (trước 500, sau 200).
+  - `ai:check` PASS (301 passed). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: chưa kiểm với Stalwart thật. Câu hỏi deploy mail ngoài API ở mục 4. Chưa chạy `ai:check:full`. Đã xong 12/12 đầu mối audit.
+
+### 2026-10-25 · Sửa audit 11/12 — đăng ký ngược không coi người sửa cuối là người tạo
+
+- Nhánh `claude/audit-fix-11-records-claim-creator-c6f9d9` (cắt từ nhánh 10/12). Fingerprint `legacy/records-claim:creator-check-uses-lastModifyingUser` **tái hiện được** (bản giả trả người sửa cuối như adapter thật): người sửa cuối `nv.mkt` claim file drive chung VCPV do `hcns` tạo → 202, file bị chuyển sang drive MKT, Record `createdBy` = `nv.mkt`.
+- Sửa: `DriveFileMeta.createdByEmail` → `lastModifierEmail`; thêm `drive.getCreatorEmail` (bản thật: `lastModifyingUser` của phiên bản sớm nhất, lệch `createdTime` quá 1 giờ thì `undefined`); claim dùng người tạo từ đó và khi chuyển sang drive khác đòi trưởng phòng nguồn hoặc Quản lý drive nguồn; `/records/unregistered` lấy `ownerEmail` từ `getCreatorEmail`. Test mới `records-claim-creator.e2e-spec.ts` và `real-google-creator.spec.ts` (trước 6/7 fail, sau 7/7). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 1 đầu mối audit còn lại (phiên 12/12 cắt từ nhánh này); chưa kiểm cách lấy người tạo với Google thật (mục 4); chưa chạy `ai:check:full`.
+
+### 2026-10-25 · Sửa audit 10/12 — R3 không đọc phiếu duyệt drive Mật ngoài phòng
+
+- Nhánh `claude/audit-fix-10-approvals-r3-confidential-96b801` (cắt từ nhánh 9/12). Fingerprint `legacy/approvals-load:R3-bypass-confidential-drive` **tái hiện được**: R3 `hcns` (không thuộc TC – KT) `GET /approvals/:id` và `POST /approvals/:id/remind` phiếu chia sẻ ngoài file mật của TC – KT đều 200.
+- Sửa `ApprovalsController.load`: người liên quan qua; R3 dùng `assertVisibleOrR3` (drive Mật không là thành viên → 404); người khác như cũ. `list` vốn lọc theo người liên quan nên không lộ. Test mới `apps/api/test/approvals-r3-confidential.e2e-spec.ts` (trước 2/5 fail, sau 5/5). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 2 đầu mối audit còn lại (phiên 11/12 cắt từ nhánh này); câu hỏi chính sách R3 với drive Mật ở mục 4; chưa chạy `ai:check:full`.
+
+### 2026-10-25 · Sửa audit 9/12 — trang soạn thảo kiểm fileId và origin Document Server
+
+- Nhánh `claude/audit-fix-09-editor-page-fileid-d6e01c` (cắt từ nhánh 8/12). Fingerprint `web/bo-nho-soan-thao:fileId-path-injection-editor-config-script-src` **tái hiện được** bằng Vitest/MSW: fileId `<id>/content#` hoặc `<id>?x=` làm trang gọi `/drive/files/<id>/content` hoặc `/drive/files/<id>` và chèn `<script>` từ `documentServerUrl` lạ.
+- Sửa: fileId phải là ObjectId 24 hex + `encodeURIComponent`; `api.js` chỉ nạp khi origin nằm trong `NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS` (build-time; ngoài production mặc định `127.0.0.1:18082`/`localhost:18082`, production không đặt thì tắt editor); CSP `script-src 'self' 'unsafe-inline' <origin DS>; object-src 'none'; base-uri 'self'` ở `next.config.ts` cho mọi phase trừ `next dev`. `deploy/web.Dockerfile` thêm ARG. Test mới `soan-thao.test.tsx` (trước 4/5 fail, sau 5/5) và `lib/document-server.test.ts`. Kiểm trình duyệt trên bản build QA. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 3 đầu mối audit còn lại (phiên 10/12 cắt từ nhánh này); deploy muốn dùng editor phải truyền build arg; chưa chạy `ai:check:full`.
+
+### 2026-10-25 · Sửa audit 8/12 — production không chạy lifecycle giả, OIDC không đè projection
+
+- Nhánh `claude/audit-fix-08-lifecycle-fake-prod-6561dc` (cắt từ nhánh 7/12). Fingerprint `m01-auth/identity-lifecycle/fake-port-allowed-in-production` **tái hiện được**: production OIDC không đặt `IDENTITY_LIFECYCLE_MODE` vẫn khởi động với cổng giả; R9 hạ quyền qua lifecycle báo `done`, đăng nhập OIDC lại với nhóm IdP cũ lấy lại R9; email đổi qua lifecycle bị token email cũ đè.
+- Sửa: mode `disabled` mới (mặc định production, route lifecycle trả 503 trước khi tạo operation); `fake` ở production ném lỗi khi khởi động; `commitApp` ghi `OidcIdentity.projectionRevision`, OIDC callback chặn `loi=locked` + audit `auth.oidc.projection_mismatch` khi token lệch email/vai trò đã commit. Test mới `test/identity-lifecycle-fake-prod.e2e-spec.ts` (trước 6 fail, sau 6 pass). Cập nhật hai file mẫu biến môi trường. Không đổi hợp đồng. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 4 đầu mối audit còn lại (phiên 9/12 cắt từ nhánh này); chủ dự án kiểm `AUTH_MODE`/`IDENTITY_LIFECYCLE_MODE` trên máy chủ; production chưa có cổng lifecycle thật; chưa chạy `ai:check:full`.
+
+### 2026-10-25 · Sửa audit 7/12 — địa chỉ mail nội bộ không tự chiếm được
+
+- Nhánh `claude/audit-fix-07-address-claim-0a082f` (cắt từ nhánh 6/12). Fingerprint `mail-basic/self-service-address-claim` **tái hiện được**: `tp.mkt` tạo alias `newhire@`, người mới đăng nhập thì thư tới `newhire@` vào hộp `tp.mkt` và `tp.mkt` gửi được dưới tên `newhire@`; `nv.mkt` tạo được hộp nhóm `hr@`.
+- Sửa: hộp thư nhóm chỉ R3/R9 tạo; alias tên tự do chỉ R3/R9, người khác chỉ `<tên mình>+<nhãn>@`; hộp thư cá nhân luôn thắng alias/hộp nhóm khi nhận, đọc, gửi; tạo user/đổi email (OIDC, Google, google-sync, identity lifecycle) gọi `MailBasicService.releaseAddressFor` tắt alias + gỡ ở engine (`MailPort.releaseAlias` mới), hộp nhóm trùng thì gắn cờ audit. Test mới `test/mail-address-claim.e2e-spec.ts` (trước 5 fail, sau 5 pass), thêm 1 ca `oidc-auth`; `mail-management` đổi người tạo alias/hộp nhóm. Đề nghị hợp đồng R5. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 5 đầu mối audit còn lại (phiên 8/12 cắt từ nhánh này); chưa chạy `ai:check:full` và Stalwart thật (`releaseAlias`, biến thể `RUN_MAIL_ENGINE_MANAGEMENT`); chủ dự án rà alias/hộp nhóm tên tự do đã có; FE `/email` chưa ẩn nút tạo cho người không có R3/R9.
+
+### 2026-10-25 · Sửa audit 6/12 — callback ONLYOFFICE ràng buộc JWT với payload
+
+- Nhánh `claude/audit-fix-06-editor-callback-jwt-b6ea2c` (cắt từ nhánh 5/12). Fingerprint `drive-basic/editor-callback/jwt-signature-only-unbound-payload` **tái hiện được**: manager dùng `config.token` của trình duyệt làm token callback, API tải url tuỳ ý trên `internalOrigin` và lưu thành phiên bản mới; url trong body được dùng thay url đã ký; token thiếu `exp` vẫn nhận.
+- Sửa `drive-basic.service.ts`: `verifyJwt` chỉ nhận HS256, bắt buộc `exp`, trả nội dung đã ký (`payload.payload` hoặc payload); `editorCallback` lấy key/status/url từ đó. Token API tự ký mang `iss: vcworkspace-api` + `exp`, callback từ chối `iss` này. Vé editor tách `content` (15 phút) và `callback` (24 giờ, sửa O1). Test mới `test/editor-callback-jwt.e2e-spec.ts` (trước sửa 4 fail/1 pass, sau sửa 5 pass); helper jwt test cũ thêm `exp`. `pnpm ai:check` PASS (BE 269 pass, 9 skip). Không đổi hợp đồng. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 6 đầu mối audit còn lại (phiên 7/12 cắt từ nhánh này); O2 (forcesave làm callback sau bị coi là cũ) chưa sửa, chờ chủ dự án chốt ngữ nghĩa vì mâu thuẫn test stale chat04; chưa chạy lại ONLYOFFICE thật; vé editor cấp trước khi triển khai mất hiệu lực; chưa chạy `ai:check:full`.
+
+### 2026-10-25 · Sửa audit 5/12 — quyền không gian Drive theo phòng ban và R4 hiện tại
+
+- Nhánh `claude/audit-fix-05-space-membership-54dd1c` (cắt từ nhánh 4/12). Fingerprint `drive-basic/space-membership/never-reconciled-after-role-or-department-change` **tái hiện được**: user chuyển phòng vẫn đọc, tải, nhận link Drive phòng cũ; trưởng phòng mất R4 (đồng bộ Google hoặc R9 gỡ R4 tay) vẫn upload, tạo thư mục; vé editor cấp trước vẫn lưu được phiên bản mới.
+- Sửa `drive-basic.service.ts`: quyền suy động từ `WorkspaceSpace` (`ownerUserId`/`departmentId`) và `departmentId`, R4 hiện tại (`roleIn`/`memberOf`); `WorkspaceSpaceMember` chỉ còn là bản đối soát (`ensureDefaultSpaces` `$set` vai trò, xoá dòng lệch); `editor/content` và `editor/callback` tra lại quyền hiện tại của user trong vé. `workspace-interop` kiểm người nhận link bằng `drive.canRead`. Test mới `test/space-membership.e2e-spec.ts` (trước sửa 2 fail/1 pass, sau sửa 3 pass). `pnpm ai:check` PASS (BE 264 pass, 9 skip). Không đổi hợp đồng, schema. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 7 đầu mối audit còn lại (phiên 6/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án rà `workspace_spaces` thiếu `departmentId`/`ownerUserId` trong dữ liệu thật (sẽ không ai vào được); chưa có cơ chế chia sẻ không gian cho người ngoài phòng (dòng thành viên thêm tay không còn cấp quyền).
+
+### 2026-10-25 · Sửa audit 4/12 — tải url tài liệu ngoài không chạm mạng nội bộ
+
+- Nhánh `claude/audit-fix-04-url-fetch-ssrf-25262e` (cắt từ nhánh 3/12). Fingerprint `m04-documents/external-import/url-fetch-redirect-ssrf` **tái hiện được**: `RealGoogle.urls.fetch` tải `https://127.0.0.1/...` và đi theo 302 về `http://127.0.0.1/internal`, trả nội dung dịch vụ nội bộ (fixture loopback, chứng chỉ tự ký, tiến trình con có `NODE_EXTRA_CA_CERTS`).
+- Thêm `apps/api/src/common/safe-url.ts` (`isBlockedAddress`, `urlProblem`, `safeFetch`: https mọi bước, tối đa 5 redirect, chặn loopback/private/link-local/CGNAT/multicast/IPv6 tương đương và tên không dấu chấm, kết nối gắn địa chỉ đã kiểm, giới hạn 100 MB khi đọc luồng). `real-google.ts` dùng `safeFetch`; controller dùng `urlProblem` (400 `internal_address`). Test `test/url-fetch-ssrf.spec.ts` (trước sửa 2 fail/2, sau sửa 70 pass) và một ca e2e trong `external-import-source`. `pnpm ai:check` PASS (BE 261 pass, 9 skip). Không đổi hợp đồng, không thêm thư viện. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 8 đầu mối audit còn lại (phiên 5/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án kiểm egress container API và trường hợp có proxy egress bắt buộc (`safeFetch` kết nối thẳng).
+
+### 2026-10-25 · Sửa audit 3/12 — nhập tài liệu ngoài và templateId chỉ chép file người gọi được xem
+
+- Nhánh `claude/audit-fix-03-external-import-fileid-1aae87` (cắt từ nhánh 2/12). Fingerprint `legacy/external-documents-import:fileId-service-account-copy-without-source-authorization` **tái hiện được**: `nv.mkt` chép file drive Mật 01 BĐH vào MKT (đọc được bản sao) và tạo EXT `effective` trên chính drive Mật; `tp.mkt` đặt `templateId` là file đó và hồ sơ mới mang nội dung mật.
+- Sửa `documents.controller.ts` `importExternal` (writer trên drive phòng đích; fileId phải nằm trên drive công ty người gọi xem được, sai thì 400 `not_found`) và `record-types.controller.ts` `checkRefs` (`templateId` phải là bản hiệu lực của BM đã đăng ký, xem được). Test mới `test/external-import-source.e2e-spec.ts` (trước sửa 3 fail/2 pass, sau sửa 5 pass). `pnpm ai:check` PASS (BE 190 pass, 9 skip). Không đổi hợp đồng. Chi tiết, giả định ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 9 đầu mối audit còn lại (phiên 4/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án cần rà `RecordType.templateId` hiện có trong dữ liệu thật; FE `danh-muc-ho-so` vẫn cho dán link Drive bất kỳ (BE sẽ trả 400).
+
+### 2026-10-25 · Sửa audit 2/12 — hộp thư gắn email đúng tên miền công ty
+
+- Nhánh `claude/audit-fix-02-mailbox-owner-f16a35` (cắt từ nhánh 1/12). Fingerprint `mail-basic/mailbox-owner-local-part` **tái hiện được**: user `nv.mkt@other.example` chèn vào DB đọc được hộp thư `nv.mkt@vcworkspace.test`, tải được link Drive gửi cho nv.mkt; regex người nhận lấy nhầm user ngoài tên miền.
+- Sửa `mail-basic.service.ts` (`mailboxAddress`, `owner`, `assertAddressFree`, `offboardUser`) và `workspace-interop.service.ts` (tra người nhận khớp chính xác, `downloadLink`). Test mới `test/mailbox-owner.e2e-spec.ts` (3 ca: trước sửa 3 fail, sau sửa 3 pass). `pnpm ai:check` PASS (BE 185 pass, 9 skip). Đề nghị hợp đồng R4 (thêm 403 cho mail). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 10 đầu mối audit còn lại (phiên 3/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án cần rà user hiện có ngoài tên miền công ty (sẽ mất hộp thư).
+
+### 2026-10-25 · Sửa audit 1/12 — OIDC kiểm tên miền email
+
+- Nhánh `claude/audit-fix-01-oidc-domain-36359f` (cắt từ `vcworkspace/chat01-12b`). Fingerprint `m01-auth/oidc-callback/email-domain-not-bound-to-company-domain` **tái hiện được**: trước khi sửa, email verified `nv.mkt@other.example` tạo được User và nhận phiên, binding sẵn có bị ghi đè email ngoài tên miền.
+- Sửa `auth.controller.ts`: callback OIDC từ chối email không thuộc `@cfg.oidc.companyDomain` (`loi=identity`) trước cả hai nhánh. Thêm 2 test hồi quy trong `oidc-auth.e2e-spec.ts`. `pnpm ai:check` PASS (BE 182 pass, 9 skip). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 11 đầu mối audit còn lại (phiên kế tiếp cắt từ nhánh này); chưa chạy `ai:check:full`; chính sách Authentik chờ chủ dự án kiểm.
+
+### 2026-10-25 · Audit bảo mật theo Cloudflare security-audit skill
+
+- Skill chưa cài: đọc `SKILL.md` từ github.com/cloudflare/security-audit-skill (commit c1c8a8c), tải các file hướng dẫn + 2 validator (đã rà: chỉ dùng fs/path/util) vào `~/security-audit-skill/skill/` theo đồng ý của chủ dự án. Chạy full audit profile quick: 4 trinh sát, 4 hunter, 1 critic, 4 verifier (13 agent).
+- Không chạy mã dự án: macOS không cưỡng chế RLIMIT bộ nhớ/tiến trình/đĩa, Docker không có image Node (không được tải). Mọi kết luận từ đọc mã; 12 đầu mối đều `needs_validation` có kế hoạch kiểm local bằng harness Jest. Hai validator của skill đạt (12 findings, 23 coverage units).
+- Báo cáo copy vào `docs/bao-mat/`. Chưa sửa mã theo audit.
+
+### 2026-10-25 · Commit, review, QA và bảo mật chat01–12B
+
+- Rà file chưa commit (không có khoá thật), bỏ `.next-*` và `__pycache__` khỏi Git, chia commit trên nhánh mới `vcworkspace/chat01-12b`. Gate đầy đủ đạt. `git push` bị repo chặn nên chưa có PR.
+- Hai lượt review độc lập (logic, bảo mật) và QA trình duyệt trên server giả cô lập. Đã kiểm chứng và sửa F1–F6 (không gian theo tên làm lộ dữ liệu, khôi phục phiên bản làm kẹt tệp, khoá editor mặc định, Google vượt khoá OIDC, production chạy kho giả, đổi tên trùng chính nó), thêm test hồi quy; gate sau sửa đạt BE 180, endpoint 145/145.
+- Còn mở O1–O15 (cần ONLYOFFICE/Stalwart/Authentik thật; Docker đang tắt). Báo cáo: `docs/ke-hoach/vcworkspace-review-qa-2026-10-25.md`.
+
+### 2026-10-25 · Cập nhật tình trạng code sau các chat 01–12B
+
+- Chủ dự án báo các phiên ChatGPT đã code gần xong các tính năng mới. Đối chiếu Git: toàn bộ chat01–12B là WIP chưa commit trên `claude/nghien-cuu-vcworkspace` (base b8c8b80); OpenAPI 2.3.0-gd2; module BE `drive-basic`/`mail-basic`/`workspace-interop`/OIDC; trang FE `/drive`, `/email`, `/bo-nho`.
+- Viết lại mục 1 (tình trạng code, chín nhóm), mục 3 (thêm việc đưa WIP vào Git, đánh dấu xong tách chat và ba nhóm lõi), mục 5 (Docker, `.next` dùng chung). Chỉ sửa sổ tay; không chạy test, không commit.
+
+### 2026-10-25 · Tác vụ định kỳ kiểm chứng phần còn lại báo cáo VCworkspace
+
+- Đã làm: `git switch`/`git pull` nhánh `claude/nghien-cuu-vcworkspace` (đã cập nhật). Hạn mức tuần 0% nên không cần cắt phạm vi. Đọc báo cáo: đợt kiểm 2026-10-23 đã xét đủ **48 ID** (21 ✅, 24 ◐, 1 ❌ ai-agents#6, 2 ? rea-creatoros#3 và sizing-cost#2), có Phụ lục C, D và hồ sơ `vcworkspace-kiem-chung-2026-10-23.md`. Prompt tác vụ (42 luận điểm ○) đã lỗi thời nên **không chạy Workflow kiểm lại**, tránh tốn hạn mức và ghi đè kết luận. Chỉ bỏ chữ “(bản rút gọn)” ở tiêu đề báo cáo.
+- Không làm: không commit/push. Báo cáo (diff 335 dòng) và hồ sơ kiểm chứng (untracked) là thay đổi chưa commit của phiên khác; AGENTS cấm gom thay đổi người khác vào commit. Bốn mục ○ còn lại trong mục 6.1–6.2 (OpenClaw, Hermes, Nextcloud Assistant, knowledge-work-plugins) là thông tin bổ trợ ngoài bộ 48 ID, chưa kiểm.
+- Cần chủ dự án: (1) cho phép commit báo cáo + hồ sơ kiểm chứng lên nhánh này, hoặc tự commit; (2) tắt/sửa tác vụ định kỳ `vcdocs-nghien-cuu-vcworkspace`; (3) nếu muốn, giao kiểm 4 mục ○ bổ trợ.
+
+### 2026-10-25 · Điều phối chạy lại check sau hook timeout
+
+- Stop hook dừng sau173BEpass, wrapper giới hạn110giây; không có testfailure tronglog. Lượt chạy ai:check sandbox bị EPERM cổngMongoTEST; chạy lại đúng escalation/testisolated đãPASS exit0 toàncheck/build, log /private/tmp/vcworkspace-coordinator-check.log. Không nới assertion/timeout hoặc đổi hook. Kếtquả12B giữLOCALPASS, vẫnchờduyệt13.
+
+### 2026-10-25 · Điều phối nghiệm thu12B local
+
+- Đọc bàn giao cuối, service reservation/CAS/fence, tests samekeybarrier/injectedallocationfailure/commitfenceloss; kiểm history finalgateexit0 BE173/145endpoint/FE76/guard44 và liveintegration1/1. Cácblocker đãgiao cófix/test. Nghiệmthu SSO appNext/Nest LOCAL, khôngproduction.
+- Đềxuất bước13 theo lộtrình11: Workmanagement Deck/Notes/Forms/Tables/Collectives trên stacktest riêng, 2nhómgiả, ACL/ownership/exportrestore/browserAPI, khôngdata thật/deploy/mua. Chờhuman duyệt mở13; không tựsuyduyệt12B thànhduyệt13.
+
+### 2026-10-24 · Review12B race tạo cùngkey
+
+-4blocker trước đãsửa cómã/test; review tiếp create phát hiện tăngsubjectrevision trước operationunique. Hai requestcùngkey cóthể tạo revisionphantom rồi superseded/pending khôngrecover. Đã giao12B reservation/transaction/CASmapping và deterministicrace/createfailuretests trước nghiệmthu; không cần human.
+
+### 2026-10-24 · Stop hook lệchcontract lifecycleWIP12B
+
+-4testfail vì steps app-deny/app-commit mới chưakhớpenumOpenAPI;163pass, GEToperation chưađạtcoverage dofail sớm. Đã nhắn12B đồngbộcontract/schema trongscopeđãgiao, giữstrictassertion và tiếp tụcreviewfix. Chưa nghiệmthu.
+
+### 2026-10-24 · Review12B coordinator chưa đạt
+
+- Đọc toàn bộ bàn giao và service/port sảnphẩm: phát hiện globalRevokeNC khôngxóa tokens khi active=true; khóa theooperation khôngtheosubject; apppublishrole/active trướcreadbackupstream; Authentiksessions chỉtrang100. Đã giao12B sửa với race/partialgrant/livebrowserrevoke/paginationtests. Không nghiệmthu theo gateBE167/145endpoint vì khôngphủ các lỗhổng này; chưa mở13.
+
+### 2026-10-24 · Stop hook giữaWIP lifecycle12B
+
+- 162BEpass, coverage142/145 thiếu3route create/read/reconcile lifecycle mới. Đã gửi12B lỗi/log để bổsung e2e quyền/tenant/recovery/CAS trước finalgate; không nới coverage. Đây làWIPchưa nghiệmthu, không cầnhuman.
+
+### 2026-10-24 · Điều phối tiếp tục12B sửa shellUI
+
+-12B báoPARTIAL: OIDCappthật/me200 và gateBE160/endpoint142 đạt, nhưng shellUI loading khôngxong; thiếu luồngUI3persona/Nextcloud/mover/revoke/restart. Đã nhắn tiếp tục debugfix shell trong quyềncũ rồi hoàn tất acceptance, không mở13/chưanghiệmthu. Không cần human chốt thêm.
+
+### 2026-10-24 · Chat12B tích hợp OIDC vào ứng dụng
+
+- Xác nhận đúng nhánh/shared WIP; dùng skills change+contract, không đọc `.env`,
+  không Google/data thật/deploy/push. Thêm OIDC app routes, immutable binding,
+  server-side role map, projection freshness và session revoke; giữ Google cũ.
+- Browser thật dùng client Authentik riêng phát hiện callback API khác origin làm
+  mất state cookie; sửa redirect qua web same-origin. Login manager vào app và
+  `/me` R4 đạt, nhưng React shell còn loading nên bàn giao PARTIAL, không lấy
+  portal harness chat12 thay bằng chứng app.
+- `pnpm ai:check:full` trên cây bàn giao cuối đạt guard44, OpenAPI hợp lệ,
+  BE160/160, endpoint142/142, FE76/76, typecheck/build. Cần tiếp tục blocker
+  UI/browser/lifecycle trước nghiệm thu12B.
+
+### 2026-10-24 · Stop hook giữaWIP12B
+
+- 157BEtestpass nhưng coverage140/142: hai routeGET auth/oidc và callback mới thêm chưa cóe2e. Đã nhắn12B bổsung meaningfulauth/securitytests và finalgate sauimplementation, không nới coverage/skip. Chưa nghiệmthu12B, không cần quyềnmới.
+
+### 2026-10-24 · Human duyệt12B
+
+- Mở `01a16e86-3947-7e12-8a2a-39b10e5eaa1c` tíchhợpOIDC vào apps/web/apps/api thật sauPoC12. Giao rõ contractscope12B/securitybinding/lifecycle/revoke/realbrowser/faulttests/finalgate; giữWIP/nhánh/runtime cũ. Automation chuyển theo dõi12B. Khôngproduction/Google/MX/dữliệuthật.
+
+### 2026-10-24 · Điều phối nghiệm thu12 PoCidentity
+
+- Đã đọc bàn giao sửa và browser-nextcloud-sso.json:3persona same-sub SSO, ACL200/200/404, mover404 sau relogin, renameemail cùngsub, currentNextcloudsession200→401; restoreACLhash/directdeny đạt, finalgateexit0. Nghiệmthu PoClocal12.
+- Giới hạn quan trọng:18122 là standaloneharness, apps/web/apps/api chưaSSO. Đềxuất ưu tiên chat12B tíchhợp OIDC vào sảnphẩm thật trước Workapps13 và deploy/migration; cần duyệt scope mới, không tựmở.
+
+### 2026-10-24 · Chat12 bổ sung browser Nextcloud SSO và nghiệm thu lại
+
+- Review điều phối phát hiện proof cũ chỉ bao phủ portal harness; ACL/revoke
+  Nextcloud dùng app password/OCS. Browser thật còn phát hiện `user_oidc`
+  namespace group thành SHA-256 nhưng Team Folder chỉ bind group local, làm
+  manager OIDC 404; regex cũ không gỡ được ID băm nên mover giữ quyền cũ.
+- Đã bind Team A với federated group ID, dùng regex
+  `^(vcw-|[0-9a-f]{64}$)`, đồng bộ lifecycle local/federated. Browser suite mới
+  chứng minh portal harness → Nextcloud không nhập lại credential, 3 persona
+  ACL, rename giữ `sub`, mover đổi Authentik claim rồi relogin Team A 404 và
+  restore 200, current Nextcloud session revoke 200→401.
+- Restart dịch vụ rồi chạy lại browser suite đạt. Tạo backup mới, recreate đúng
+  ba restore TEST volume; verifier xác nhận regex/federated binding và restore
+  ACL manager 204, member 200, outsider 404/404. Portal 18122 là harness độc
+  lập, chưa tích hợp `apps/web`/`apps/api`; HTTP/local-server exceptions chỉ
+  dành cho loopback PoC, không production.
+
+### 2026-10-24 · Browser12 phát hiện lỗi groupmapping
+
+- Lượt browserNextcloud thật phát hiện OIDC nhóm bị bămID khác vcw-team-a, manager bị404TeamFolder.12 đang sửa mappingclaim; chưa nghiệmthu. Đã yêu cầu sửa headlinePASS cũ và rerun3persona/mover/revoke/restartrestore saufix để backup không giữ config lỗi. Không cần decisionhuman mới.
+
+### 2026-10-24 · Review12 còn thiếu browser Nextcloud SSO
+
+- Đọc hết bàn giao12 và evidencebrowser/revoke: portaladapter18122 cóOIDC/security/session, ACLWebDAV/restartrestore có; NextcloudOIDC mớiconfig/OCCreadback, chưa chứngminh browserSSO và revoke phiênNextcloud đangmở. Đã giao12 bổsung cùngsub/group/directfileACL và phânbiệt harness với appNext/Nest thực. Chưa nghiệmthu12, chưa mở13.
+
+### 2026-10-24 · Human duyệt12 và mở chat
+
+- Human trực tiếp “duyệt 12”; mở `01a16e32-0b5b-7a63-ae20-29b8050789cf` đúng projectVCworkspace local, giao triển khai và kiểm SSO/subject/groupACL/lifecycle/sessionrevoke/audit/restartrestore, security/faulttests và finalgate. Quyềncontract scope12 đã giao rõ; giữ runtime cũ và sharedWIP.
+- Automation tiếp tục theo dõi/review12, chỉbáo hoànthành hoặc decision thật mới; khôngproduction/MX/Google/dữliệu thật.
+
+### 2026-10-24 · Điều phối nghiệm thu11 tài liệu
+
+- Đọc hết lộtrình sửa, xác minh trực tiếp lịch Nextcloud và changelogONLYOFFICE chính thức; đã sửa candidate/range/giới hạnCE, tách Flowapp cósẵn với adapterphải viết. Nghiệmthu sảnphẩm khảo sát11, chưa nghiệmthu app/runtime9nhóm.
+- Đềnghị mở12 theo gói mục5: stacklocal mới NC33.0.10 + Authentik/OIDC +4persona .test, TeamFolders/groupACL/lifecycle/revoke/audit/restartrestore, không Google/domain/dữliệu thật. Chờhuman duyệt gói12; không hỏi productionidentity lúc này.
+
+### 2026-10-24 · Chuẩn bị deploy và chuyển Google
+
+- Human hỏi điều khiển Google để lập kế hoạch chuyển Email/Drive. Đã xác nhận connector tài khoản và đọc metadata một trang folder; không export/chuyển/sửa dữ liệu. Chưa xác minh quyền superadmin/tổng dung lượng.
+- Ghi kế hoạch `docs/ke-hoach/vcworkspace-ke-hoach-deploy-chuyen-google.md`: deploy cũ chưa đủ stack mới; cần inventory/staging/pilot/delta/cutover/rollback, identity/mailDNS/backup/load/license. Chưa được coi là duyệt deploy/MX/chuyển dữ liệu thật.
+
+### 2026-10-24 · Review11 vòng1
+
+- Đọc hết lộtrình9nhóm: kiếntrúc/ACL/backlog12–21/acceptance đã có; chưa nghiệmthu vì nguồnversionNC33 có URLplatform31, giới hạnONLYOFFICECE chưacụthể và trigger/actionFlow chưa tách appcósẵn với adaptercầnviết. Đã yêucầu11 sửa nguồn/version/limits và góiPoC12 đềnghịhuman; chưa mở12.
+
+### 2026-10-24 · Chat11 — lộ trình đủ chín nhóm
+
+- Human trực tiếp duyệt mở chat11 trong điều phối00; phạm vi chỉ khảo sát/tài
+  liệu, không code lớn, cài app, mua dịch vụ, production hoặc mở chat12.
+- Xác nhận đúng checkout/nhánh và giữ nguyên shared WIP; đọc AGENTS, sổ tay,
+  biên bản phát triển, bàn giao10, hồ sơ nghiên cứu/kiểm chứng và inventory mã.
+- Đối chiếu nguồn chính thức ngày 2026-10-24: Nextcloud33 còn được hỗ trợ nhưng
+  không là latest; app NC33 candidates; External Storage/filecache; Talk
+  TURN/HPB; Flow engine và deprecation External App Flow; AI CPU/GPU; LDAP/audit.
+- Viết `docs/ke-hoach/vcworkspace-11-lo-trinh-9-nhom.md`; tách LOCAL PASS/DOC/
+  PoC/NOT_TESTED, chi phí phần mềm với hạ tầng/vận hành, không cam kết Enterprise
+  parity. `pnpm ai:check` lần đầu bị sandbox chặn MongoDB thử mở cổng local;
+  chạy lại ngoài sandbox đạt guard44, OpenAPI hợp lệ (181 warning hiện có),
+  BE157/140 endpoint, FE76, typecheck/build và diff-check. Gate kiểm toàn shared
+  WIP 363 file bằng Google giả; không chạy app/runtime thật và không chứng minh
+  app mới. Câu hỏi human giữ lại: NAS/mobile thật, quy mô họp, production
+  identity, GPU/cost và production topology.
+- Review11 vòng cuối: thay link Talk/Context Agent dạng `platform=` bằng trang
+  release metadata; sửa Forms NC33 từ 5.4.1 thành 5.3.6; ghi lịch chính thức
+  NC33.0.10 maintained tới 2027-02 và NC35.0.2 latest ngày kiểm. Bổ sung giới
+  hạn ONLYOFFICE CE 9.4 (không cap 20 document cũ nhưng recommended 20 users,
+  thiếu mobile web editor/cluster/support; AGPL Section7/branding chưa legal
+  review), phân rã Flow connector có sẵn với custom adapter. Đề nghị human duyệt
+  chat12 local clone NC33.0.10 + Authentik/OIDC/test identities; chưa mở chat12.
+
+### 2026-10-24 · Human duyệt mở11
+
+- Human trả lời trực tiếp “Duyệt mở chat 11”, giải quyết thiếuủyquyền tạo chat trước đó. Đã mở `01a16e18-d565-7333-a5c5-31f3c3f2de8b` khảo sát đủ9nhóm miễnphí: gap/compatibility/license/identityACL/acceptance/lộtrình chat12+.
+- Giới hạn khảo sát read-only và tài liệu; chưa code lớn/càiapps/mua/deploy. Tiếp tục automation review11, không tự coi9nhóm đã hoàn thành.
+
+### 2026-10-24 · Điều phối review10 đạt; phạm vi mở rộng chờ quyền mở chat
+
+- Đọc toàn bộ bàn giao10 và output runtime/gate cuối exit0: fake/fault26/26, Office thật3/3, mailmanagement5/5, revoke Aalive/Bdeny, interop1/1; BE157/140endpoint/FE76/guard44. Nghiệm thu ba nhóm cốt lõi LOCAL, không production.
+- Đã xác minh trực tiếp lời human trong chat “Giải thích Nextcloud” về mục tiêu đủ9nhóm và miễn phí phần mềm. Cần khảo sát khoảng trống/kiến trúc/lộ trình bổ sung, chưa coi là đã phát triển đủ.
+- Đề nghị chat11: khảo sát read-only9nhóm, kiểm compatibility/license appCommunity, thiết kế identity/ACL/data boundary, ma trận acceptance và thứ tự chat12+; chưa code lớn/cài app/production/mua dịch vụ. Tạo chat11 bị automatic approval review từ chối vì chưa có ủy quyền rõ cho task mới/phạm vi mở rộng; chờ human xác nhận mở chat11, không thử lách.
+
+### 2026-10-24 · Nghiệm thu09 và mở10
+
+- Review lại service, provenance fingerprint, stable send journal, race409 và link web tuyệt đối; evidence logout/login-return tải đúng hash, realV2/ACL/revoke/expiry đạt. Final gate exit0 BE157/endpoint140/FE76/guard44. Nghiệm thu09 LOCAL.
+- Mở10 `01a16c12-36e4-7923-b06d-28751bcefb70` nghiệm thu tổng thể; giao ma trận thật/fake, quyền/fault/restart/backuprestore, tự sửa blocker đến hết. Automation chuyển theo dõi10, giữ giới hạn thử và WIP.
+
+### 2026-10-24 · Stop hook trong lượt sửa09
+
+- Cây WIP mới: test liên kết mail không trích được token từ MIME, 154 test đạt/1 lỗi; endpoint shared-link chưa được chạm vì ca dừng sớm. Đã gửi09 lỗi dòng56 và log để sửa parsing MIME/URL tuyệt đối, giữ assertion quyền và fullgate cuối. Chưa nghiệm thu09 hoặc mở10; không cần human.
+
+### 2026-10-24 · Review09 — real đạt, còn sửa link/idempotency
+
+- Đọc toàn bộ bàn giao, evidence real và mã service: browser ba engine có bodyV2/hash, real integration1/1 và fullgate BE155/140endpoint/FE74/guard44 đạt.
+- Chưa nghiệm thu09: link email còn đường dẫn tương đối; nhánh race duplicate-key chưa kiểm lại fingerprint; snapshot ghép version vào key có nguy cơ cùng key gửi hai payload. Đã giao09 sửa, bổ sung race/mismatch tests và kiểm click link từ thư. Chưa mở10, không cần quyền mới.
+
+### 2026-10-24 · Review tiến độ09 — gate đạt, tiếp tục runtime
+
+- Đọc toàn bộ bàn giao09: fake E2E2/2, full gate guard44/BE155/endpoint140/FE74 đạt; lỗi coverage giữa WIP đã được khắc phục.
+- Chưa có bằng chứng liên thông thực trên Stalwart–Nextcloud–ONLYOFFICE/browser nên chưa nghiệm thu09, chưa mở10. Đã tiếp tục cùng chat09 để chạy A→B, bodyV2/save/reopen, snapshot/link/hash/ACL/deny và retry; không cần quyền mới từ human.
+
+### 2026-10-24 · Stop hook kiểm giữa WIP09
+
+- BE153 testpass nhưng coverage137/140 do3API liênthông09 vừa thêm chưa có e2e: saveattachmentDrive/sendDriveFile/sharedlink. Đã nhắn09 bổ sung meaningfultests/finalgates, không nới coverage. Đây là WIP09 sau nghiệmthu08, không lấy gate08 chứng minh09. Chưa mở10.
+
+### 2026-10-24 · Review08 đạt và mở09
+
+- Đọc toàn bộ final bàn giao08, tests durability/CAS/fencing/MIME, toolhistory realmanagement/revokeproof/finalgates exit0. Review cuối NO BLOCKER; realStalwart5/5, BE153 endpoint137 FE74 guard44/build. Nghiệmthu PoClocal, giới hạn synclớn/controltokenproduction còn ghi rõ.
+- Đã mở09 Liênthông Email–Drive–Office, giao attachment saveDrive/editV2/sendback snapshot hoặc ACLlink, engine/browser/faultproof và contractscope. Không hỏi quyền cũ, khôngproduction.
+
+### 2026-10-24 · Stop hook phát hiện regression filter trên WIP08
+
+- Gate tự chạy sau heartbeat failed: POST mailfilters trả503 thay201 tại mail-management test27/98; hai endpoint coverage không tới do các ca dừng sớm. 150pass2fail, durability tests pass. Đây là cây WIP chưa nghiệmthu, không lấy gate cũ xanh thay thế.
+- Chuyển lỗi cụthể và đường dẫn output cho08 xửlý filterlease/fake readback/fencing, không nới assertion. Chưa mở09, chưa cần human.
+
+### 2026-10-24 · Review08 vòng tiếp — bốn blocker
+
+- Realadapter5/5 và browsersearch/gate xanh sau xửlý452, ingestion/Sieve/readback/offboarding có; review chỉra4 lỗi chặn: kill session không principal-specific, sendACK→Mongofail retry uncertain, filter rollbackprocesslocal, MIMEparser chưa folded/QP.
+- Giao08 sửa trực tiếp với durable journal/CAS/reconciliation và parser phù hợp, tests fault/race/restart/deny. Không cần decisionhuman mới, không mở09 trước review đạt.
+
+### 2026-10-24 · Điều phối yêu cầu hoàn tất blocker08
+
+- Đọc final/review mới: structural fixes inbound/sharedSent/readrole đã có; fake4/4/fullgate đạt nhưng realadapter bị452 quota. Không nghiệm thu hoặc mở09.
+- Giao08 tiếp tục xử lý ratewindow/backoff/quota CHỈ accounttest, không tắt global guard; hoàn thiện offboarding/selectedsession revoke/reconciliation và ingestion mail nhận trực tiếp để search/filter. Đây là scope08 hiện có, không cần human chốt lại.
+
+### 2026-10-24 · Resume đúng08:45
+
+- Heartbeat đến08:41, điều phối đọc checkpoint và đợi đúng08:45 trước nhắnresume08. Cùngchat `01a168eb-bc87-7050-9bfd-5e863647acec`; không tạotrùng. Chỉnh lịch thứBảy về15phút để tiếp tục điều phối.
+- Checkpoint protocol đã có revoke/restart, wiringSieve còn readerfailed; oldgate không chứng minh finaltree. Giao sửa reader, realE2E/browser/finalgates trước review/mở09. Không có quyền mới cầnhuman.
+
+### 2026-10-23 · Chốt giờ tiếp tục08:45
+
+- Human chỉnh giờ từ08:00 sang08:45 sáng24/10/2026 giờVN. Automation cùngID đã đổi phút45; hồ sơ resume đồng bộ. Các mốc08:00 ở nhật ký lịch sử đã bị thay thế.
+
+### 2026-10-23 · Sửa lịch tiếp tục sang sáng mai
+
+- Human sửa yêu cầu: sáng mai, không phải thứHai. Đã đổi automation hiện có sang08:00 thứBảy24/10/2026 giờVN; cùng ID, không tạo duplicate. Hồ sơ resume cập nhật cùng mốc. Lịch26/10 ở nhật ký cũ đã được thay thế.
+
+### 2026-10-23 · Chuẩn bị hết token và hẹn tiếp tục thứHai
+
+- Lập hồ sơ resume/checkpoint, nguồn sự thật và thứ tự08→09→10; nhận định hiện tại08 đã có protocol revoke nhưng wiring engine app còn dở. Nhắn08 chốt an toàn rồi dừng, không mở09.
+- Chọn08:00 thứHai26/10 giờVN theo yêu cầu sáng thứHai; đổi lịch hiện có, không tạo duplicate. Việc chạy phụ thuộc app/máy và quota khả dụng, không coi lịch là bảo đảm execution thành công.
+
+### 2026-10-23 · Review08 runtime còn thiếu, giao tiếp tục
+
+- Đọc toàn bộ bàn giao08: code/gate đạt BE145 endpoint136 FE74 guard44 nhưng nhãn/filter/sharedACL mới metadata API, chưa provision/readback engine; chưa credential mới và browser cuối. Chưa nghiệm thu/mở09.
+- Sau human hỏi phải làm gì, điều phối xác định đây là việc agent tự xử lý trong scope và gửi tiếp08: credential mới đúng user thử, JMAP keyword/Sieve/GroupACL thật, restart/readback/revoke protocol và browser. Không hỏi lại quyền đã duyệt, không đụng secret/dữ liệu thật.
+
+### 2026-10-23 · Chat08 Quản lý Email — code/gate đạt, protocol còn dở
+
+- OpenAPI lên 2.1.0; thêm UI/API nhãn nhiều nhãn, search server-side theo scope,
+  filter hữu hạn tự áp, alias identity và shared mailbox ACL read/send/manage.
+  Alias/shared AUTH bằng mailbox gốc với Stalwart; raw MIME đọc qua engine mapping;
+  idempotency gồm identity/HTML/references/hash attachment.
+- Target mail 6/6 đạt; full gate cuối exit0: guard44, BE145, coverage136/136,
+  FE74, typecheck/build. Container Stalwart/relay, Nextcloud và ONLYOFFICE up.
+- Protocol script đã thêm IMAP CAPABILITY/SEARCH/custom folder proof nhưng chưa
+  chạy vì không có credential thử trong phiên; không đọc secret cũ. CUA browser
+  đóng transport trước khi tải UI. Ghi rõ metadata nghiệp vụ chưa đồng bộ JMAP
+  keywords/Sieve/Group ACL; chưa đủ điều kiện tự mở chat09.
+
+### 2026-10-23 · Review07 bổ sung đạt và mở08
+
+- Theo yêu cầu mở08, điều phối phát hiện/giao sửa network bridge egress; internal+sidecar proxy fixed loopback giữ SMTPIMAP hoạt động. Đọc compose/protocol script/evidence: internal egress denied, new run chat07-1792761321413 SMTPACK/IMAPfetch marker+base64 attachment match, SHA190f41f5…78140.
+- Chốt gatefull cuối toolcompleted exit0; guard44 BE141 contract125 FE73/typecheck/build đạt. Forward message/rfc822 có testFE1/1; browser cuối transport mất, ghi rõ không lấy hashbrowser độc lập thay API/protocol. Chấp nhận local task07.
+- Mở08 Quản lý Email theo ủy quyền, giữ isolation và phạm vi giả, không hỏi lại quyền đã duyệt.
+
+### 2026-10-23 · Chat07 Email cơ bản local
+
+- OpenAPI `2.0.0-gd1`; thêm MailPort fake/real, Stalwart adapter loopback,
+  metadata tenant và UI `/email`. Raw MIME/attachment giữ ở mail engine.
+- Stalwart official v0.16.27 linux/arm64 chạy volume/cổng riêng; không restart
+  Nextcloud/ONLYOFFICE. Protocol SMTP ACK + IMAP fetch attachment hash đạt.
+- API e2e 2/2 và browser manager/reader đạt draft reopen, send/receive/status;
+  attachment browser đến inbox đúng, nhưng công cụ tải MIME timeout nên không có
+  hash download browser độc lập. Không đọc `.env`, không mail thật/deploy/commit/push.
+
+### 2026-10-23 · Review06 đạt và mở07 Email cơ bản
+
+- Đọc toàn bộ bàn giao06/evidenceV2; tự kiểm PPTX SHA aca135f2…8e7a, PDF0743fd35…69cb, slide1 markerV2/slide2ellipse; pdftotext và xem render slide2 không clipping/mất glyph. Tool history gate cuối completed exit0, guard44/BE139 endpoint118/FE72/typecheck/build. Nghiệm thu local, không suy production.
+- Đã mở chat07 mail cơ bản: mail engine thật cô lập .test, egress chặn, UI/API/MIME/attachment hash/draft/reply/thread và permissions; contract trong scope, không mail thật.
+
+### 2026-10-23 · Chat06 Slide hoàn tất local
+
+- Thêm contract `1.9.0-gd1`, endpoint tạo PPTX, `documentType=slide`, kiểm OOXML
+  presentation, native/PDF export và UI; sinh lại schema. Mẫu ba slide tiếng
+  Việt 16:9 dùng Liberation Sans, có title/body/shape/table.
+- Target 4/4 và integration thật 3/3 đạt; ONLYOFFICE xuất PPTX V1 thành PDF
+  64.393 byte/3 trang, text slide 2/3 đọc được. Full gate cây hiện tại đạt
+  guard 44, BE139/coverage118, FE72, typecheck/build.
+- Sau khi human mở khóa, browser manager sửa marker V2 và thêm ellipse bố cục,
+  Save → Drive bản2 → reopen cùng file → slideshow 1/3 đạt; reader “Sẵn sàng
+  xem”, không Save/edit. Phát hiện và sửa iframe editor bị rơi về 150px do
+  height calc không hợp lệ.
+- Chính V2 PPTX/PDF được xuất: hash `aca135f2…8e7a` / `0743fd35…69cb`; XML có
+  marker/ellipse/3 relationships/Liberation Sans, PDF 3 trang và render không
+  tràn/mất glyph. Full gate cuối đạt 139 BE, coverage118, FE72, guard44/build.
+  Không mở chat07 từ phiên này.
+
+### 2026-10-23 · Nghiệm thu gate chat05 và mở06
+
+- Điều phối đối chiếu tool output: lượt pnpm ai:check:full cuối completed exit0 sau sửa type parser; BE137/137, endpoint117/117, FE72/72, guard44, typecheck/build đạt. Kết hợp review độc lập XLSX XML/PDF text/hash ở phiên trước, nghiệm thu bảng tính local.
+- Đã mở **VCworkspace 06 — Slide**, ID `01a168ab-4e5f-7cf3-b89c-8c32d493c173`, project VCworkspace local; giao editor thật, PPTX/PDF V2 có marker/nội dung/layout, trình chiếu, quyền và regression Office/contract/gates. Không hỏi lại quyền đã duyệt, tự chạy tiếp tới bàn giao.
+
+### 2026-10-23 · Review bằng chứng bảng tính chat05
+
+- Đọc toàn bộ bàn giao/evidence V2; điều phối tự giải XLSX, kiểm D2=4, F2=6000000, SUMIF=8000000, VLOOKUP=2400000, SUM=10400000; SHA XLSX/PDF khớp evidence. Tự pdftotext xác nhận số lượng4, tiếng Việt và tổng10400000.0đ trong PDF thật.
+- Chưa mở06 vì chat05 vẫn sửa type parser test và chạy gate final; chỉ chấp nhận sau kết quả gate trên cây cuối. Không có quyết định cần human.
+
+### 2026-10-23 · Chat05 hoàn tất bảng tính local
+
+- Cập nhật contract/schema/API/UI XLSX trên callback/version chat04; kiểm cấu
+  trúc OOXML theo loại, không nhận tệp chỉ có magic `PK`.
+- Target 4/4 và tích hợp thật 2/2 đạt. Browser manager sửa D2=4, Save V2, mở
+  lại cùng fileId thấy D2/công thức/filter; XML có cached SUM 10.400.000,
+  IF/SUMIF/VLOOKUP và sort/filter; PDF text đúng. Reader mở view, không control ghi.
+- Full gate cây cuối đạt: guard 44/44, OpenAPI hợp lệ (152 warning hiện có),
+  BE 137/137 và 117/117 endpoint, FE 72/72, typecheck/build và diff-check đạt.
+- Không đọc `.env`, không dùng Google/dữ liệu thật, không deploy/commit/push,
+  không restart/purge container healthy. Apps Script/macro, tải nhiều người và
+  production chưa kiểm. Chat06 chưa mở.
+
+### 2026-10-23 · Nghiệm thu chat04 và mở05
+
+- Điều phối theo sát recovery Docker và browser; yêu cầu sửa phép kiểm V1 thành đúng bảnV2 người dùng sửa. Evidence cuối fileId 6adb46a6f74e6fe769f0398d, version2; DOCX SHA06df653a85d6d91ea617e447e0840a547d20e7bb6be669e3104628e9c0d6971f, PDF SHA36110c53f73ce0ea9cc88492aca7cadc7d372b8314a4c4fab787ee5f27c20a55; cả hai có marker body đã gõ. Cùng file mở lại edit.
+- Đọc final bàn giao/evidence JSON, callback stale test và gate cuối: BE135/135, endpoint116/116, FE72/72, guard44 và build đạt. Chấp nhận phạm vi local; chưa đo tải/coediting nhiều người production.
+- Đã mở chat05 bảng tính thật UI/API/ONLYOFFICE/Drive, công thức/lọc/sort, saveV2/reopen/export XLSX PDF, giao contract trong scope. Tiếp tục tự động; không hỏi lại quyền runtime/local cũ.
+
+### 2026-10-23 · Chat04 hoàn tất editor và PDF local thật
+
+- Phục hồi Docker Desktop có mục tiêu, giữ nguyên volumes chat03. Xác minh manifest arm64 ONLYOFFICE 9.4.0.1 lỗi `exec format error`; ghim rõ platform amd64 chính thức qua emulation, container healthy loopback.
+- Browser manager Google giả tạo và sửa DOCX trong editor ONLYOFFICE thật; Save báo thành công, danh sách Drive hiện bản 2 và kích thước 25.428 byte. Mở lại đúng fileId đạt mode edit; xuất currentVersion V2 có marker đã gõ trong cả XML DOCX và text PDF (hash ghi ở evidence). Test tích hợp lặp lại với Nextcloud thật kiểm manager edit/reader view và converter. Callback phiên thứ hai mang key version cũ bị từ chối, không tạo version 3.
+- Target chat04 và full gate cuối được chạy lại sau sửa; kết quả ghi trong bàn giao. Không đọc `.env`, không dùng Google/dữ liệu thật, không deploy/commit/push và không tự mở chat05.
+
+### 2026-10-23 · Docker phục hồi, tiếp tục nghiệm thu editor thật
+
+- Theo kết quả thực thi mới từ chat04, backend/pull request và helper treo đã được dừng có mục tiêu, engine ARM64 khởi động lại; không sửa/xoá Docker.raw hoặc volumes. Tăng trần đĩa đã được loại vì virtual disk vốn460Gi.
+- Điều phối cũng đã thử status ngoài sandbox và xác nhận treo trước phục hồi; không suy lỗi socket sandbox thành lỗi daemon. Chat04 tiếp tục pull image ARM64/editor/browser và PDF thật. Chưa có bằng chứng hoàn tất, chưa mở05.
+
+### 2026-10-23 · Tiếp tục phục hồi Docker cho chat04
+
+- Human giao tự khắc phục và hoàn tất editor thật, không dừng ở giao việc. Chẩn đoán chat04: filesystem VM Docker hết dung lượng khi pull image; host còn44Gi và archive chat03 còn429MiB. Không purge/reset/xoá volume.
+- Đã yêu cầu kiểm/tăng disk allocation bằng cơ chế cấu hình chính thức có lưu hiện trạng, xác minh workload; chat04 active thực hiện recovery. Chưa nghiệm thu editor/PDF, chưa mở05.
+
+### 2026-10-23 · Codex kiểm Stop hook sau trao đổi chức năng Nextcloud
+- Đã chạy lại `pnpm ai:check`: diff, guard/gate, contract lint và API typecheck qua; test API bị chặn ngay khi MongoMemoryServer mở cổng với `listen EPERM: operation not permitted 0.0.0.0` trong sandbox. Chưa tới FE/build; không thể xác nhận lại độ phủ endpoint ở lượt này.
+- Output hook trước đó ghi thiếu test e2e GET `/drive/editor/content` và POST `/drive/editor/callback` (114/116 endpoint); đây là phần phát triển đồng thời của chat khác. Chat giải thích không sửa mã, hợp đồng hoặc nới gate; blocker hiện tại là quyền mở cổng của môi trường kiểm tra. Không có quyết định mới.
+
+### 2026-10-23 · Kiểm tiến độ chat04 theo yêu cầu human
+
+- Đọc trạng thái và tool history: chat04 active, API tạo DOCX/callback/version/ACL/retry có 2 tests đạt; lỗi header tên tiếng Việt của export đã sửa. Chưa có editor/browser/PDF thật; Docker Desktop báo unable to start.
+- Điều phối giao tiếp tục chẩn đoán/khôi phục runtime local không reset/purge/đụng volume; phân biệt sandbox socket denial với daemon lỗi thật, kiểm kiến trúc image và tài nguyên. Không dùng fake để nghiệm thu; chưa mở05. User không phải duyệt lại quyền local đã có.
+
+### 2026-10-23 · Nghiệm thu chat03 và mở04
+
+- Đọc final chat03 và xem ảnh12 restore: đúng ui03-renamed-chat03ui2.txt đã trash→restore UI, ID 6adb3ff6cf4129e9aa012d04/28 byte giữ nguyên; reader không controls ghi. Hash/byte được chứng minh ở integration API/Nextcloud và usable restore đã review; không nâng ảnh UI thành hash độc lập. Final gate chat03 đạt, sau đó chỉ docs/ảnh và diff check.
+- Đã mở **VCworkspace 04 — Soạn thảo văn bản**, ID `01a16875-5a7e-7ed1-af4b-8665d23d833e`, project VCworkspace local. Giao editor/connector thật, UI/API/Drive/version/export, contract và local runtime trong phạm vi; không production.
+
+### 2026-10-23 · Human xác nhận trash/restore UI fixture chat03
+
+- Nhận xác nhận trực tiếp cho ui03-renamed-chat03ui2.txt vào thùng rác local rồi khôi phục, chuyển nguyên văn tới chat03. Không hỏi lại quyền này; chưa xác nhận thao tác đã chạy.
+- Review bằng chứng cuối đạt sẽ mở04 ngay, tiếp tục điều phối tự động đến hết phạm vi.
+
+### 2026-10-23 · Xác nhận giới hạn CUA ở bước trash UI (17:06 VN)
+
+- Chat03 trích instruction CUA ưu tiên cao hơn: “Always Confirm at Action-Time (Even If Pre-Approved)”, mục “[1] Delete data (cloud and local)”. Xác nhận là yêu cầu công cụ cụ thể, không phải quyền task còn thiếu; điều phối không thay human xác nhận.
+- Cần human xác nhận đúng fixture `ui03-renamed-chat03ui2.txt` vào thùng rác local rồi khôi phục qua UI. Các phần usable restore/version/rename/move và gate đã có; giữ bước04 chưa mở, không né bằng công cụ khác.
+
+### 2026-10-23 · Review bàn giao chat03 (16:36 VN)
+
+- Đọc toàn bộ bàn giao và integration tests: API/Nextcloud version/trash/restart có bằng chứng; UI mới tạo folder/thấy controls, chưa thao tác tính năng mới. Backup manifest trùng và Mongo phục hồi riêng chưa chứng minh phục hồi toàn stack dùng được.
+- Đã giao chat03 tiếp tục browser rename/move/version/trash restore bằng tệp giả và boot bản Nextcloud+metadata phục hồi trên đích/cổng riêng, tải qua API bằng id cũ kiểm checksum/quyền. Không hỏi lại quyền local thử, không mở04 trước khi đủ bằng chứng.
+
+### 2026-10-23 · Chat03 Drive an toàn dữ liệu
+
+- Đã thêm bảy API và UI cho rename/move giữ ID, version bất biến/restore theo checksum, trash/restore cả cây; manager-reader-none và tenant được kiểm ở BE. Blob version tách khỏi đường dẫn logic để move không làm mất lịch sử.
+- Nextcloud local opt-in đạt sau restart. Usable restore run `restore-mvks7o45` boot volume mới `vcworkspace_drive_chat03_usable_restore_mvks7o45` ở `127.0.0.1:18081` cùng MongoDB thử đích; API tải đúng tệp ID cũ, byte/SHA/currentVersion, reader download và reader 403 ghi đều đạt. Evidence `poc/drive-nextcloud/evidence/chat03-usable-restore-restore-mvks7o45.json`; không xoá volume nguồn/đích, không đụng dữ liệu thật.
+- Browser harness Google giả xác nhận manager xem/restore version 1, tải, đổi tên và di chuyển tệp khỏi root. Sau xác nhận trực tiếp, đã nạp lại đúng fixture `ui03-renamed-chat03ui2.txt`, trash/restore cùng ID `6adb3ff6cf4129e9aa012d04`, giữ 28 byte và tải lại; reader thấy cùng file/link tải nhưng không có controls ghi. Ảnh `docs/huong-dan/anh/10-drive-chat03-doi-ten-di-chuyen.jpg` đến `13-drive-chat03-reader.jpg`.
+- Hai credential user PoC giả từng xuất log do nạp file sai đã được xoay ngay; integration chạy lại bằng credential mới. Hook sửa hẹp cho phép FE test loopback/cache riêng, vẫn chặn entrypoint BE và guard 44/44.
+- Full gate chạy lại trên cây cuối đạt: OpenAPI hợp lệ (145 cảnh báo hiện có), BE 133/133 và 111/111 endpoint, FE 72/72, typecheck/build. Không deploy/commit/push; chat04 chưa mở.
+
+### 2026-10-23 · Codex kiểm tra theo Stop hook trong chat giải thích Nextcloud
+- Đã chạy `pnpm ai:check` trên `claude/nghien-cuu-vcworkspace`: `git diff --check` đạt, guard/gate 43/43 đạt; dừng tại contract lint với 1 lỗi `no-unresolved-refs`, 145 cảnh báo. Lint chi tiết chỉ tới tham chiếu `#/components/responses/InternalError` trong phản hồi 500 của POST `/drive/folders` (vị trí có thể đổi do phiên khác đang sửa).
+- Blocker: hợp đồng đang có thay đổi từ các chat phát triển khác; chat này chỉ giải thích Nextcloud, không nhận sửa hợp đồng. Giữ nguyên các thay đổi có sẵn; chưa chạy các bước FE/BE/build sau lint, chưa có quyết định hay câu hỏi mở mới.
+
+### 2026-10-23 · Xác nhận điều phối tự động từ chat03 đến hết
+
+- Chủ dự án nhắc tiếp tục theo dõi chat03, review kỹ rồi mở04 ngay khi đạt; tự xử lý đến hết, cập nhật sổ tay và chỉ báo hoàn tất từng bước hoặc quyết định thật sự cần chốt. Lịch điều phối 15 phút hiện có đã bao phủ yêu cầu này, không tạo lịch trùng.
+- Snapshot chat03 đang active phát triển stable id, version bất biến/checksum và trash/restore. Chưa có bàn giao final, chưa mở04.
+
+### 2026-10-23 · Nghiệm thu chat02 và chuyển chat03
+
+- Đọc final bàn giao và browser evidence mvkqwtie: manager create/upload/list/download, reader list/download không controls ghi; source + hai download cùng SHA-256 01751a26ec61d2f58a2cb3d50164f6fb135665133e9c47c95b652969d0f70913. Kết hợp evidence API/quyền/restart/P10 đã review trước, chấp nhận Drive cơ bản local; không phải xác nhận production.
+- Chủ dự án giao chạy tự động đến hết phạm vi; điều phối mở chat03 Drive an toàn dữ liệu, giao rõ contract/API/UI/adapter thật/version/trash/backup restore và final gates. Không hỏi lại quyền cũ.
+
+### 2026-10-23 · Chat02 sửa hook và hoàn tất browser smoke
+
+- Sửa `scripts/ai/policy.mjs` phân loại shell/patch theo `tool_name`; adapter
+  đưa patch vào `cmd` không còn gây false positive. Giữ chặn secret, schema sinh,
+  CLI vận hành, Google thật/production và thao tác nguy hiểm. Cập nhật hint
+  SessionStart và regression tiến trình hook thật; guard/gate 43/43 đạt.
+- Thêm harness browser dùng Jest/ts-jest, Mongo tạm, Google giả, Nextcloud
+  loopback; không đọc `.env`. FE smoke dùng `NEXT_DIST_DIR=.next-smoke` tránh
+  tranh chấp cache với build song song. Cache lỗi cũ được chuyển có thể khôi
+  phục sang `/private/tmp`, không xoá dữ liệu nguồn.
+- Browser run `mvkqwtie`: manager tạo `UI2-mvkqwtie`, upload/list/download
+  `browser-upload-2.txt`; reader thấy phòng “Chỉ đọc”, không có nút tạo/upload,
+  list/download thành công và personal trống. Ba bản tệp cùng SHA-256
+  `01751a26ec61d2f58a2cb3d50164f6fb135665133e9c47c95b652969d0f70913`.
+  Evidence scrub và hash ảnh ở `poc/drive-nextcloud/evidence/browser-smoke-mvkqwtie.json`.
+- Gate cuối đạt: OpenAPI hợp lệ với 138 cảnh báo hiện có; BE 132 test và
+  104/104 endpoint; FE 72/72; typecheck/build đạt. Hai test opt-in bị skip đúng
+  khi không cấp credential. Không đọc secret thật, không deploy/commit/push;
+  Chat03 chưa mở, chờ điều phối review.
+
+### 2026-10-23 · Xác định chỗ kẹt UI thay cho trạng thái quyền cũ
+
+- Theo yêu cầu chủ dự án, đọc lịch sử tool gần nhất chat02: activeFlags đã rỗng, không còn hộp approval treo. Manager tạo/upload/list/download có bằng chứng; reader bị lỗi Next client manifest/cache, API smoke giữ chạy bằng Jest đã timeout sau 1 giờ, download browser timeout.
+- Đã giao chat02 phục hồi server test/FE đúng loopback, kiểm health, refresh fixture và hoàn thiện reader/none/hash; không hỏi lại quyền đã duyệt. Các thông báo chờ quyền trước là snapshot cũ. Chưa nghiệm thu hoặc mở03.
+
+### 2026-10-23 · Theo dõi sửa hook và smoke UI (15:06 VN)
+
+- Hook đã có thay đổi phân loại shell/patch; chat02 đang thực hiện browser smoke bằng runtime Jest/ts-jest và Mongo tạm sau lỗi decorator của bootstrap tsx. Chưa có bàn giao final hoặc nghiệm thu UI.
+- Snapshot chat02 có cờ waitingOnApproval; phần quyền thử local/sửa hook đã được chủ dự án duyệt, nhưng không thay thế hộp cấp quyền công cụ thực tế. Chưa mở chat03.
+
+### 2026-10-23 · Kiểm tiến độ sửa hook theo yêu cầu chủ dự án
+
+- Điều phối kiểm file policy/hook hiện hành: chưa có bản sửa hoặc bằng chứng regression mới để nghiệm thu; chat02 đang active xử lý. Đã nhắn tiếp tục sửa hook và thông điệp SessionStart đang gây hiểu nhầm, sau đó kiểm browser trong cùng task.
+- Chưa xác nhận hook đạt, chưa mở chat03. Tiếp tục theo dõi bằng heartbeat; không dùng kết quả guard cũ thay cho kiểm bản sửa.
+
+### 2026-10-23 · Duyệt sửa hook chặn nhầm
+
+- Chủ dự án giao sửa hook. Điều phối giao chính chat02 sửa phân loại shell command và patch ở tool adapter/policy, thêm regression allow/deny và kiểm hook thực tế; không tắt hook hoặc blanket allow. Sau khi guard đạt, tiếp tục browser smoke.
+- Chưa có kết quả sửa/kiểm; sẽ review bằng chứng trước mở chat03.
+
+### 2026-10-23 · Hook thực tế chặn harness browser (14:51 VN)
+
+- Chat02 xác nhận PreToolUse từ chối thêm harness, lý do “Công cụ vận hành chỉ dùng trong phiên riêng”. Điều phối đọc policy: regex công cụ vận hành quét command toàn chuỗi, cần lấy đúng lệnh/token match để xác nhận có false positive. Không tự tắt/né guard.
+- Giao chat02 ghi chính xác rejection và chuẩn bị đề xuất sửa hẹp có fixtures, chưa áp dụng. Cần chủ dự án cho phép sửa rule nếu đúng chặn nhầm, hoặc chọn phiên môi trường riêng hợp lệ để smoke. Chưa nghiệm thu/mở chat03.
+
+### 2026-10-23 · Gỡ cách hiểu chặn smoke UI (14:36 VN)
+
+- Chat02 báo adapter thật/API A/B/P10 sau PUT đã đạt, còn browser. Điều phối xác định AGENTS không cấm khởi động mọi BE thử; chỉ không chạy app tự nạp secret thật hoặc thao tác production. Đã giao tiếp tục browser qua bootstrap test không nạp .env, DB riêng, fake identities và loopback trong quyền thử local đã có.
+- Chưa nghiệm thu chat02 hoặc mở chat03; chờ bằng chứng UI và review final. Không phát sinh quyết định mới cần chủ dự án.
+
+### 2026-10-23 · Review triển khai chat02 (14:21 VN)
+
+- Đọc bàn giao, module/storage và evidence run mvkmx0pm: kho riêng có matrix 11 pass + restart P03 pass, nhưng sản phẩm chỉ FakeWorkspaceStorage và chưa kiểm UI. P10 mới là endpoint503, chưa chứng minh timeout sau khi kho nhận byte/recovery không trùng. Không coi toàn bộ chat02 đạt.
+- Đã giao chat02 tiếp tục nối adapter thật theo người, kiểm luồng UI/API/kho với DB/danh tính giả, restart/checksum/quyền và fault sau PUT; sửa bảng bàn giao hiện hành và tách lịch sử. Chưa mở chat03. Không có quyết định mới cần chủ dự án.
+
+### 2026-10-23 · Chat 02 bổ sung adapter sản phẩm và recovery thật
+
+- Đã thay Docker Desktop Intel sai kiến trúc bằng 4.96.3 ARM64; client
+  `darwin/arm64`, engine `linux/arm64`. Bản Intel giữ tạm ở
+  `/private/tmp/VCworkspace-Docker-Intel-backup.app`, chưa xoá. Không đọc `.env`.
+- Hợp đồng lên `1.5.0-gd1`, ghi D23/nguồn duyệt trực tiếp, thêm sáu API Drive và
+  sinh lại schema FE. Lớp sản phẩm có Space/SpaceMember/DriveItem/UploadAttempt,
+  StoragePort fake mặc định và Nextcloud opt-in theo credential từng email,
+  manager/reader, checksum/idempotency/audit và trang `/bo-nho`.
+- Nextcloud 33.0.5 đúng digest chạy cô lập `127.0.0.1:18080`; P01–P12 đạt trên
+  WebDAV/OCS. P10 nay ghi byte thật rồi phát timeout có kiểm soát, đối soát và
+  retry không trùng; evidence hiện hành run `mvkn94h0`. Integration API bằng
+  Mongo tạm/Google giả chứng minh A tạo-upload-list-download, B chỉ đọc và
+  metadata/byte/checksum còn sau restart container; evidence scrub
+  `api-nextcloud-mvknc24c.json`.
+- Gate cuối đạt: guard 40/40, OpenAPI hợp lệ (138 cảnh báo hiện có), BE 132/132
+  và 104/104 điểm cuối, FE 72/72, typecheck/build; harness 21/21. Google giả,
+  CSDL tạm; integration Nextcloud opt-in bị skip trong full gate không credential
+  và đã chạy riêng đạt 1/1 với credential giả. Không khởi động BE,
+  không deploy/commit/push và không mở chat 03.
+- Còn lại sau review: chưa smoke UI bằng trình duyệt/chụp ảnh. Harness dự kiến
+  chỉ dùng `createApp`, MongoMemoryServer loopback, Google fake và không nạp
+  `.env`, nhưng hook chặn với lý do “Công cụ vận hành chỉ dùng trong phiên riêng”.
+  Đối chiếu `policy.mjs` cho thấy tên biến instance CSDL tạm bị match như CLI cũ;
+  patch ghi đề xuất fixture cũng bị chặn vì chứa chuỗi âm về production. Không
+  sửa/lách guard. Đề xuất chờ duyệt: phân loại shell command hoặc allowlist đúng
+  harness, có fixture cho phép test loopback và vẫn chặn CLI thật/secret/entrypoint.
+  Chưa thử rộng Unicode/case sensitivity; credential chỉ là giả local.
+
+### 2026-10-23 · Duyệt runtime và hợp đồng, tiếp tục chat 02
+
+- Chủ dự án duyệt cả hai: cài môi trường container local riêng và cập nhật hợp đồng sáu API theo đề xuất; giao tiếp tục chat 02, review xong mới mở bước tiếp theo. Quyết định này thay thế các mục chờ duyệt tương ứng ở nhật ký cũ.
+- Điều phối giao lại chính chat 02, giữ WIP, phạm vi dữ liệu giả/local; hoàn thiện hợp đồng, PoC thật, rồi phần sản phẩm theo tiêu chí bàn giao. Không mở chat 03 trước nghiệm thu, không có quyền production/dữ liệu thật.
+
+### 2026-10-23 · Review lần cuối phần chuẩn bị chat 02 (12:51 VN)
+
+- Đã đối chiếu sửa evidence theo runId/tách matrix–restart, kiểm StartedAt khi restart, xác minh share và preflight image/loopback; chạy lại toàn bộ PoC/unit tests 21/21 đạt. Chấp nhận các sửa chuẩn bị đã yêu cầu, chưa nghiệm thu kho Nextcloud hoặc Drive sản phẩm.
+- Không mở chat 03; vẫn chờ runtime container và giao sửa hợp đồng sáu API đã báo. Không có quyết định mới, không nhắc lại yêu cầu người dùng. Không chạy lại gate ứng dụng vì không sửa mã trong phiên review.
+
+### 2026-10-23 · Review bổ sung chat 02 (12:35 VN)
+
+- Runner Nextcloud opt-in và bốn unit test adapter đã bổ sung; điều phối chạy lại 16/16 test đạt. Chưa có kho thật, vẫn chờ hai quyết định đã báo (runtime container và sáu API), không hỏi lại hoặc mở chat 03.
+- Phát hiện runner verify-restart ghi đè bằng chứng matrix, chưa kiểm container thật sự restart; setup nuốt lỗi share quá rộng, preflight chưa đối chiếu published endpoint. Đã giao chính chat 02 sửa và thêm tests không cần Docker. Đây là hoàn thiện chuẩn bị, chưa nghiệm thu PoC/Drive.
+
+### 2026-10-23 · Điều phối review chat 02 — chưa nghiệm thu
+
+- Đọc toàn bộ bàn giao, đề nghị sáu API, Compose, README và adapter. Chạy lại `node --test poc/drive-nextcloud/test/fake-storage.test.mjs`: 12/12 đạt. Không chạy lại gate ứng dụng; gate cũ là kết quả chat 02 báo cáo.
+- Kho thật chưa chạy vì thiếu Docker. Runner tích hợp Nextcloud cũng chưa có trong bàn giao; adapter DAV dùng regex và chưa chuẩn hoá timeout/network. Đã gửi việc bổ sung có thể làm ngay cho chính chat 02 (ID không đổi), giữ bước sau chưa mở.
+- Cần chủ dự án chốt: cho phiên môi trường riêng cài runtime container local (đề xuất Colima + Docker CLI, hoặc cấp runtime tương đương); giao cập nhật hợp đồng theo sáu API đề nghị trước code sản phẩm. Phạm vi hiện duyệt chỉ chuẩn bị đề nghị, chưa sửa OpenAPI.
+
+### 2026-10-23 · Chat 02 Drive cơ bản và PoC Nextcloud
+
+- Đã ghi đề nghị sáu API Drive trung tính vào `apps/api/DE_NGHI_SUA_HOP_DONG.md`,
+  giữ nội dung cũ; chưa sửa OpenAPI/schema. Đã chuẩn bị PoC ở
+  `poc/drive-nextcloud/`: Nextcloud 33.0.5 ARM64 ghim digest, Compose loopback
+  và volume riêng, WebDAV/OCS adapter, core idempotency/quyền/checksum/audit.
+- Bằng chứng hiện có: P01–P12 đều đạt trên MemoryStorage (12/12 Node tests), hai
+  module qua syntax check và diff check đạt. `pnpm ai:check` lần đầu bị sandbox
+  chặn cổng MongoDB thử; chạy lại với quyền loopback đạt guard/gate 40/40,
+  OpenAPI hợp lệ (131 cảnh báo hiện có), BE 129/129 + 98/98 endpoint, FE 72/72,
+  typecheck/build. Fake và gate không chứng minh Nextcloud.
+- Blocker thực tế: máy không có Docker nên chưa chạy Nextcloud, ACL A/B trực
+  tiếp, restart, đo tài nguyên hoặc UI/API sản phẩm. Sáu API cũng chưa được duyệt
+  để code NestJS/FE. Bàn giao đầy đủ ở
+  `docs/ke-hoach/vcworkspace-02-ban-giao-drive.md`.
+- Không đọc `.env`, không chạy BE/Google thật, không deploy/commit/push và không
+  mở chat 03. Bước sau: duyệt hợp đồng; cấp Docker trong phiên môi trường riêng,
+  chạy P01–P12 kho thật rồi mới quyết định code sản phẩm lớn.
+- Bổ sung sau review điều phối: runner Nextcloud opt-in đã có preflight
+  loopback/port/đúng Compose project và service, provision A/B + hai root, ACL
+  credential từng người, đối soát OCS share, evidence matrix/restart tách file
+  theo runId và verify-restart bắt buộc `StartedAt` thay đổi. Adapter
+  đã xử lý DAV propstat 200/namespace/XML entity/collection, timeout và lỗi mạng;
+  9 unit test mới, tổng 21/21 test PoC đạt. Runner chỉ syntax-check vì vẫn thiếu
+  Docker; P10 kho thật để blocked tới khi có fault proxy loopback kiểm soát.
+
+### 2026-10-23 · Duyệt gói thử và mở chat 02
+
+- Chủ dự án đã duyệt toàn bộ gói thử đề xuất; ghi quyết định tại mục 2 và mục 6 biên bản. Các ghi chú “chờ duyệt” ở nhật ký cũ là trạng thái lịch sử đã được thay thế.
+- Đã mở **VCworkspace 02 — Drive cơ bản và PoC Nextcloud**, ID `01a16729-0e11-7c21-b3e6-92413b4acb9c`, host local. Phạm vi trước mắt: đề nghị sáu API, harness/adapter thử và PoC Nextcloud cô lập; không sửa OpenAPI gốc hoặc code lớn trước duyệt hợp đồng.
+- Điều phối tiếp tục theo dõi chat 02 qua heartbeat đã có, kiểm bằng chứng trước bước tiếp; chưa mở chat 03. Chỉ sửa tài liệu trong phiên điều phối; diff check đạt, không chạy lại test ứng dụng.
+
+### 2026-10-23 · Review chat 01 và nhận điều phối tuần tự
+
+- Chat 01 đã completed. Đã đọc toàn bộ `docs/ke-hoach/vcworkspace-01-thiet-ke-drive.md`; nội dung đáp ứng bàn giao thiết kế (khoảng trống, quyền, dữ liệu, lỗi, sáu API đề nghị, P01–P12). Đối chiếu lại mã `common/idempotency.interceptor.ts` xác nhận fingerprint hiện chỉ băm body, và `m03-folders/folders.service.ts` còn phụ thuộc driveId/Google. Chấp nhận bước khảo sát/thiết kế, chưa chấp nhận PoC hay tính năng chạy được.
+- Kết quả gate là bằng chứng chat 01 báo cáo, không chạy lại tại phiên điều phối; không dùng gate Google giả làm bằng chứng Nextcloud. Đã thiết lập heartbeat mỗi 15 phút theo yêu cầu theo dõi; chỉ báo khi có thay đổi đáng kể/hoàn tất/lỗi/cần quyết định.
+- Đã gửi gói lựa chọn cụ thể để chủ dự án chốt trước chat 02: PoC local cô lập, ACL theo người, phòng + cá nhân, tên trùng 409 và 10 MiB/tệp thử. Giới hạn này là đề xuất mới của điều phối, chưa duyệt. Chưa mở bước phụ thuộc, chưa sửa mã/contract, không deploy.
+
+### 2026-10-23 · Chat 01 khảo sát và thiết kế Drive cơ bản
+
+- Bổ sung kết quả cuối: `git diff --check` đạt. `pnpm ai:check` lần đầu bị sandbox chặn MongoDB thử mở cổng local (`listen EPERM 0.0.0.0`); lượt chạy lại với quyền cổng local đạt guard/gate 40/40, OpenAPI hợp lệ với 131 cảnh báo hiện có, BE 129/129 và 98/98 điểm cuối, FE 72/72, typecheck/build. Gate dùng Google giả và kiểm toàn WIP; không phải bằng chứng Nextcloud. Chưa thử adapter, ACL, checksum hoặc persistence của kho mới.
+- Đã làm: xác nhận checkout `claude/nghien-cuu-vcworkspace` và toàn bộ WIP; đọc AGENTS, sổ tay, biên bản phát triển, báo cáo kiểm chứng và Phụ lục D; kiểm tĩnh luồng folder/upload, `GooglePorts`, quyền, idempotency, audit, jobs, model và UI hiện tại. Viết `docs/ke-hoach/vcworkspace-01-thiet-ke-drive.md` để bàn giao chat 02: luồng hai người dùng thử, sơ đồ UI–API–StoragePort–Nextcloud, định danh trung tính, ma trận quyền, retry/idempotency/trùng tên, đề nghị hợp đồng, PoC P01–P12 và tiêu chí nghiệm thu.
+- Kết luận: tái dùng được khung Next.js/NestJS, session/CSRF, tenant, audit và một phần jobs/quyền sau khi tách phụ thuộc; chưa có file resource/API Drive cơ bản. `Folder.googleId`, `Department.driveId`, GooglePorts, retry GoogleError, URL FE và OpenAPI còn mang nghĩa Google nên không thể chỉ đổi URL. Đề xuất Nextcloud vẫn là ứng viên PoC, chưa là quyết định triển khai.
+- Cần chủ dự án chốt trước code lớn: cho phép PoC Nextcloud cô lập; ACL kho theo từng người hay service credential chung (đề xuất từng người); một hay hai loại không gian thử (đề xuất phòng + cá nhân); chính sách trùng tên/giới hạn upload ban đầu. Chat 02 phải ghi đề nghị hợp đồng trước, không tự sửa `contract/openapi.yaml`.
+- Kiểm tra phiên này: chỉ kiểm tĩnh và tài liệu; chạy `pnpm ai:check` sau khi hoàn thiện tài liệu. Chưa chạy Nextcloud/BE, chưa kiểm adapter/ACL/checksum/restart, chưa sửa mã/hợp đồng, không đọc `.env`, không commit/push/deploy và không mở chat 02.
+
+### 2026-10-23 · Phân chia chat phát triển tuần tự
+
+- Đã mở chat **VCworkspace 01 — Khảo sát nền tảng và thiết kế Drive** (`01a16720-2406-72f1-9134-18dbe8efbf5b`) trong project VCworkspace, cùng thư mục hiện tại.
+- Đã ghi dự kiến 11 khung (1 điều phối + 10 công việc) trong mục 5 biên bản phát triển. Chủ dự án cho phép tách chat; bắt đầu bằng khảo sát nền tảng và thiết kế Drive, trước 8 đợt tính năng và nghiệm thu tổng thể.
+- Chưa thay đổi mã sản phẩm, chưa duyệt stack/hạ tầng hoặc dữ liệu thật. Các lựa chọn còn mở giữ nguyên; kiểm tài liệu bằng diff, không chạy lại test ứng dụng cho thay đổi tài liệu.
+
+### 2026-10-23 · Ghi biên bản phát triển tuần tự ba nhóm lõi
+- Đã làm: theo yêu cầu chủ dự án, ghi `docs/ke-hoach/bien-ban-thu-tu-phat-trien-vcworkspace.md`. AI chọn Drive làm trước: tạo thư mục, upload/download, định danh và quyền; tiếp theo version/restore, văn bản, bảng tính, slide, email cơ bản, quản lý email và liên thông. Mỗi đợt có tiêu chí nghiệm thu; bản giả không thay PoC adapter thật trong môi trường thử.
+- Còn dở: chưa viết mã; phiên triển khai tiếp theo khảo sát/thiết kế lát cắt Drive đợt 1 và xác định thay đổi hợp đồng nếu có. Ghi thứ tự không đồng nghĩa đã mua/deploy hoặc được thay dữ liệu/quyền thật. Giữ các câu hỏi về hạ tầng, ngân sách, dữ liệu và vận hành đang mở. Không commit/push/deploy.
+
+### 2026-10-23 · Làm rõ ba nhóm dịch vụ lõi: Email, Office và Drive
+- Kiểm tra sổ tay/tài liệu: diff check đạt; `pnpm ai:check` đạt (guard 40/40, BE 129/129 + 98/98 API, FE 72/72, typecheck/build), OpenAPI còn 131 cảnh báo hiện có. Gate kiểm WIP repo đang có, không chứng minh 3 dịch vụ đề xuất đã tích hợp hoặc vận hành.
+- Đã làm: trả lời yêu cầu phát triển ba nhóm chức năng, hiểu Office gồm văn bản/bảng tính/slide. Đề xuất Stalwart + webmail, ONLYOFFICE qua connector Nextcloud, Nextcloud Files/Group Folders; VCworkspace phát triển lớp nghiệp vụ/API, quyền, liên kết dữ liệu, audit và điều phối AI. Ưu tiên thử connector sẵn; chưa tách thành nhiều microservice hay tự viết editor/mail engine.
+- Quy tắc lưu đề xuất: Drive là kho tài liệu làm việc có quyền/phiên bản; Office lưu lại qua connector/API của kho. Mailbox và MIME/attachment gốc ở mail server; chỉ sao chép attachment hoặc lưu liên kết sang Drive theo thao tác/quy tắc rõ. Hồ sơ chốt giữ bản PDF/kho riêng theo nghiệp vụ, không đồng nhất với version/trash của Drive. Không thiết lập hai bộ quyền độc lập hoặc ghi thẳng vào thư mục dữ liệu của engine.
+- Căn cứ: mở tài liệu ONLYOFFICE how-it-works/saving-file, connector onlyoffice-nextcloud, Nextcloud WebDAV (trang latest tự ghi NC36 upcoming), Group Folders, repo Stalwart và Nextcloud Mail. Chưa xác nhận phiên bản tích hợp thực tế, tương thích nhãn/SSO, cấp thu hồi tài khoản, file locking/callback, ACL hoặc tải. Một số URL Stalwart API/Nextcloud35 không truy cập được, không coi là nguồn đã đọc.
+- Còn dở: chủ dự án chốt mức giao diện thống nhất (dùng app có sẵn trước hay tự xây toàn bộ UI), yêu cầu bảng tính và mail nhóm; sau đó đặc tả chức năng/PoC. Đây là đề xuất tính năng, không có phê duyệt code/deploy, không sửa mã/hợp đồng, không sửa bản kiểm chứng 100 của 100.
+
+### 2026-10-23 · Cô đọng hồ sơ kiểm chứng hai vòng 20–80
+- Gate phiên này: `pnpm ai:check` đạt; guard 40/40, BE 129/129 + 98/98 API, FE 72/72, typecheck/build qua; OpenAPI còn 131 cảnh báo hiện có. Dùng Google giả/MongoDB tạm. Sơ đồ mới kiểm cấu trúc Mermaid và liên kết, chưa xác minh render bằng ảnh.
+- Đã làm: theo bố cục chủ dự án xác nhận, sửa trực tiếp `docs/nghien-cuu/vcworkspace-kiem-chung-2026-10-23.md` thành 3 mức: “20 của 20” → “20 của 100” → “100 của 100”. Vòng 1 lấy phần trọng yếu từ bản đầy đủ, vòng 2 tiếp tục cô đọng từ vòng 1; khoảng 20,5% rồi 21,6% (vòng 2 khoảng 4,4% bản gốc theo đếm tách khoảng trắng). Thêm 4 sơ đồ Mermaid về kiến thức, luồng dữ liệu, quy trình di cư và ra quyết định; giữ phân biệt bằng chứng/PoC/quyết định.
+- Kiểm tra nội dung: phần 100 giữ nguyên từng byte so với trước sửa; đủ 48 câu gốc, 51 anchor không trùng, liên kết tóm tắt và 4 khối sơ đồ hợp lệ về cấu trúc. Không kiểm chứng lại web, không sửa kết luận nguồn hay chốt triển khai mới.
+- Còn dở: không có việc cô đọng mới; các quyết định và PoC còn mở của nghiên cứu giữ nguyên. Không sửa mã/hợp đồng, không commit/push/deploy.
+
+### 2026-10-23 · Đề xuất lại phương án VCworkspace sau kiểm chứng
+- Kiểm tra phiên này: `pnpm ai:check` đạt sau khi cho phép mở cổng local cho MongoDB tạm (lần sandbox đầu EPERM); guard 40/40, BE 129/129 và 98/98 API, FE 72/72, typecheck/build đạt. OpenAPI hợp lệ, 131 cảnh báo hiện có. Gate chạy cả kiểm ứng dụng vì checkout có WIP cấu hình/package từ phiên khác; đây không phải kiểm thử Nextcloud/Stalwart hoặc bằng chứng kiến trúc đề xuất chạy được. Kiểm 12 mục quyết định và diff check đạt.
+- Đã làm: đọc lại sổ tay, báo cáo/hồ sơ kiểm chứng và quản trị AI hiện có; mở lại nguồn Nextcloud MCP, ONLYOFFICE 9.4, Stalwart OIDC, Talk scalability. Thêm Phụ lục D vào báo cáo: đề xuất C về mã + Nextcloud, giữ Gmail/Meet lúc đầu; thử tệp/lịch/office/AI đọc/nháp cho một phòng, mail sau khi PoC đạt. ONLYOFFICE CE là ứng viên thử đầu, không ghim bản 9.4 hay cam kết đủ tải. Gateway chỉ bổ sung phần thiếu; GCP/vùng dữ liệu, relay và hỗ trợ chờ chốt.
+- Cần chốt: 6 quyết định trước dựng thử và 6 trước dữ liệu thật/chuyển chính ở D.3, cùng inventory do IT thu thập bằng quyền được giao. Phân biệt đề xuất với quyết định: chủ dự án chưa phê duyệt stack, ngân sách, lịch di cư hay triển khai qua phiên tư vấn này.
+- Còn dở: chủ dự án chốt D.3, sau đó mới lập kế hoạch PoC và tiêu chí nghiệm thu cụ thể; không sửa mã/hợp đồng, không mua/deploy, không đổi quyền/dữ liệu thật hay lịch tác vụ.
+
+### 2026-10-23 · Codex triển khai 4 lớp AI, cập nhật tên VCworkspace
+- Đã làm: cập nhật tên hiện hành trong README, hướng dẫn API/web/contract/deploy, mục lục và sổ tay; giữ tên các bản nguồn/lịch sử và định danh runtime/remote thực tế. Viết AGENTS dùng chung, CLAUDE dẫn AGENTS, 3 skill trong `.agents/skills`, Codex config/rules/hooks, Claude settings/deny/hooks, bộ kiểm tra theo thay đổi/full và GitHub CI/CODEOWNERS. Hướng dẫn kích hoạt và quyền cần chủ dự án/IT làm: `docs/huong-dan/quan-tri-ai.md`.
+- Kiểm tra cuối: 40/40 ca guard/gate đạt; native Codex rule checker xác nhận 5 deny + git status không cấm, không thực thi lệnh nguy hiểm; config strict và 3 skill được native loader nạp, 3 hook project không lỗi nhưng `trustStatus=untrusted`. Full gate đạt: BE 129/129, 98/98 điểm cuối; FE 72/72; typecheck FE/BE + build đạt. OpenAPI hợp lệ, 131 cảnh báo hiện có; không sửa hợp đồng. Skill validator, YAML/JSON/TOML, link tài liệu và diff check đạt. Sandbox ban đầu chặn mở cổng test, đã chạy lại với MongoDB tạm và Google giả.
+- GitHub đọc live: repo vẫn `buithoanh/VCdocs`, public; main/dev chưa bảo vệ, chưa ruleset; tài khoản CLI đang có admin. Không thay quyền, visibility hay tên repo. Không đọc secret, không kết nối Google/CSDL thật. Giữ nguyên WIP nghiên cứu và ảnh có sẵn; không commit/push/deploy.
+- Còn dở phía chủ dự án: review/trust hooks và smoke test trong phiên mới (chưa kiểm end-to-end Claude Code); đưa workflow lên GitHub rồi bật required check `VCworkspace / verify` cho main/dev; tách môi trường/identity và rà quyền Google/GCP/Workspace theo hướng dẫn. Đổi tên folder/remote/package/hạ tầng là di trú riêng, chưa làm.
+
+### 2026-10-23 · Codex tư vấn 4 lớp Agent Harness
+- Đã làm: đọc nội dung người dùng gửi, sổ tay, AGENTS.md/CLAUDE.md và lệnh kiểm tra của repo; đối chiếu tài liệu OpenAI về hooks, rules, sandbox. Đề xuất áp dụng cho VCdocs/VCworkspace và quy trình dùng AI lâu dài, phân biệt hướng dẫn với kiểm soát quyền thực tế, kiểm tra theo loại thay đổi và cổng CI phía máy chủ.
+- Còn dở: đây là tư vấn, chưa chốt hay cài cấu hình, chưa kiểm tra quyền GitHub/GCP/Google đang có hiệu lực. Không đọc secret, không sửa mã/hợp đồng, không commit/push/deploy. Thêm đề xuất vào mục 3, giữ nguyên các quyết định đã chốt và câu hỏi mở.
+
+### 2026-10-23 · Codex vẽ cây folder/file
+- Đã làm: khảo sát cây file checkout `claude/nghien-cuu-vcworkspace`; vẽ tổng quan và xuất cây chi tiết cho chủ dự án, bỏ thư viện, bản build, cấu hình bí mật và dữ liệu local. Xác nhận thư mục hiện tại là `/Users/apple/projects/VCdocs`; VCworkspace có báo cáo ở `docs/nghien-cuu/`.
+- Còn dở: không có việc mới; danh sách mục 3–4 giữ nguyên. Không đổi mã, không commit/push.
+
+### 2026-10-23 · Sol High kiểm chứng VCworkspace, Astra High rà điểm khó
+- Đã làm: truy lại `key_claims` gốc của Claude, sửa số 42 thành 48 ID còn chưa hoàn tất (41 của 7 mảng + 6 workspace + 1 nhãn thư); giữ nguyên ID và câu gốc trong hồ sơ bằng chứng. Sol High kiểm 30 ID web, rà độc lập 6 ID mã; Astra High kiểm 12 ID bảo mật/pháp lý/chi phí và rà các kết luận khó. Kết quả: 21 confirmed, 24 partially, 1 refuted, 2 unverifiable. Cập nhật `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md`, thêm `vcworkspace-kiem-chung-2026-10-23.md` và mục lục tài liệu.
+- Sửa trọng yếu: có MCP Nextcloud/CalDAV nên không bắt buộc tự viết toàn bộ gateway; ONLYOFFICE 9.4 bỏ cap 20, CODE mặc định không cap 10/20; production Euro-Office không đồng nghĩa bắt buộc mua Enterprise. Sửa quyền routines, giới hạn di cư Takeout/ACL, phụ thuộc gián tiếp Gmail trong mã, phạm vi Object Lock/Cloudflare TCP. Pháp lý: không miễn CTIA chung 5 năm cho DN nhỏ; Luật An ninh mạng 2018 hết hiệu lực từ 01/07/2026 theo Điều 44 Luật 116/2025/QH15. Bỏ tổng 440 USD/tháng, giảm 37% và tiết kiệm 6–14 GB khỏi kết luận chắc chắn.
+- Kiểm tra: đọc nguồn chính thức và mã checkout `b8c8b805fce3ab831ac316d21343140b48d9b421`; `pnpm --filter @vcdocs/api typecheck` đạt. Kiểm tra đủ 48 ID/câu gốc/dòng kết quả, tổng phân loại, 87 liên kết file và `git diff --check` đều đạt. Astra đã rà bản tổng hợp cuối; đã sửa các mâu thuẫn còn sót về GCE/khối lượng thư chưa biết, khả năng quay lui, điểm lỗi đơn và nghĩa vụ giấy phép. Đếm tĩnh 32 phương thức/8 cổng, 129 ca test khai báo, 98 thao tác API; chưa chạy lại 129 test và chưa thử dữ liệu thật. Không sửa mã/hợp đồng, không commit/push/deploy.
+- Còn dở: “AI Jev” chưa rõ định danh; giá GCP Singapore đúng SKU/CUD chưa xác nhận được. Cần chủ dự án chốt 20 câu hỏi, kiểm gói/giấy phép cụ thể và PoC quyền từng người, nhãn thư, provisioning/offboarding, export/restore/ACL, tải office/video, phục hồi backup. Lịch Claude 25/10 chưa đổi; không coi nghiên cứu là phê duyệt triển khai.
+
+### 2026-10-23 · Codex đọc bàn giao Claude
+- Tư vấn chọn model kiểm chứng: đề xuất GPT-6.1 Sol mức high làm chính; Astra rà các luận điểm khó hoặc ảnh hưởng quyết định kiến trúc, bảo mật, giấy phép, chi phí. Đây là đề xuất, chưa bắt đầu kiểm chứng và chưa có quyết định mới của chủ dự án.
+- Đã làm: đọc `CLAUDE.md`, sổ tay, mục lục tài liệu, nguồn và đề nghị sửa hợp đồng FE/BE, báo cáo nghiên cứu VCworkspace; xác nhận checkout hiện tại là `claude/nghien-cuu-vcworkspace`. Tiếp nhận các việc đang làm và câu hỏi mở ở mục 3–4; chưa có quyết định mới.
+- Còn dở: giữ nguyên danh sách mục 3–4. Các kết quả test, trạng thái Google và lịch tác vụ trong bàn giao là ghi nhận của phiên trước, chưa kiểm tra lại trong phiên đọc này. Không sửa mã, hợp đồng, không commit/push/deploy.
+
+### 2026-10-22 · Báo cáo rút gọn VCworkspace (Opus 5.5)
+- Đã làm: theo yêu cầu chủ dự án, bỏ phần kiểm chứng còn lại, viết báo cáo từ kết quả 72 agent: `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md` (14 mục + 2 phụ lục; ✅/◐/○ cho từng luận điểm). Kết luận chính: GCE chặn gửi cổng 25 → mail lai (hộp thư GCE + relay Amazon SES); nền đề xuất Nextcloud + Stalwart + ONLYOFFICE/Euro-Office + Authentik + LiveKit/Jitsi; không đập hết VCdocs (phương án C: tách khung hạ tầng, port nghiệp vụ hồ sơ sau); REA là công cụ phân tích, Creator OS là SaaS, "Jev" tìm được là mô hình quyết định đóng của TypeSafe AI (chờ xác nhận); VM cần ~2 máy 8 vCPU/32 GB + 4 vCPU/8 GB. Thêm dòng vào `docs/README.md`. Commit trên `claude/nghien-cuu-vcworkspace` (cắt từ `dev`), chưa merge.
+- Còn dở: kiểm chứng 42 luận điểm ○ (phiên 2026-10-25); 20 câu hỏi cho chủ dự án ở mục 13 báo cáo.
+
+### 2026-10-22 · Tác vụ định kỳ theo dõi hợp đồng API (rev 24, không sửa gì)
+- Đã làm: đọc toàn bộ hợp đồng rev 24 (so với rev 22 trong `contract/NGUON.md` của `giai-doan-1`): rev 23 thêm mục 10 giai đoạn 2 đợt 1 (M10 Bàn giao, M15 Nhật ký, E1–E21, OpenAPI 1.5.0-gd2), rev 24 sửa dòng phạm vi quyền mục 6. Toàn bộ đã nằm trong `contract/openapi.yaml` 1.5.0-gd2 và `NGUON.md` (dòng rev 24) trên nhánh `giai-doan-2` (commit 0ade10b). Phần chạm giai đoạn 1 (Job.type, Notification.type, `/me.limits`, `/me.auditorAccess`) chỉ thêm, không bắt buộc, thuộc việc giai đoạn 2 → không chép sang `giai-doan-1`. Không commit (checkout `main` đang có sửa chưa commit của phiên khác).
+- Lưu ý: hợp đồng chưa đổi tên `[Đã chốt]`; tác vụ 30 phút vẫn chạy (xem đề nghị tắt ở phiên 2026-10-22 VCworkspace).
+
+### 2026-10-22 · Nghiên cứu VCworkspace thay Google Workspace (tạm dừng vì hết hạn mức)
+- Yêu cầu chủ dự án (8 điểm): (1) code trực tiếp trên máy ảo Anthropic (Claude Code cloud) → merge GitHub → deploy GCP; (2) đập tính năng VCdocs, xây email server **VCworkspace** thay Google Workspace; (3) cần nhận/gửi thư, gắn nhãn, họp, lịch, lưu trữ, soạn văn bản/bảng tính/trình chiếu; để sẵn cửa tích hợp mã nguồn mở thay Adobe/CapCut/Office, "REA – Reverse Engineer Anything", "Creator OS" (chạy quảng cáo), nhân viên tự phát triển thêm; (4) tự động hoá tối đa quá trình phát triển; sản phẩm có AI agent, trợ lý cá nhân 24/7 always-on, "AI Jev"; (5) bảo mật cao (kho trung tâm công ty); (6) tận dụng mã nguồn mở, dễ mở rộng; (7) plugin `anthropics/knowledge-work-plugins`, hướng công ty 1 thành viên; (8) không hiểu thì hỏi lại.
+- Đã làm: Workflow 13 mảng khảo sát web song song (Claude Code cloud/GitHub Action/Agent SDK; CI/CD GitHub→GCP; mail server trên GCP; so sánh mail server OSS; bộ workspace OSS; office/họp/lịch; công cụ sáng tạo; REA/Creator OS/AI Jev; AI agent & plugins; bảo mật & pháp lý VN; di cư; chi phí; mã VCdocs hiện có), mỗi luận điểm quyết định kiểm bằng 2 agent độc lập (nguồn gốc, cập nhật). 13/13 khảo sát xong; kiểm chứng xong claude-cloud, cicd-gcp, gcp-mail, creative-tools, mail-stacks (5/6); dở workspace-suites; chưa kiểm 7 mảng còn lại, chưa rà thiếu, chưa viết báo cáo. Dừng theo yêu cầu. Kết quả 72 agent: `~/.claude/projects/-Users-apple-projects-VCdocs/0153f5e4-10fe-4d4d-98d6-3915a62ea6bf/subagents/workflows/wf_d8f20636-759/` (`ket-qua-da-xong.json`, `journal.jsonl`); script: `~/.claude/projects/-Users-apple-projects-VCdocs/0153f5e4-10fe-4d4d-98d6-3915a62ea6bf/workflows/scripts/nghien-cuu-vcworkspace-wf_d8f20636-759.js`.
+- Đặt tác vụ một lần `vcdocs-nghien-cuu-vcworkspace` (2026-10-25 05:00 giờ VN; chỉ chạy khi app Claude đang mở) làm tiếp: kiểm chứng còn lại → rà thiếu → viết `docs/nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md` → sổ tay → commit nhánh `claude/nghien-cuu-vcworkspace` cắt từ `dev` → báo chủ dự án.
+- Bên lề: máy local đã có `gh`, `gcloud` (sửa mục 5). Tác vụ `vcdocs-kiem-tra-hop-dong-api` vẫn chạy mỗi 30 phút dù hợp đồng đã chốt — tốn hạn mức, đề nghị chủ dự án tắt. Sổ tay sửa trên checkout `main`, chưa commit (để phiên 25/10 commit cùng báo cáo trên nhánh riêng).
+- Còn dở: toàn bộ báo cáo; 3 câu hỏi mới ở mục 4.
 
 ### 2026-10-20 · BE: lệnh nhận cây thư mục có sẵn trên Drive (nhánh `claude/nhan-cay-thu-muc`)
 - Đã làm: `pnpm --filter api run nhan-cay-thu-muc -- [--drive 11] [--thu] [--ra file]` (`src/nhan-cay-thu-muc.ts`, `src/seed/nhan-cay-thu-muc.ts`). Chỉ đọc Drive; đọc tên theo mẫu `<số> <MÃ>-<tên ngắn> <tên đầy đủ>` và khung 00–99, gán kind; sai mẫu thì không nhận cả nhánh, chỉ báo; chạy lại khớp googleId không trùng; ghi `folder_numbers`, audit `folder.import`; cảnh báo khung thiếu, mã chưa có trong Bảng mã, số trùng, thư mục đã đổi/xoá trên Drive. 6 test e2e (gồm nhận lại nguyên cây mẫu sau khi xoá sổ). Build qua, BE 129/129, 98/98 điểm cuối. Không sửa `contract/`, không cần đổi hợp đồng.
@@ -195,3 +1016,52 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-19 · Tạo sổ tay dự án
 - Đã làm: tạo `SO_TAY_DU_AN.md` và `CLAUDE.md` (nhắc mọi phiên đọc/ghi sổ tay).
 - Còn dở: chưa có nội dung dự án.
+# Checkpoint 2026-10-24 · VCworkspace 08 sau review độc lập
+- Bằng chứng mới đã đạt: ManageSieve buffered reader, hai lượt diagnose, real-adapter E2E 4/4, restart/readback, browser smoke và full gate guard44/BE145/coverage136/FE74/build. Credential thử nằm ngoài repo trong `/private/tmp`, quyền 600, không ghi giá trị; runtime/volume được giữ.
+- Sau review đã sửa canonical owner cho inbound alias; shared raw/label dùng credential thành viên trên Group folder; Shared Sent copy vào Group; Group membership chỉ bật với role `read`. Fake E2E mới phủ inbound alias/shared raw+label và send-only; full gate cuối đạt. Real-adapter rerun chưa kết luận vì Stalwart trả `452 Rate limit exceeded` sau nhiều lượt chẩn đoán, kể cả restart container.
+- Blocker còn lại: offboarding toàn user; FETCH/SEARCH trên session đã select sau revoke; GETSCRIPT/hash và concurrent filter update; reconcile engine–Mongo; ingestion/search thư ngoài API; UID/JMAP lookup tránh race sequence. Không nghiệm thu/mở09 trước pass real sạch và review lại.
+- Review độc lập lần hai xác nhận bốn sửa code/fake E2E đúng cấu trúc, nhưng vẫn chặn nghiệm thu do chưa có real-adapter pass sạch trên cây mới. Shared `sent` hiện là copy vào Group/INBOX vật lý được API trình bày là `sent`, chưa phải IMAP `Sent Items`; search chỉ là corpus metadata do API tạo.
+- Runtime đang giữ: mail healthy, relay chỉ mở loopback 18143/18465/18587/18993/14190/18084, Nextcloud 18080, ONLYOFFICE 18082; B đang bị revoke Group có chủ ý. Không đọc `.env`, không entrypoint BE thật, không reset/commit/push/deploy, không mở chat09.
+
+# Checkpoint 2026-10-24 · VCworkspace 08 bằng chứng cuối, review vẫn chặn nghiệm thu
+- Đã xử lý limiter bằng quota `.test` hữu hạn 200/giờ, không tắt limiter toàn cục; real adapter cuối 5/5. Thư gửi thẳng SMTP được Sieve chuyển `vip`, sync vào Mongo và tìm theo body.
+- Adapter dùng UID FETCH/STORE; GETSCRIPT so nội dung; filter serialize + rollback; shared membership rollback. List/search sync idempotent 100 thư gần nhất/folder để reconcile thư engine chưa có metadata.
+- Offboarding mới: khóa secrets/alias/Group ở engine, đóng phiên IMAP, xóa session web, gỡ shared Mongo, đặt user left+suspended. Proof phiên IMAP đã SELECT sau revoke: socket đóng, không FETCH/SEARCH rò dữ liệu. Relay PoC thêm loopback control 19090 và hiện kick toàn bộ IMAP, chưa per-user production.
+- Hợp đồng thêm POST `/mail/offboarding/{userId}`, schema FE đã sinh lại. Full gate cuối đạt: guard44, OpenAPI hợp lệ (178 warning), BE146/146 + coverage137/137, FE74/74, typecheck/build đạt.
+- Browser smoke cuối đạt trên `/email`: Google giả, Stalwart thật, danh sách hiển thị và tìm marker còn 3 thư đúng; reader alias mở đúng. Không đọc `.env`, không deploy/commit/push/gửi Internet, không mở chat09.
+- Review độc lập còn chặn: relay revoke đang global-kick thay vì per-user; send có cửa engine ACK rồi Mongo lỗi; filter serialization/rollback chỉ một process; parser MIME PoC chưa đủ. Sau review đã sửa controlPort thành bắt buộc/fail-closed, không cho offboard manager cuối, không nuốt lỗi sync và bỏ giới hạn 100 thư, rồi `pnpm ai:check` đạt. Chưa nghiệm thu, chưa mở chat09.
+
+# Checkpoint 2026-10-24 · VCworkspace 08 đủ điều kiện nghiệm thu local
+- Đã đóng toàn bộ blocker review: relay IMAPS theo principal, bỏ exposure 143, control bắt buộc token; proof token sai bị từ chối, B bị đóng/không rò FETCH-SEARCH và A vẫn NOOP. Offboarding chặn manager cuối.
+- Send có journal/lease, typed outcome `no|unknown`, hậu-ACK chỉ reconcile Message-ID, pre-ACK retry bằng CAS single-winner; test delayed visibility và concurrent retry chứng minh chỉ một delivery. Filter dùng Mongo revision/lease, pending publish và fencing; stale writer không tạo ghost write, rollback failure có journal.
+- Ingestion dùng `mailparser`, sync không cắt 100 và surface lỗi engine. Real Stalwart E2E 5/5; browser smoke `/email` với Google giả tìm marker còn đúng 1 thư; proof session đạt.
+- Full gate cây cuối đạt: guard 44/44, OpenAPI hợp lệ (178 warning hiện có), BE 153/153 và coverage 137/137, FE 74/74, typecheck/build đạt. Review độc lập vòng cuối kết luận `NO BLOCKER` trong phạm vi chat08 local.
+- Giới hạn không chặn PoC: sync toàn raw/folder chưa phù hợp mailbox lớn; shared sent là copy vật lý; control token phải tách riêng trước vận hành; chưa deploy/MX/HA/load/production. Không đọc `.env`, không gửi Internet, không reset/commit/push/deploy và không tự mở chat09.
+
+# Checkpoint 2026-10-24 · VCworkspace 09 hoàn tất local
+- OpenAPI `2.2.0-gd2`; liên thông Email–Drive–Office có lưu attachment với provenance/hash/idempotency, gửi snapshot đúng version hoặc link cần đăng nhập + intended-recipient + ACL hiện có, không cấp quyền ngầm.
+- Browser thật run `chat09-1792812692823`: Stalwart A→B DOCX V1, B lưu Nextcloud, sửa và Save bằng ONLYOFFICE thành marker `CHAT09 BODY V2 chat09-1792812692823`, mở lại cùng fileId với hai version; V2 SHA-256 `19988b15…f863160`. Snapshot MIME nhận tại A có đúng hash V2; UI gửi link cho B thành công.
+- Real integration Stalwart + Nextcloud 1/1: retry chỉ một delivery/link, đúng người nhận tải 200 và đúng hash, người xác thực khác 403, expiry/revoke 404. Fake E2E thêm expiry và vẫn phủ DOCX/XLSX/PPTX, hash sai, ACL, revoke, không cấp quyền ngầm.
+- Full gate cây cuối PASS: guard 44/44, OpenAPI hợp lệ với 181 warning hiện có, BE 155/155 + coverage hợp đồng 140/140, FE 74/74, typecheck và build API/web đạt.
+- Evidence: `poc/onlyoffice/evidence/chat09-real.json`; bàn giao: `docs/ke-hoach/vcworkspace-09-ban-giao-lien-thong.md`. Server test đã dừng, container local giữ nguyên. Không đọc `.env`, không gửi Internet, không deploy/commit/push và không tự mở chat10.
+- Review điều phối đã được xử lý trong chat09: link email là URL web tuyệt đối, token ở fragment rồi sessionStorage qua đăng nhập nên không vào query/access log; browser logout→link→login B→download đạt đúng hash. Link unique-key race revalidate fingerprint; snapshot/link dùng mail journal key ổn định bind toàn payload; save attachment fingerprint có provenance nguồn. Test cover outer-receipt loss, concurrent 201/409 và đổi source cùng bytes. Full gate cây cuối PASS: guard44, OpenAPI hợp lệ 181 warning hiện có, BE157/157 + endpoint140/140, FE76/76, typecheck/build đạt.
+
+# Checkpoint 2026-10-24 · VCworkspace 12 Identity/Admin hoàn tất local
+- Đã dựng stack riêng Nextcloud 33.0.10 + Authentik OSS 2026.8.5, PostgreSQL 18.1 và Redis 8.2.3, pin ARM64 digest; nguồn 18120–18122, restore 18123–18124. App container chỉ ở network internal/no-egress; relay read-only không mount secret mới bind loopback. Outbound probe fail-closed; không đụng runtime cũ 18080/18082/mail.
+- OIDC browser thật đạt authorization-code + PKCE S256, strict redirect, state/nonce, RS256 issuer/audience/expiry/iat/`azp`, immutable subject/group claims, session rotation, callback replay deny. Tách rõ logout local, provider application logout và global revoke; global revoke xóa portal + Authentik sessions, disable/readback Nextcloud rồi khôi phục baseline. App password WebDAV 207→401.
+- Lifecycle qua API/OCS đạt joiner, đổi email không đổi `sub`, mover thu quyền Team A, leaver disable/re-enable. Journal có correlation/idempotency; inject lỗi sau remove-group rồi retry cùng correlation; lock atomic chứng minh hai reconcile đồng thời đúng một winner.
+- Team Folder ACL live nguồn và restore: manager write 204, member read 200 đúng SHA-256, outsider tenant B read/write 404/404. `admin_audit` có 11 record khớp correlation. Không truy cập DB Nextcloud để chứng minh binding/quyền.
+- Đã thêm script reviewable tạo secret TEST, provision Authentik, reconcile Nextcloud, backup, recreate restore và verify isolation/readback. Bản restore cuối được tạo lại bằng chính script từ hai custom dump + HTML archive; readback version/apps/image IDs/checksum/4 persona/3 nhóm/2 app/4 binding và ACL đạt.
+- Review độc lập vòng đầu nêu 3 P1 + 3 P2; đã sửa no-egress, reproducibility, lifecycle fault/race, OCS readback, multi-audience `azp`, restore evidence và yêu cầu review lại. Bàn giao: `docs/ke-hoach/vcworkspace-12-ban-giao-danh-tinh-phan-quyen.md`; evidence: `poc/identity-admin/evidence/`.
+- Gate cây cuối PASS hai lượt: `pnpm ai:check` và `pnpm ai:check:full`; guard 44/44, OpenAPI hợp lệ với 181 warning hiện có, API 157/157 + endpoint 140/140, FE 76/76, typecheck/build đạt. Không sửa hợp đồng, không đọc `.env`, không Google/Stalwart/domain/LDAP thật, không deploy/commit/push.
+- Giới hạn: local PoC, chưa UI admin production/HA/load/TLS-domain/LDAP/RPO-RTO; marketplace download chỉ là bootstrap có cờ và phải ngắt edge; relay vẫn có reachability nội bộ tới DB dù read-only/không secret; restore dùng wait cố định 4 giây; lock có thể stale nếu `SIGKILL`. Production cần reverse proxy/network policy riêng, health retry và durable lease/fencing.
+
+# Checkpoint 2026-10-24 · VCworkspace 12B review vòng mới — đang sửa, chưa nghiệm thu
+- Review sau PASS cũ phát hiện cùng Idempotency-Key có thể đua tranh làm tăng subject revision nhưng chỉ tạo một operation, và `app-commit` có hai ghi chưa kiểm fence ở giữa. Đang đổi sang tạo operation trước, reservation revision có thể khôi phục sau crash, và kiểm fence trong lúc commit.
+- Mọi số test/PASS trước đây chỉ là bằng chứng của cây cũ. Chưa kết luận lại cho đến khi có test barrier cùng khóa, lỗi giữa cấp revision/cập nhật operation, fence giữa multiwrite và full gate trên cây cuối.
+
+# Checkpoint 2026-10-24 · VCworkspace 12B hoàn tất review vòng cuối
+- Đã đổi create sang operation unique trước, rồi reserve/cấp subject revision có journal khôi phục. Retry cùng Idempotency-Key tiếp tục đúng reserved revision; operation khác không thể lấy revision khi reservation đang dở. Không còn revision tăng mà thiếu operation tương ứng.
+- `app-commit` kiểm subject lease/fence trước ghi user và giữa ghi user–binding; binding chỉ bỏ `projectionPendingRevision` bằng conditional update. Nếu mất fence ở giữa, binding vẫn inactive/pending-deny; operation mới hơn có thể reconcile về trạng thái đích.
+- Test mới đạt: barrier hai create cùng key chỉ 1 operation/1 revision; fault injection sau cấp revision nhưng trước cập nhật operation khôi phục đúng bằng retry; lease theft giữa hai app write không publish binding. Nhóm lifecycle/OIDC 16/16; integration Authentik + Nextcloud local 1/1 và đã dừng token-control bridge sau test.
+- Full gate cây cuối PASS: guard 44/44, OpenAPI hợp lệ (190 warning hiện có), API 173/173 + endpoint 145/145, FE 76/76, typecheck và build API/web đạt. Không đọc `.env`, không chạy entrypoint BE thật, không deploy/commit/push.

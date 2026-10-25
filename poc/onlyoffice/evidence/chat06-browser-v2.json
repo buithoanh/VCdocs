@@ -1,0 +1,60 @@
+{
+  "runId": "chat06final",
+  "fileId": "6adb4f76f2890f1546ee8087",
+  "versionNumber": 2,
+  "currentContentSha256": "aca135f2564580909a34f3539cf197475e198345ef1ceca06d7f78ec51e08e7a",
+  "versions": [
+    {
+      "id": "6adb5199f2890f1546ee812e",
+      "number": 2,
+      "contentSha256": "aca135f2564580909a34f3539cf197475e198345ef1ceca06d7f78ec51e08e7a"
+    },
+    {
+      "id": "6adb4f77f2890f1546ee808d",
+      "number": 1,
+      "contentSha256": "1f24da388d98addadb43e3d7f178cc6dfa4e6a59c0d455f85f1598e0685ec303"
+    }
+  ],
+  "pptxBytes": 20241,
+  "pptxSha256": "aca135f2564580909a34f3539cf197475e198345ef1ceca06d7f78ec51e08e7a",
+  "pdfBytes": 65797,
+  "pdfSha256": "0743fd3546b44bbc424da53d75d52185dd7e74934d104615ec76fd29976469cb",
+  "browser": {
+    "managerMode": "edit",
+    "savedStatus": "Đã lưu mọi thay đổi",
+    "editedMarker": "NOI DUNG CHAT06 V2",
+    "layoutEdit": "Thêm ellipse trên slide 2",
+    "reopenedSameFileId": true,
+    "reopenedVersion": 2,
+    "slideshow": "Slide 1 trên 3",
+    "readerMode": "view",
+    "readerStatus": "Sẵn sàng xem",
+    "readerSaveControlPresent": false,
+    "versionButtons": [2, 1]
+  },
+  "contentInspection": {
+    "pptxMagic": "PK",
+    "pdfMagic": "%PDF-",
+    "slideCount": 3,
+    "pdfPageCount": 3,
+    "screenSize": "16:9",
+    "markerInSlide1Xml": true,
+    "ellipseInSlide2Xml": true,
+    "presentationRelationshipsValid": true,
+    "font": "Liberation Sans",
+    "vietnameseTextInPptxAndPdf": true,
+    "pdfTextContainsMarker": true,
+    "renderQa": {
+      "overflowOrClippingObserved": false,
+      "missingVietnameseGlyphsObserved": false,
+      "slide1Sha256": "55e575c5eec65b763b3a18006d65e823753bfe874db7ff784e934e1b0e212e06",
+      "slide2Sha256": "3bfd15b8ac1308e0f16a38d779bef7a1dd34663bc1bb44ad4d3c2a6860876a74",
+      "slide3Sha256": "d361e37441c5b1174336ad5d2b34c0aeadaac4553b86cf530fad0d1168269aa0"
+    }
+  },
+  "limitations": [
+    "Chỉ kiểm một lượt local với ba slide; không phải sizing hay SLA production.",
+    "Không xác nhận mọi hiệu ứng, chuyển cảnh hoặc font ngoài Liberation Sans.",
+    "Chưa kiểm coediting nhiều người dưới tải."
+  ]
+}

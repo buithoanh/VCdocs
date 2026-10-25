@@ -13,6 +13,27 @@ export interface AppConfig {
   allowedDomain: string;
   cookieSecure: boolean;
   sessionHours: number;
+  authMode: 'google' | 'oidc';
+  oidc: {
+    issuer?: string;
+    clientId?: string;
+    clientSecret?: string;
+    companyDomain?: string;
+    groupRoleMap: Record<string, string[]>;
+    projectionMaxAgeSeconds: number;
+  };
+  identityLifecycle: {
+    /** disabled: route lifecycle trả 503, không có cổng nào chạm Authentik/Nextcloud (mặc định production). */
+    mode: 'fake' | 'local' | 'disabled';
+    authentikBaseUrl?: string;
+    authentikToken?: string;
+    nextcloudBaseUrl?: string;
+    nextcloudAdminUser?: string;
+    nextcloudAdminPassword?: string;
+    nextcloudControlUrl?: string;
+    nextcloudControlToken?: string;
+    timeoutMs: number;
+  };
   googleMode: 'fake' | 'real';
   google: {
     clientId?: string;
@@ -26,6 +47,24 @@ export interface AppConfig {
     /** Hộp thư gửi thông báo */
     mailFrom: string;
     fakeStateFile?: string;
+  };
+  workspaceStorage: {
+    mode: 'fake' | 'nextcloud';
+    baseUrl?: string;
+    credentials: Record<string, { username: string; password: string }>;
+    timeoutMs: number;
+  };
+  mailEngine: {
+    mode: 'fake' | 'stalwart'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
+    credentials: Record<string, { username: string; password: string }>;
+    management?: { baseUrl: string; username: string; password: string };
+  };
+  documentEditor: {
+    publicOrigin: string;
+    internalOrigin: string;
+    apiOriginForEditor: string;
+    jwtSecret: string;
+    enabled: boolean;
   };
   vaultDir: string;
   uploadTmpDir: string;
@@ -64,6 +103,27 @@ function list(v: string | undefined, d: string[]): string[] {
   return v.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+function storageCredentials(v: string | undefined) {
+  if (!v) return {};
+  const parsed = JSON.parse(v);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('WORKSPACE_STORAGE_CREDENTIALS_JSON phải là object');
+  }
+  return parsed as Record<string, { username: string; password: string }>;
+}
+
+function groupRoleMap(v: string | undefined): Record<string, string[]> {
+  if (!v) return {};
+  const parsed = JSON.parse(v);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('OIDC_GROUP_ROLE_MAP_JSON phải là object');
+  for (const [group, roles] of Object.entries(parsed)) {
+    if (!group || !Array.isArray(roles) || roles.some((role) => !/^R[1-9]$/.test(String(role)))) {
+      throw new Error('OIDC_GROUP_ROLE_MAP_JSON chỉ nhận group -> R1..R9[]');
+    }
+  }
+  return parsed as Record<string, string[]>;
+}
+
 export function loadDotEnv(): void {
   // Đọc apps/api/.env nếu có; biến đã đặt sẵn trong môi trường được ưu tiên.
   const file = path.resolve(__dirname, '../../.env');
@@ -72,6 +132,8 @@ export function loadDotEnv(): void {
     require('dotenv').config({ path: file });
   }
 }
+
+const DEFAULT_EDITOR_SECRET = 'vcworkspace-test-editor-secret';
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AppConfig> = {}): AppConfig {
   const nodeEnv = env.NODE_ENV || 'development';
@@ -86,6 +148,26 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     allowedDomain: env.ALLOWED_DOMAIN || 'vcprosperous.com',
     cookieSecure: bool(env.COOKIE_SECURE, nodeEnv === 'production'),
     sessionHours: num(env.SESSION_HOURS, 8),
+    authMode: (env.AUTH_MODE || 'google') as 'google' | 'oidc',
+    oidc: {
+      issuer: env.OIDC_ISSUER,
+      clientId: env.OIDC_CLIENT_ID,
+      clientSecret: env.OIDC_CLIENT_SECRET,
+      companyDomain: env.OIDC_COMPANY_DOMAIN,
+      groupRoleMap: groupRoleMap(env.OIDC_GROUP_ROLE_MAP_JSON),
+      projectionMaxAgeSeconds: num(env.OIDC_PROJECTION_MAX_AGE_SECONDS, 300),
+    },
+    identityLifecycle: {
+      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'disabled',
+      authentikBaseUrl: env.IDENTITY_AUTHENTIK_BASE_URL,
+      authentikToken: env.IDENTITY_AUTHENTIK_TOKEN,
+      nextcloudBaseUrl: env.IDENTITY_NEXTCLOUD_BASE_URL,
+      nextcloudAdminUser: env.IDENTITY_NEXTCLOUD_ADMIN_USER,
+      nextcloudAdminPassword: env.IDENTITY_NEXTCLOUD_ADMIN_PASSWORD,
+      nextcloudControlUrl: env.IDENTITY_NEXTCLOUD_CONTROL_URL,
+      nextcloudControlToken: env.IDENTITY_NEXTCLOUD_CONTROL_TOKEN,
+      timeoutMs: num(env.IDENTITY_LIFECYCLE_TIMEOUT_MS, 5_000),
+    },
     googleMode,
     google: {
       clientId: env.GOOGLE_CLIENT_ID,
@@ -99,6 +181,29 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
         env.FAKE_GOOGLE_STATE_FILE === 'none'
           ? undefined
           : env.FAKE_GOOGLE_STATE_FILE || (googleMode === 'fake' && nodeEnv !== 'test' ? path.resolve(process.cwd(), '.vcdocs-dev', 'fake-google.json') : undefined),
+    },
+    workspaceStorage: {
+      mode: (env.WORKSPACE_STORAGE_MODE || 'fake') as 'fake' | 'nextcloud',
+      baseUrl: env.WORKSPACE_STORAGE_BASE_URL,
+      credentials: storageCredentials(env.WORKSPACE_STORAGE_CREDENTIALS_JSON),
+      timeoutMs: num(env.WORKSPACE_STORAGE_TIMEOUT_MS, 15_000),
+    },
+    mailEngine: {
+      mode: (env.MAIL_ENGINE_MODE || 'fake') as 'fake' | 'stalwart',
+      host: env.MAIL_ENGINE_HOST || '127.0.0.1', smtpPort: num(env.MAIL_ENGINE_SMTP_PORT, 18465), imapPort: num(env.MAIL_ENGINE_IMAP_PORT, 18993), sievePort: num(env.MAIL_ENGINE_SIEVE_PORT, 14190), controlPort: num(env.MAIL_ENGINE_CONTROL_PORT, 19090), controlToken: env.MAIL_ENGINE_CONTROL_TOKEN || '',
+      credentials: storageCredentials(env.MAIL_ENGINE_CREDENTIALS_JSON),
+      management: env.MAIL_ENGINE_MANAGEMENT_URL && env.MAIL_ENGINE_MANAGEMENT_USER && env.MAIL_ENGINE_MANAGEMENT_PASSWORD ? {
+        baseUrl: env.MAIL_ENGINE_MANAGEMENT_URL,
+        username: env.MAIL_ENGINE_MANAGEMENT_USER,
+        password: env.MAIL_ENGINE_MANAGEMENT_PASSWORD,
+      } : undefined,
+    },
+    documentEditor: {
+      publicOrigin: env.DOCUMENT_EDITOR_PUBLIC_ORIGIN || 'http://127.0.0.1:18082',
+      internalOrigin: env.DOCUMENT_EDITOR_INTERNAL_ORIGIN || 'http://127.0.0.1:18082',
+      apiOriginForEditor: env.DOCUMENT_EDITOR_API_ORIGIN || env.PUBLIC_API_ORIGIN || 'http://host.docker.internal:4000',
+      jwtSecret: env.DOCUMENT_EDITOR_JWT_SECRET || DEFAULT_EDITOR_SECRET,
+      enabled: bool(env.DOCUMENT_EDITOR_ENABLED, nodeEnv !== 'production'),
     },
     vaultDir: env.VAULT_DIR || path.resolve(process.cwd(), '.vault'),
     uploadTmpDir: env.UPLOAD_TMP_DIR || path.resolve(process.cwd(), '.uploads'),
@@ -124,6 +229,43 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
   };
   if (cfg.nodeEnv === 'production' && cfg.googleMode === 'fake') {
     throw new Error('Không được chạy GOOGLE_MODE=fake ở production');
+  }
+  if (!['google', 'oidc'].includes(cfg.authMode)) throw new Error('AUTH_MODE phải là google hoặc oidc');
+  if (cfg.authMode === 'oidc' && (!cfg.oidc.issuer || !cfg.oidc.clientId || !cfg.oidc.clientSecret || !cfg.oidc.companyDomain)) {
+    throw new Error('OIDC cần issuer, client id, client secret và company domain tường minh');
+  }
+  if (cfg.authMode === 'oidc' && (!Number.isFinite(cfg.oidc.projectionMaxAgeSeconds) || cfg.oidc.projectionMaxAgeSeconds <= 0)) {
+    throw new Error('OIDC_PROJECTION_MAX_AGE_SECONDS phải lớn hơn 0');
+  }
+  if (cfg.nodeEnv === 'production' && cfg.authMode === 'oidc') {
+    if (new URL(cfg.oidc.issuer!).protocol !== 'https:' || new URL(cfg.publicApiOrigin).protocol !== 'https:' || new URL(cfg.webOrigin).protocol !== 'https:' || !cfg.cookieSecure) {
+      throw new Error('OIDC production bắt buộc HTTPS cho issuer/API/web và COOKIE_SECURE=true');
+    }
+  }
+  if (!['fake', 'local', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local hoặc disabled');
+  if (cfg.identityLifecycle.mode === 'local') {
+    const i = cfg.identityLifecycle;
+    if (!i.authentikBaseUrl || !i.authentikToken || !i.nextcloudBaseUrl || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlUrl || !i.nextcloudControlToken) {
+      throw new Error('Identity lifecycle local cần đủ Authentik và Nextcloud configuration');
+    }
+    if (![i.authentikBaseUrl, i.nextcloudBaseUrl, i.nextcloudControlUrl].every((value) => ['127.0.0.1', 'localhost', 'authentik.localtest.me', 'nextcloud.localtest.me'].includes(new URL(value!).hostname))) {
+      throw new Error('Identity lifecycle chat12B chỉ được phép gọi local test endpoints');
+    }
+  }
+  if (!['fake', 'nextcloud'].includes(cfg.workspaceStorage.mode)) {
+    throw new Error('WORKSPACE_STORAGE_MODE phải là fake hoặc nextcloud');
+  }
+  if (!['fake', 'stalwart'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake hoặc stalwart');
+  if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
+  if (cfg.nodeEnv === 'production') {
+    // Bản giả/khoá mặc định chỉ dành cho local/test; production phải cấu hình tường minh.
+    if (cfg.workspaceStorage.mode === 'fake') throw new Error('Không được chạy WORKSPACE_STORAGE_MODE=fake ở production');
+    if (cfg.mailEngine.mode === 'fake') throw new Error('Không được chạy MAIL_ENGINE_MODE=fake ở production');
+    // Cổng giả báo done mà không chạm Authentik/Nextcloud; lần đăng nhập OIDC sau sẽ lấy lại quyền từ IdP (audit 8/12).
+    if (cfg.identityLifecycle.mode === 'fake') throw new Error('Không được chạy IDENTITY_LIFECYCLE_MODE=fake ở production');
+    if (cfg.documentEditor.enabled && (cfg.documentEditor.jwtSecret === DEFAULT_EDITOR_SECRET || Buffer.byteLength(cfg.documentEditor.jwtSecret) < 32)) {
+      throw new Error('DOCUMENT_EDITOR_JWT_SECRET phải đặt riêng, tối thiểu 32 byte ở production');
+    }
   }
   return cfg;
 }

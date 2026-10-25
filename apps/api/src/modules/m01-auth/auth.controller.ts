@@ -10,6 +10,8 @@ import { randomToken } from '../../common/util';
 import { OAUTH_COOKIE, SESSION_COOKIE, SessionService } from '../../session/session.service';
 import { AuditService } from '../../audit/audit.service';
 import { GoogleSyncService } from './google-sync.service';
+import { OidcService } from './oidc.service';
+import { MailBasicService } from '../mail-basic/mail-basic.service';
 
 function safeReturnTo(v?: string): string {
   // Chỉ nhận đường dẫn tương đối trong giao diện, chặn chuyển hướng ra ngoài
@@ -27,6 +29,8 @@ export class AuthController {
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
     private readonly sync: GoogleSyncService,
+    private readonly oidc: OidcService,
+    private readonly mail: MailBasicService,
     @Inject(GOOGLE) private readonly google: GooglePorts,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
   ) {}
@@ -35,9 +39,15 @@ export class AuthController {
     return `${this.cfg.publicApiOrigin}/api/v1/auth/google/callback`;
   }
 
+  private get oidcRedirectUri() {
+    return `${this.cfg.publicApiOrigin}/api/v1/auth/oidc/callback`;
+  }
+
   @Public()
   @Get('google')
   async start(@Query('returnTo') returnTo: string | undefined, @Res() res: Response) {
+    // Khi đã chuyển sang OIDC, đăng nhập Google phải tắt để không vượt qua khoá/thu hồi của lifecycle.
+    if (this.cfg.authMode !== 'google') return this.fail(res, 'provider');
     const state = randomToken(24);
     const nonce = randomToken(16);
     await this.db.m.OAuthState.create({ state, nonce, returnTo: safeReturnTo(returnTo), expiresAt: new Date(Date.now() + 10 * 60_000) });
@@ -46,15 +56,107 @@ export class AuthController {
     res.redirect(302, this.google.auth.buildAuthUrl({ state, nonce, redirectUri: this.redirectUri, hd: this.cfg.allowedDomain }));
   }
 
+  @Public()
+  @Get('oidc')
+  async startOidc(@Query('returnTo') returnTo: string | undefined, @Res() res: Response) {
+    if (this.cfg.authMode !== 'oidc') return this.fail(res, 'provider');
+    try {
+      const discovery = await this.oidc.discovery();
+      const state = randomToken(24);
+      const nonce = randomToken(24);
+      const { verifier, challenge } = this.oidc.transaction();
+      await this.db.m.OAuthState.create({ state, nonce, provider: 'oidc', codeVerifier: verifier, returnTo: safeReturnTo(returnTo), expiresAt: new Date(Date.now() + 3 * 60_000) });
+      res.cookie(OAUTH_COOKIE, state, { httpOnly: true, secure: this.cfg.cookieSecure, sameSite: 'lax', path: '/api/v1/auth', maxAge: 3 * 60_000 });
+      res.redirect(302, this.oidc.authorizationUrl(discovery, { state, nonce, challenge, redirectUri: this.oidcRedirectUri }));
+    } catch (error) {
+      this.log.warn(`OIDC start fail-closed: ${error instanceof Error ? error.message : 'UNKNOWN'}`);
+      return this.fail(res, 'provider');
+    }
+  }
+
   /** Lỗi đăng nhập: không trả JSON mà về trang đăng nhập của giao diện (D13) */
   // 'setup' chưa có trong hợp đồng – xem DE_NGHI_SUA_HOP_DONG.md N5
-  private fail(res: Response, loi: 'domain' | 'locked' | 'expired' | 'state' | 'setup') {
+  private fail(res: Response, loi: 'domain' | 'locked' | 'expired' | 'state' | 'setup' | 'provider' | 'identity') {
     res.redirect(302, `${this.cfg.webOrigin}/dang-nhap?loi=${loi}`);
+  }
+
+  @Public()
+  @Get('oidc/callback')
+  async oidcCallback(@Req() req: Request, @Res() res: Response, @Query('code') code?: string, @Query('state') state?: string) {
+    const ctx = getCtx(req);
+    const cookieState = (req as any).cookies?.[OAUTH_COOKIE];
+    res.clearCookie(OAUTH_COOKIE, { path: '/api/v1/auth' });
+    if (this.cfg.authMode !== 'oidc' || !code || !state || !cookieState || cookieState !== state) return this.fail(res, 'state');
+    const st = await this.db.m.OAuthState.findOneAndDelete({ state, provider: 'oidc' }).lean<any>();
+    if (!st || st.expiresAt.getTime() < Date.now() || !st.codeVerifier) return this.fail(res, st ? 'expired' : 'state');
+    let claims: { iss: string; sub: string; email: string; email_verified?: boolean; name?: string; groups?: string[] };
+    try { claims = await this.oidc.exchange(await this.oidc.discovery(), { code, verifier: st.codeVerifier, nonce: st.nonce, redirectUri: this.oidcRedirectUri }); }
+    catch (error) {
+      this.log.warn(`OIDC callback fail-closed: ${error instanceof Error ? error.message : 'UNKNOWN'}`);
+      return this.fail(res, 'provider');
+    }
+
+    const company = await this.db.m.Company.findOne({ domain: this.cfg.oidc.companyDomain }).lean<any>();
+    if (!company) return this.fail(res, 'setup');
+    const companyId = String(company._id);
+    const cid = new Types.ObjectId(companyId);
+    const email = claims.email.toLowerCase();
+    // Như luồng Google: email phải thuộc tên miền công ty, vì mailbox và link chia sẻ định danh theo local-part.
+    // Kiểm trước cả nhánh tạo mới lẫn nhánh binding sẵn có để không tạo hay ghi đè User bằng email ngoài.
+    const domain = (this.cfg.oidc.companyDomain || '').toLowerCase();
+    if (!domain || !email.endsWith(`@${domain}`)) return this.fail(res, 'identity');
+    let binding = await this.db.m.OidcIdentity.findOne({ issuer: claims.iss, subject: claims.sub }, undefined, { skipTenant: true }).lean<any>();
+    let user: any;
+    let created = false;
+    if (binding) {
+      if (String(binding.companyId) !== companyId) return this.fail(res, 'identity');
+      if (binding.active === false || binding.projectionPendingRevision != null) return this.fail(res, 'locked');
+      user = await this.db.m.User.findOne({ _id: binding.userId, companyId: cid }).lean<any>();
+      if (!user) return this.fail(res, 'identity');
+    } else {
+      if (claims.email_verified !== true) return this.fail(res, 'identity');
+      // Không auto-link theo email, kể cả email đã verified: trùng email phải được admin xử lý tường minh.
+      if (await this.db.m.User.exists({ companyId: cid, email })) return this.fail(res, 'identity');
+      user = (await this.db.m.User.create({ companyId: cid, email, name: claims.name || email, systemRoles: this.oidc.roles(claims.groups) })).toObject();
+      created = true;
+      try {
+        binding = (await this.db.m.OidcIdentity.create({ companyId: cid, issuer: claims.iss, subject: claims.sub, userId: user._id, email, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() })).toObject();
+      } catch {
+        await this.db.m.User.deleteOne({ _id: user._id, companyId: cid });
+        return this.fail(res, 'identity');
+      }
+    }
+    if (user.status === 'left' || user.isSuspended) return this.fail(res, 'locked');
+    const roles = this.oidc.roles(claims.groups);
+    const trustedEmail = claims.email_verified === true ? email : binding.email;
+    // Audit 8/12: sau khi lifecycle đã commit, app là nguồn sự thật cho email và vai trò. Token chưa hội tụ về
+    // projection (IdP chưa được cập nhật hoặc bị sửa ngoài coordinator) thì chặn, không âm thầm khôi phục quyền đã hạ.
+    if (binding.projectionRevision != null) {
+      const projectedRoles = this.oidc.roles(binding.groups || []);
+      const sameRoles = JSON.stringify([...roles].sort()) === JSON.stringify([...projectedRoles].sort());
+      if (trustedEmail !== binding.email || !sameRoles) {
+        this.log.warn(`OIDC login bị chặn: token lệch projection lifecycle r${binding.projectionRevision} của subject ${claims.sub}`);
+        await this.audit.write({ companyId, userId: String(user._id), email: user.email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, { action: 'auth.oidc.projection_mismatch', objectType: 'user', objectId: String(user._id), after: { subject: claims.sub, projectionRevision: binding.projectionRevision, emailMatches: trustedEmail === binding.email, rolesMatch: sameRoles } });
+        return this.fail(res, 'locked');
+      }
+    }
+    await this.db.m.User.updateOne({ _id: user._id, companyId: cid }, { $set: { email: trustedEmail, name: claims.name || user.name, systemRoles: roles, lastLoginAt: new Date(), isSuspended: false } });
+    await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid }, { $set: { email: trustedEmail, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() } });
+    // Audit 7/12: user mới hoặc email vừa đổi lấy lại địa chỉ mail đang bị alias/hộp thư nhóm giữ.
+    if (user.email !== trustedEmail || created) await this.mail.releaseAddressFor({ companyId, userId: String(user._id), email: trustedEmail, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, trustedEmail);
+
+    const oldSid = (req as any).cookies?.[SESSION_COOKIE];
+    if (oldSid) await this.sessions.destroy(oldSid);
+    const session = await this.sessions.create({ userId: String(user._id), companyId, ip: ctx.ip, device: ctx.device, authProvider: 'oidc', identityId: String(binding._id) });
+    await this.audit.write({ companyId, userId: String(user._id), email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, { action: 'auth.oidc.login', objectType: 'user', objectId: String(user._id), after: { issuer: claims.iss, subject: claims.sub } });
+    res.cookie(SESSION_COOKIE, session.sid, this.sessions.cookieOptions());
+    res.redirect(302, `${this.cfg.webOrigin}${safeReturnTo(st.returnTo)}`);
   }
 
   @Public()
   @Get('google/callback')
   async callback(@Req() req: Request, @Res() res: Response, @Query('code') code?: string, @Query('state') state?: string) {
+    if (this.cfg.authMode !== 'google') return this.fail(res, 'provider');
     const ctx = getCtx(req);
     const cookieState = (req as any).cookies?.[OAUTH_COOKIE];
     res.clearCookie(OAUTH_COOKIE, { path: '/api/v1/auth' });
@@ -91,6 +193,7 @@ export class AuthController {
     let user = await this.db.m.User.findOne({ companyId: cid, email }).lean<any>();
     if (!user) {
       user = (await this.db.m.User.create({ companyId: cid, email, name: dirUser?.name ?? claims.name ?? email, title: dirUser?.title })).toObject();
+      await this.mail.releaseAddressFor({ companyId, userId: String(user._id), email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, email);
     }
     if (user.status === 'left') return this.fail(res, 'locked');
     // Lần đầu (và mỗi lần) đăng nhập: gán phòng, vai trò theo nhóm Google

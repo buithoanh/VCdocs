@@ -66,7 +66,8 @@ export interface DriveFileMeta {
   description?: string;
   createdTime: string;
   modifiedTime?: string;
-  createdByEmail?: string;
+  /** Người sửa cuối (lastModifyingUser), KHÔNG phải người tạo; người tạo lấy qua drive.getCreatorEmail */
+  lastModifierEmail?: string;
   webViewLink?: string;
   trashed?: boolean;
   md5Checksum?: string;
@@ -88,6 +89,8 @@ export interface DrivePort {
   listDrives(): Promise<SharedDrive[]>;
   listDrivePermissions(driveId: string): Promise<DrivePermission[]>;
   getFile(fileId: string): Promise<DriveFileMeta | undefined>;
+  /** Email người tạo file (chữ thường); không xác định chắc chắn được thì undefined */
+  getCreatorEmail(fileId: string): Promise<string | undefined>;
   /** Liệt kê file (không phải thư mục) trong drive, không lấy file đã vào thùng rác */
   listFiles(driveId: string, opts?: { foldersOnly?: boolean }): Promise<DriveFileMeta[]>;
   createFolder(p: { driveId: string; parentGoogleId?: string; name: string }): Promise<DriveFileMeta>;

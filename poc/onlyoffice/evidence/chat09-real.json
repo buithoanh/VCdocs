@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-24",
+  "scope": "local isolated Google fake + Stalwart + Nextcloud + ONLYOFFICE",
+  "runId": "chat09-1792812692823",
+  "messageId": "6adc2695091d24078ed05bdb",
+  "fileId": "6adc26e2c176b8a244a9a188",
+  "source": {
+    "marker": "CHAT09 BODY V1",
+    "sha256": "239486a3f840d48029894811428b5a5547f8ebab918e6f8699d758df0417fcbf"
+  },
+  "saved": {
+    "filename": "chat09-chat09-1792812692823.docx",
+    "versionsVisible": [1, 2]
+  },
+  "edited": {
+    "marker": "CHAT09 BODY V2 chat09-1792812692823",
+    "sha256": "19988b15dde130c292ae1ba25f707d3b6f383ff094ba5808a0b8cb4d9f863160",
+    "bytes": 25302,
+    "reopenedSameFile": true
+  },
+  "snapshotMail": {
+    "recipient": "tp.mkt@vcworkspace.test",
+    "attachmentSha256MatchesEditedVersion": true
+  },
+  "linkMail": {
+    "recipient": "nv.mkt@vcworkspace.test",
+    "tokenRecorded": false,
+    "realIntegration": {
+      "retryDeliveryCount": 1,
+      "recipientDownload": 200,
+      "otherAuthenticatedUser": 403,
+      "expired": 404,
+      "revoked": 404
+    },
+    "loginReturnBrowserProof": {
+      "runId": "chat09-1792813754428",
+      "absoluteWebUrl": true,
+      "tokenTransport": "url-fragment-to-sessionStorage",
+      "loginQueryContainsToken": false,
+      "returnedRoute": "/bo-nho/lien-ket",
+      "downloadSha256": "e31c808c22877c2d3c764ac88e137104e37c2d58d60936257fccf1e89a6c680f",
+      "expectedSha256Matched": true,
+      "accessLogContainsToken": false
+    }
+  },
+  "reviewFixes": {
+    "linkDuplicateKeyRaceRevalidated": true,
+    "snapshotJournalBindsWholePayload": true,
+    "saveAttachmentBindsSourceProvenance": true,
+    "concurrentDifferentPayloadStatuses": [201, 409]
+  },
+  "secretsRecorded": false,
+  "productionClaim": false
+}

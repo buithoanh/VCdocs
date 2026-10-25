@@ -84,6 +84,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/oidc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bắt đầu đăng nhập OIDC bằng authorization-code và PKCE S256 */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Đường dẫn tương đối trong giao diện để quay về sau đăng nhập */
+                    returnTo?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Chuyển sang authorization endpoint của provider đã cấu hình phía server */
+                302: {
+                    headers: {
+                        Location?: string;
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OIDC callback, bind issuer+sub bất biến và tạo phiên VCworkspace */
+        get: {
+            parameters: {
+                query: {
+                    code: string;
+                    state: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đặt cookie phiên hoặc về /dang-nhap?loi=state|expired|provider|identity|locked|setup */
+                302: {
+                    headers: {
+                        "Set-Cookie"?: string;
+                        Location?: string;
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/lifecycle-operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * R9 reconcile projection identity qua ứng dụng, Authentik và Nextcloud
+         * @description Journal MongoDB bền vững, Idempotency-Key bind toàn projection; từng bước phải readback. Lỗi một upstream trả 503 và giữ trạng thái partial để retry cùng operation.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["IdentityLifecycleInput"];
+                };
+            };
+            responses: {
+                /** @description Projection đã reconcile đủ ba hệ thống */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentityLifecycleOperation"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/lifecycle-operations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Đọc journal và readback state của lifecycle operation */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Trạng thái operation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentityLifecycleOperation"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/lifecycle-operations/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry/reconcile operation partial bằng CAS lease và readback */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Operation sau reconcile */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentityLifecycleOperation"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/logout": {
         parameters: {
             query?: never;
@@ -479,7 +691,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -600,7 +812,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -721,7 +933,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -849,7 +1061,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -970,6 +1182,928 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Các không gian Drive người gọi được sử dụng */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceSpaceList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách thư mục và tệp trong một không gian */
+        get: {
+            parameters: {
+                query: {
+                    spaceId: components["schemas"]["Id"];
+                    parentId?: components["schemas"]["Id"];
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK; người không là thành viên không nhận item của không gian */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveItemList"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo thư mục làm việc; không ghi đè hoặc tự đổi tên */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDriveFolderInput"];
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFolder"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+                429: components["responses"]["TooMany"];
+                503: components["responses"]["StorageUnavailable"];
+                504: components["responses"]["StorageTimeout"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tải một tệp vào không gian; đồng bộ, không ghi đè hoặc tự đổi tên */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        spaceId: components["schemas"]["Id"];
+                        parentId?: components["schemas"]["Id"];
+                        /** Format: binary */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tải lên và xác minh checksum */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+                413: components["responses"]["WorkspacePayloadTooLarge"];
+                415: components["responses"]["UnsupportedMediaType"];
+                422: components["responses"]["StorageIntegrityMismatch"];
+                429: components["responses"]["TooMany"];
+                503: components["responses"]["StorageUnavailable"];
+                504: components["responses"]["StorageTimeout"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Metadata một tệp mà người gọi được đọc */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                503: components["responses"]["StorageUnavailable"];
+                504: components["responses"]["StorageTimeout"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo DOCX từ mẫu và lưu thành phiên bản Drive đầu tiên */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDocumentInput"];
+                };
+            };
+            responses: {
+                /** @description Đã tạo và xác minh checksum */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/spreadsheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo XLSX nghiệp vụ từ mẫu và lưu thành phiên bản Drive đầu tiên */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSpreadsheetInput"];
+                };
+            };
+            responses: {
+                /** @description Đã tạo XLSX và xác minh checksum */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/presentations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo PPTX ba slide từ mẫu và lưu thành phiên bản Drive đầu tiên */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspacePresentationInput"];
+                };
+            };
+            responses: {
+                /** @description Đã tạo PPTX và xác minh checksum */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files/{fileId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Tải nội dung một tệp mà người gọi được đọc */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Nội dung tệp; Content-Disposition dùng tên đã làm sạch */
+                200: {
+                    headers: {
+                        "Content-Disposition"?: string;
+                        "X-Content-SHA256"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": string;
+                        "application/octet-stream": string;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["StorageIntegrityMismatch"];
+                503: components["responses"]["StorageUnavailable"];
+                504: components["responses"]["StorageTimeout"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files/{fileId}/editor-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Cấu hình ONLYOFFICE cho DOCX/XLSX/PPTX có JWT; manager sửa, reader chỉ xem */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceEditorConfig"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files/{fileId}/export": {
+        parameters: {
+            query: {
+                format: "docx" | "xlsx" | "pptx" | "pdf";
+            };
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Xuất bản hiện hành thành DOCX/XLSX/PPTX gốc hoặc PDF qua editor */
+        get: {
+            parameters: {
+                query: {
+                    format: "docx" | "xlsx" | "pptx" | "pdf";
+                };
+                header?: never;
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Tệp xuất */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation": string;
+                        "application/pdf": string;
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/editor/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Máy editor tải bản hiện hành bằng vé ký và hết hạn */
+        get: {
+            parameters: {
+                query: {
+                    ticket: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Nội dung DOCX, XLSX hoặc PPTX */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation": string;
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/editor/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ONLYOFFICE callback; error 0 chỉ sau khi phiên bản Drive đã lưu */
+        post: {
+            parameters: {
+                query: {
+                    ticket: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspaceEditorCallback"];
+                };
+            };
+            responses: {
+                /** @description Kết quả callback */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {integer} */
+                            error: 0 | 1;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Đổi tên hoặc di chuyển mục, giữ nguyên itemId */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    itemId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDriveItemUpdate"];
+                };
+            };
+            responses: {
+                /** @description Đã đổi tên hoặc di chuyển */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveItem"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["StorageConflict"];
+                503: components["responses"]["StorageUnavailable"];
+                504: components["responses"]["StorageTimeout"];
+            };
+        };
+        trace?: never;
+    };
+    "/drive/files/{fileId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Liệt kê các phiên bản bất biến của tệp */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveVersionList"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Tạo phiên bản nội dung mới và giữ bản cũ */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    fileId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo bản mới và xác minh checksum */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                413: components["responses"]["WorkspacePayloadTooLarge"];
+                415: components["responses"]["UnsupportedMediaType"];
+                422: components["responses"]["StorageIntegrityMismatch"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/files/{fileId}/versions/{versionId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Id"];
+                versionId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Khôi phục đúng byte/checksum của một phiên bản */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    fileId: components["schemas"]["Id"];
+                    versionId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã khôi phục */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["StorageIntegrityMismatch"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/items/{itemId}/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đưa mục vào thùng rác logic, không xoá vĩnh viễn blob */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    itemId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã vào thùng rác */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceTrashResult"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liệt kê thùng rác của một không gian */
+        get: {
+            parameters: {
+                query: {
+                    spaceId: components["schemas"]["Id"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveItemList"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/items/{itemId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Khôi phục mục về thư mục cha cũ và giữ nguyên itemId */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    itemId: components["schemas"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã khôi phục */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveItem"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/folders": {
         parameters: {
             query?: never;
@@ -1013,7 +2147,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -1395,7 +2529,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -1619,7 +2753,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -1751,7 +2885,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -1799,7 +2933,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -1893,7 +3027,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -2070,7 +3204,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -2333,7 +3467,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -2481,7 +3615,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -2603,7 +3737,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -2755,7 +3889,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -2835,7 +3969,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -2874,7 +4008,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -2961,7 +4095,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -3074,7 +4208,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -3114,7 +4248,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -3154,7 +4288,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path: {
@@ -3537,7 +4671,7 @@ export interface paths {
                 query?: never;
                 header: {
                     "X-CSRF-Token": components["parameters"]["Csrf"];
-                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
                     "Idempotency-Key": components["parameters"]["Idempotency"];
                 };
                 path?: never;
@@ -3988,10 +5122,1077 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mail/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách hoặc tìm thư trong mailbox người dùng được đọc */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Bỏ trống = mailbox cá nhân; mailbox nhóm cần quyền read */
+                    mailbox?: string;
+                    /** @description Thư mục logic; nhãn độc lập với thư mục */
+                    folder?: string;
+                    /** @description Tìm trong from, subject hoặc body MIME */
+                    q?: string;
+                    scope?: "all" | "from" | "subject" | "body";
+                    label?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["MailMessage"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/threads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Đọc hội thoại trong chính mailbox người đăng nhập */
+        get: {
+            parameters: {
+                query?: {
+                    mailbox?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            items: components["schemas"]["MailMessage"][];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo bản nháp trong chính mailbox người đăng nhập */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailCompose"];
+                };
+            };
+            responses: {
+                /** @description Đã lưu nháp */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailDraft"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/drafts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        /** Mở lại bản nháp của chính người đăng nhập */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailDraft"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Lưu thay đổi bản nháp của chính người đăng nhập */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailCompose"];
+                };
+            };
+            responses: {
+                /** @description Đã lưu */
+                200: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailDraft"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/mail/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gửi thư nội bộ và chỉ trả thành công sau mail server ACK */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailCompose"];
+                    "multipart/form-data": {
+                        /** @description JSON array địa chỉ nội bộ */
+                        to: string;
+                        subject: string;
+                        text: string;
+                        html?: string;
+                        draftId?: string;
+                        inReplyTo?: string;
+                        /** @description JSON array Message-ID */
+                        references?: string;
+                        attachments?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Mail server đã nhận */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailMessage"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/messages/{id}/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tải raw MIME của thư trong chính mailbox người đăng nhập */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Bắt buộc khi đọc shared mailbox */
+                    mailbox?: string;
+                };
+                header?: never;
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description MIME nguyên bản */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "message/rfc822": string;
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/messages/{id}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Thay toàn bộ nhãn nghiệp vụ của thư, không đổi thư mục */
+        patch: {
+            parameters: {
+                query?: {
+                    mailbox?: string;
+                };
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        labels: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã lưu nhãn */
+                200: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailMessage"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/mail/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách nhãn trong mailbox được đọc */
+        get: {
+            parameters: {
+                query?: {
+                    mailbox?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["MailLabel"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Tạo nhãn dùng được cho nhiều thư */
+        post: {
+            parameters: {
+                query?: {
+                    mailbox?: string;
+                };
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        color?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailLabel"];
+                    };
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách bộ lọc thư đến */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["MailFilter"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Tạo bộ lọc hữu hạn, không chuyển tiếp hoặc tự sinh thư */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailFilterInput"];
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFilter"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/filters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bật, tắt hoặc sửa bộ lọc của chính người dùng */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailFilterInput"];
+                };
+            };
+            responses: {
+                /** @description Đã cập nhật */
+                200: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFilter"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/mail/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh tính gửi cá nhân và alias; không gồm shared mailbox */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["MailAlias"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Tạo alias gửi cho chính người dùng, không tạo mailbox dùng chung */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        address: string;
+                        displayName?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo alias */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailAlias"];
+                    };
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/shared-mailboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách hộp thư nhóm người dùng đang là thành viên */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["SharedMailbox"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Tạo hộp thư nhóm; người tạo có read, send và manage */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        address: string;
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã tạo */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedMailbox"];
+                    };
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/shared-mailboxes/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cấp hoặc thu hồi thành viên; roles rỗng là thu hồi ngay */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                };
+                path: {
+                    id: components["parameters"]["IdPath"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        /** @description Quyền gửi bắt buộc đi cùng quyền đọc; quyền manage có thể độc lập. */
+                        roles: ("read" | "send" | "manage")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Đã cập nhật quyền */
+                200: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedMailbox"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/mail/offboarding/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Khoá đăng nhập mail, thu hồi alias, quyền hộp thư nhóm và phiên của người nghỉ việc
+         * @description Chỉ HCNS hoặc quản trị hệ thống. Thao tác yêu cầu mail engine xác nhận trước khi đánh dấu người dùng đã nghỉ.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã thu hồi */
+                201: {
+                    headers: {
+                        "X-Audit-Id": components["headers"]["AuditId"];
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            userId: string;
+                            /** Format: email */
+                            address: string;
+                            /** @enum {string} */
+                            status: "left";
+                        };
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/messages/{messageId}/attachments/{part}/save-to-drive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lưu đúng attachment MIME vào thư mục Drive đã có quyền ghi
+         * @description Đọc raw MIME từ mailbox đã được cấp quyền; part là chỉ số attachment theo thứ tự parser. Retry cùng Idempotency-Key không tạo file trùng; cùng key nhưng đổi source message, part, mailbox hoặc đích Drive trả 409. Tệp lưu giữ provenance message/part/hash.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    mailbox?: string;
+                };
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path: {
+                    messageId: string;
+                    part: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        spaceId: components["schemas"]["Id"];
+                        parentId?: components["schemas"]["Id"];
+                        expectedSha256?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Attachment đã được ghi bền vững vào Drive */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceDriveFile"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                413: components["responses"]["PayloadTooLarge"];
+                415: components["responses"]["UnsupportedMediaType"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/send-drive-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gửi snapshot một version Drive hoặc link cần đăng nhập tới đúng version
+         * @description Attachment là snapshot bất biến của versionId/hash lúc compose. Link không tự cấp quyền; mọi người nhận phải có ACL đọc sẵn và vẫn phải đăng nhập khi tải. Idempotency-Key bind toàn payload; đổi file/version/hash/người nhận/nội dung với cùng key trả 409, kể cả sau crash hoặc request đồng thời. Email link dùng URL tuyệt đối của web app; token nằm trong fragment để không đi vào access log, web app giữ returnTo qua đăng nhập rồi mới gọi API tải.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-CSRF-Token": components["parameters"]["Csrf"];
+                    /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
+                    "Idempotency-Key": components["parameters"]["Idempotency"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        to: string[];
+                        subject: string;
+                        text?: string;
+                        /** Format: email */
+                        fromIdentity?: string;
+                        fileId: components["schemas"]["Id"];
+                        versionId: components["schemas"]["Id"];
+                        expectedSha256: string;
+                        /** @enum {string} */
+                        mode: "attachment" | "link";
+                    };
+                };
+            };
+            responses: {
+                /** @description Mail engine đã ACK; version/hash gửi được cố định trong journal */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailMessage"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                503: components["responses"]["StorageUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drive/shared-links/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tải đúng version qua link có xác thực và ACL người nhận */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Nội dung version bất biến */
+                200: {
+                    headers: {
+                        "X-Content-SHA256"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MailCompose: {
+            to?: string[];
+            subject?: string;
+            text?: string;
+            html?: string;
+            draftId?: components["schemas"]["Id"];
+            inReplyTo?: string;
+            references?: string[];
+            attachments?: {
+                filename: string;
+                contentType?: string;
+                contentBase64: string;
+            }[];
+            /**
+             * Format: email
+             * @description Alias hoặc địa chỉ shared mailbox đã được cấp quyền gửi
+             */
+            fromIdentity?: string;
+            /**
+             * Format: email
+             * @description Mailbox nghiệp vụ khi gửi thay hộp thư nhóm
+             */
+            mailbox?: string;
+        };
+        MailDraft: components["schemas"]["MailCompose"] & {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            ownerEmail: string;
+            attachmentNames?: string[];
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
+        };
+        MailMessage: {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            mailboxOwner: string;
+            threadId: string;
+            /** Format: email */
+            from: string;
+            to: string[];
+            subject: string;
+            sentAt: components["schemas"]["DateTime"];
+            folder: string;
+            labels?: string[];
+            /** @enum {string} */
+            deliveryStatus: "accepted" | "failed";
+            inReplyTo?: string;
+            preview?: string;
+            attachmentCount?: number;
+        };
+        MailLabel: {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            ownerEmail: string;
+            name: string;
+            color: string;
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
+        };
+        MailFilterInput: {
+            name: string;
+            /** @enum {string} */
+            field: "from" | "to" | "subject" | "body";
+            /** @enum {string} */
+            operator: "equals" | "contains";
+            value: string;
+            addLabels?: string[];
+            moveToFolder?: string;
+            /** @default false */
+            stop: boolean;
+            /** @default true */
+            enabled: boolean;
+        };
+        MailFilter: components["schemas"]["MailFilterInput"] & {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            ownerEmail: string;
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
+        };
+        MailAlias: {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            ownerEmail: string;
+            /** Format: email */
+            address: string;
+            displayName: string;
+            active: boolean;
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
+        };
+        SharedMailbox: {
+            id: components["schemas"]["Id"];
+            /** Format: email */
+            address: string;
+            name: string;
+            currentRoles: ("read" | "send" | "manage")[];
+            members: {
+                /** Format: email */
+                email: string;
+                roles: ("read" | "send" | "manage")[];
+            }[];
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
+        };
         /** @example 6712f0c2a1b2c3d4e5f60718 */
         Id: string;
         /**
@@ -4052,7 +6253,7 @@ export interface components {
          */
         HoldReasonType: "dispute" | "inspection" | "warranty" | "receivable" | "contract_open" | "board_request";
         /** @enum {string} */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DUPLICATE" | "STATE_INVALID" | "RULE_VIOLATION" | "LOCKED" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "DRIVE_ERROR" | "MAINTENANCE" | "INTERNAL";
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DUPLICATE" | "STATE_INVALID" | "RULE_VIOLATION" | "LOCKED" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "DRIVE_ERROR" | "STORAGE_CONFLICT" | "UNSUPPORTED_MEDIA_TYPE" | "STORAGE_INTEGRITY_MISMATCH" | "STORAGE_UNAVAILABLE" | "STORAGE_TIMEOUT" | "MAINTENANCE" | "INTERNAL";
         Base: {
             id: components["schemas"]["Id"];
             companyId: components["schemas"]["Id"];
@@ -4060,6 +6261,117 @@ export interface components {
             createdBy?: components["schemas"]["Id"];
             updatedAt: components["schemas"]["DateTime"];
             updatedBy?: components["schemas"]["Id"];
+        };
+        /** @enum {string} */
+        WorkspaceSpaceKind: "department" | "personal";
+        /** @enum {string} */
+        WorkspaceSpaceRole: "manager" | "reader";
+        WorkspaceSpace: {
+            id: components["schemas"]["Id"];
+            kind: components["schemas"]["WorkspaceSpaceKind"];
+            name: string;
+            role: components["schemas"]["WorkspaceSpaceRole"];
+            rootFolderId: components["schemas"]["Id"];
+            allowedActions: ("list" | "create-folder" | "upload" | "download")[];
+        };
+        WorkspaceSpaceList: {
+            items: components["schemas"]["WorkspaceSpace"][];
+        };
+        WorkspaceDriveFolderInput: {
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            name: string;
+        };
+        WorkspaceDocumentInput: {
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            name: string;
+        };
+        WorkspaceSpreadsheetInput: {
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            name: string;
+        };
+        WorkspacePresentationInput: {
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            name: string;
+        };
+        WorkspaceDriveFolder: {
+            id: components["schemas"]["Id"];
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            /** @constant */
+            kind: "folder";
+            name: string;
+            /** @description Định danh trung lập do StoragePort trả về; không lộ credential hoặc đường dẫn máy chủ */
+            storageKey: string;
+            createdAt: components["schemas"]["DateTime"];
+            createdBy: components["schemas"]["Id"];
+            allowedActions: ("list" | "create-folder" | "upload" | "rename" | "move" | "trash" | "restore")[];
+        };
+        WorkspaceDriveFile: {
+            id: components["schemas"]["Id"];
+            spaceId: components["schemas"]["Id"];
+            parentId?: components["schemas"]["Id"];
+            /** @constant */
+            kind: "file";
+            name: string;
+            /** @enum {string} */
+            mimeType: "text/plain" | "application/octet-stream" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" | "application/vnd.openxmlformats-officedocument.presentationml.presentation" | "application/pdf";
+            size: number;
+            contentSha256: string;
+            currentVersionId?: components["schemas"]["Id"];
+            versionNumber?: number;
+            trashedAt?: components["schemas"]["DateTime"];
+            /** @description Định danh trung lập do StoragePort trả về; không lộ credential hoặc đường dẫn máy chủ */
+            storageKey: string;
+            createdAt: components["schemas"]["DateTime"];
+            createdBy: components["schemas"]["Id"];
+            allowedActions: ("download" | "rename" | "move" | "upload-version" | "list-versions" | "restore-version" | "trash" | "restore")[];
+        };
+        WorkspaceDriveItem: components["schemas"]["WorkspaceDriveFolder"] | components["schemas"]["WorkspaceDriveFile"];
+        WorkspaceDriveItemList: {
+            items: components["schemas"]["WorkspaceDriveItem"][];
+            nextCursor?: string;
+        };
+        WorkspaceDriveItemUpdate: {
+            name?: string;
+            parentId?: components["schemas"]["Id"];
+        };
+        WorkspaceDriveVersion: {
+            id: components["schemas"]["Id"];
+            fileId: components["schemas"]["Id"];
+            number: number;
+            mimeType: string;
+            size: number;
+            contentSha256: string;
+            createdAt: components["schemas"]["DateTime"];
+            createdBy: components["schemas"]["Id"];
+        };
+        WorkspaceDriveVersionList: {
+            items: components["schemas"]["WorkspaceDriveVersion"][];
+        };
+        WorkspaceTrashResult: {
+            id: components["schemas"]["Id"];
+            trashedAt: components["schemas"]["DateTime"];
+        };
+        WorkspaceEditorConfig: {
+            /** Format: uri */
+            documentServerUrl: string;
+            config: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            mode: "edit" | "view";
+        };
+        WorkspaceEditorCallback: {
+            key: string;
+            /** @enum {integer} */
+            status: 1 | 2 | 3 | 4 | 6 | 7;
+            /** Format: uri */
+            url?: string;
+            token?: string;
         };
         DocumentActions: {
             allowedActions: ("assign-code" | "create-draft" | "request-feedback" | "feedback" | "submit" | "issue" | "revise" | "review" | "withdraw" | "relock" | "integrity" | "update-external")[];
@@ -4163,6 +6475,38 @@ export interface components {
             email: string;
             title?: string;
             departmentId?: components["schemas"]["Id"];
+        };
+        IdentityLifecycleInput: {
+            subject: string;
+            /** Format: email */
+            email: string;
+            groups: string[];
+            active: boolean;
+            /** @default false */
+            globalRevoke: boolean;
+        };
+        IdentityLifecycleStep: {
+            /** @enum {string} */
+            name: "app-deny" | "authentik" | "nextcloud" | "app-commit";
+            /** @enum {string} */
+            status: "pending" | "running" | "failed" | "done";
+            attempts: number;
+            lastError?: string;
+            completedAt?: components["schemas"]["DateTime"];
+        };
+        IdentityLifecycleOperation: {
+            id: components["schemas"]["Id"];
+            subject: string;
+            subjectRevision: number;
+            desired: components["schemas"]["IdentityLifecycleInput"];
+            /** @enum {string} */
+            status: "pending" | "running" | "partial" | "superseded" | "done";
+            steps: components["schemas"]["IdentityLifecycleStep"][];
+            version: number;
+            lastError?: string;
+            completedAt?: components["schemas"]["DateTime"];
+            createdAt: components["schemas"]["DateTime"];
+            updatedAt: components["schemas"]["DateTime"];
         };
         Me: {
             user: components["schemas"]["User"];
@@ -4805,6 +7149,60 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Tên đã tồn tại hoặc kho từ chối ghi đè (STORAGE_CONFLICT) */
+        StorageConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Tệp Drive cơ bản lớn hơn 10 MiB (PAYLOAD_TOO_LARGE) */
+        WorkspacePayloadTooLarge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Loại tệp chưa được phép trong giai đoạn thử (UNSUPPORTED_MEDIA_TYPE) */
+        UnsupportedMediaType: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Checksum đọc lại không khớp nội dung đã nhận (STORAGE_INTEGRITY_MISMATCH) */
+        StorageIntegrityMismatch: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kho tạm thời không sẵn sàng (STORAGE_UNAVAILABLE) */
+        StorageUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kho không phản hồi trong thời hạn (STORAGE_TIMEOUT) */
+        StorageTimeout: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: {
         IdPath: components["schemas"]["Id"];
@@ -4815,7 +7213,7 @@ export interface components {
         /** @description Tìm theo chữ */
         Q: string;
         Csrf: string;
-        /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ */
+        /** @description Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409. */
         Idempotency: string;
     };
     requestBodies: never;

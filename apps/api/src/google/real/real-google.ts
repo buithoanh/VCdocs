@@ -6,6 +6,7 @@ import { sheets as sheetsApi } from '@googleapis/sheets';
 import { admin as adminApi } from '@googleapis/admin';
 import { gmail as gmailApi } from '@googleapis/gmail';
 import { GoogleError } from '../../common/errors';
+import { safeFetch } from '../../common/safe-url';
 import type { AppConfig } from '../../config/config';
 import {
   DriveFileMeta,
@@ -62,7 +63,7 @@ async function g<T>(op: string, fn: () => Promise<T>, retries = 3): Promise<T> {
   }
 }
 
-function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
+export function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
   const cr = f.contentRestrictions?.[0];
   return {
     fileId: f.id!,
@@ -73,7 +74,7 @@ function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
     description: f.description ?? undefined,
     createdTime: f.createdTime!,
     modifiedTime: f.modifiedTime ?? undefined,
-    createdByEmail: f.lastModifyingUser?.emailAddress ?? undefined,
+    lastModifierEmail: f.lastModifyingUser?.emailAddress ?? undefined,
     webViewLink: f.webViewLink ?? undefined,
     trashed: f.trashed ?? false,
     md5Checksum: f.md5Checksum ?? undefined,
@@ -81,6 +82,25 @@ function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
     contentRestriction: cr ? { readOnly: !!cr.readOnly, reason: cr.reason ?? undefined, ownerRestricted: !!(cr as any).ownerRestricted } : undefined,
     downloadRestricted: !!(f as any).downloadRestrictions?.itemDownloadRestriction?.restrictedForReaders,
   };
+}
+
+/** Phiên bản đầu còn giữ phải sát lúc tạo file; xa hơn thì coi như phiên bản gốc đã bị Drive xoá */
+const CREATOR_REVISION_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Người tạo file = lastModifyingUser của phiên bản sớm nhất. Shared drive không có owners nên
+ * Drive API v3 không có trường người tạo. Drive có thể xoá phiên bản cũ của file nhị phân
+ * (không keepForever), nên phiên bản sớm nhất phải nằm trong cửa sổ quanh createdTime; không thì
+ * trả undefined để chỉ trưởng phòng đăng ký ngược được.
+ */
+export function creatorFromRevisions(createdTime: string | null | undefined, revisions: drive_v3.Schema$Revision[]): string | undefined {
+  const created = createdTime ? Date.parse(createdTime) : NaN;
+  if (Number.isNaN(created)) return undefined;
+  const first = revisions
+    .filter((r) => r.modifiedTime && !Number.isNaN(Date.parse(r.modifiedTime)))
+    .sort((a, b) => Date.parse(a.modifiedTime!) - Date.parse(b.modifiedTime!))[0];
+  if (!first || Date.parse(first.modifiedTime!) - created > CREATOR_REVISION_WINDOW_MS) return undefined;
+  return first.lastModifyingUser?.emailAddress?.toLowerCase() || undefined;
 }
 
 export function createRealGoogle(cfg: AppConfig): GooglePorts {
@@ -264,6 +284,15 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
             requestBody: { downloadRestrictions: { itemDownloadRestriction: { restrictedForReaders: restricted, restrictedForWriters: restricted } } } as any,
           });
         }),
+      getCreatorEmail: (fileId) =>
+        g('revisions.list', async () => {
+          const meta = await d.files.get({ fileId, ...all, fields: 'createdTime' });
+          const revs = await paged(async (pageToken) => {
+            const r = await d.revisions.list({ fileId, pageSize: 1000, pageToken, fields: 'nextPageToken,revisions(id,modifiedTime,lastModifyingUser(emailAddress))' });
+            return { items: r.data.revisions ?? [], next: r.data.nextPageToken };
+          });
+          return creatorFromRevisions(meta.data.createdTime, revs);
+        }),
       latestRevision: (fileId) =>
         g('revisions.list', async () => {
           const revs = await paged(async (pageToken) => {
@@ -406,23 +435,8 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
         }),
     },
     urls: {
-      fetch: async (url) => {
-        const u = new URL(url);
-        if (u.protocol !== 'https:') throw new GoogleError('Chỉ nhận đường dẫn https');
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 30_000);
-        try {
-          const r = await fetch(u, { signal: ctrl.signal, redirect: 'follow' });
-          if (!r.ok) throw new GoogleError(`Tải ${u.hostname} lỗi ${r.status}`);
-          const len = Number(r.headers.get('content-length') || 0);
-          if (len > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
-          const buf = Buffer.from(await r.arrayBuffer());
-          if (buf.length > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
-          return { content: buf, mimeType: (r.headers.get('content-type') || 'application/octet-stream').split(';')[0], fileName: decodeURIComponent(u.pathname.split('/').pop() || 'tai-lieu') };
-        } finally {
-          clearTimeout(timer);
-        }
-      },
+      // Kiểm https + địa chỉ công khai ở mọi bước redirect, gắn kết nối vào địa chỉ đã kiểm (audit 4/12)
+      fetch: (url) => safeFetch(url),
     },
     reports: {
       listExternalShares: (since) =>

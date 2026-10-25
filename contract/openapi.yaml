@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 1.4.0-gd1
+  version: 2.3.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
-    M01–M09, M14 và /jobs.
+    M01–M09, M14, Drive cơ bản VCworkspace và /jobs.
 
     File này VIẾT TAY và là gốc cho cả FE (apps/web) lẫn BE (apps/api).
     Không sinh từ mã. Phiên FE/BE không được sửa file này; thấy cần sửa thì
@@ -52,6 +52,7 @@ tags:
   - name: M01 Đăng nhập, người dùng
   - name: M02 Danh mục nền, Bảng mã
   - name: M03 Cây thư mục
+  - name: Drive cơ bản VCworkspace
   - name: M04 Tài liệu hệ thống
   - name: M05 Phê duyệt
   - name: M06 Danh mục hồ sơ
@@ -95,6 +96,69 @@ paths:
           description: |
             Thành công: đặt cookie phiên, về trang đầu (hoặc returnTo).
             Lỗi (D13): không trả JSON mà chuyển về /dang-nhap?loi=domain · locked · expired · state · setup (D22: đúng tên miền nhưng CSDL chưa có công ty – hệ thống chưa khởi tạo).
+  /auth/oidc:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Bắt đầu đăng nhập OIDC bằng authorization-code và PKCE S256
+      security: []
+      parameters:
+        - name: returnTo
+          in: query
+          description: Đường dẫn tương đối trong giao diện để quay về sau đăng nhập
+          schema: { type: string }
+      responses:
+        '302':
+          description: Chuyển sang authorization endpoint của provider đã cấu hình phía server
+          headers: { Location: { schema: { type: string } } }
+  /auth/oidc/callback:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: OIDC callback, bind issuer+sub bất biến và tạo phiên VCworkspace
+      security: []
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        '302':
+          description: Đặt cookie phiên hoặc về /dang-nhap?loi=state|expired|provider|identity|locked|setup
+          headers:
+            Set-Cookie: { schema: { type: string } }
+            Location: { schema: { type: string } }
+  /identity/lifecycle-operations:
+    post:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: R9 reconcile projection identity qua ứng dụng, Authentik và Nextcloud
+      description: Journal MongoDB bền vững, Idempotency-Key bind toàn projection; từng bước phải readback. Lỗi một upstream trả 503 và giữ trạng thái partial để retry cùng operation.
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityLifecycleInput' } } } }
+      responses:
+        '201': { description: Projection đã reconcile đủ ba hệ thống, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityLifecycleOperation' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+  /identity/lifecycle-operations/{id}:
+    get:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Đọc journal và readback state của lifecycle operation
+      parameters: [{ name: id, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+      responses:
+        '200': { description: Trạng thái operation, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityLifecycleOperation' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /identity/lifecycle-operations/{id}/reconcile:
+    post:
+      tags: [M01 Đăng nhập, người dùng]
+      summary: Retry/reconcile operation partial bằng CAS lease và readback
+      parameters:
+        - { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Operation sau reconcile, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityLifecycleOperation' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
   /auth/logout:
     post:
       tags: [M01 Đăng nhập, người dùng]
@@ -357,6 +421,308 @@ paths:
       responses:
         '202': { $ref: '#/components/responses/JobAccepted' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────────────────── Drive cơ bản VCworkspace ─────────────────────────
+  /spaces:
+    get:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Các không gian Drive người gọi được sử dụng
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceSpaceList' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /drive/items:
+    get:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Danh sách thư mục và tệp trong một không gian
+      parameters:
+        - { name: spaceId, in: query, required: true, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: parentId, in: query, schema: { $ref: '#/components/schemas/Id' } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK; người không là thành viên không nhận item của không gian
+          content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveItemList' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /drive/folders:
+    post:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Tạo thư mục làm việc; không ghi đè hoặc tự đổi tên
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+        - $ref: '#/components/parameters/Idempotency'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkspaceDriveFolderInput' }
+      responses:
+        '201':
+          description: Đã tạo
+          headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFolder' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+        '429': { $ref: '#/components/responses/TooMany' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+        '504': { $ref: '#/components/responses/StorageTimeout' }
+
+  /drive/files:
+    post:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Tải một tệp vào không gian; đồng bộ, không ghi đè hoặc tự đổi tên
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+        - $ref: '#/components/parameters/Idempotency'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [spaceId, file]
+              properties:
+                spaceId: { $ref: '#/components/schemas/Id' }
+                parentId: { $ref: '#/components/schemas/Id' }
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Đã tải lên và xác minh checksum
+          headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+        '413': { $ref: '#/components/responses/WorkspacePayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/StorageIntegrityMismatch' }
+        '429': { $ref: '#/components/responses/TooMany' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+        '504': { $ref: '#/components/responses/StorageTimeout' }
+
+  /drive/files/{fileId}:
+    parameters:
+      - { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    get:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Metadata một tệp mà người gọi được đọc
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+        '504': { $ref: '#/components/responses/StorageTimeout' }
+
+  /drive/documents:
+    post:
+      tags: [Soạn thảo văn bản VCworkspace]
+      summary: Tạo DOCX từ mẫu và lưu thành phiên bản Drive đầu tiên
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDocumentInput' } } } }
+      responses:
+        '201': { description: Đã tạo và xác minh checksum, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+
+  /drive/spreadsheets:
+    post:
+      tags: [Bảng tính VCworkspace]
+      summary: Tạo XLSX nghiệp vụ từ mẫu và lưu thành phiên bản Drive đầu tiên
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceSpreadsheetInput' } } } }
+      responses:
+        '201': { description: Đã tạo XLSX và xác minh checksum, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+
+  /drive/presentations:
+    post:
+      tags: [Trình chiếu VCworkspace]
+      summary: Tạo PPTX ba slide từ mẫu và lưu thành phiên bản Drive đầu tiên
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspacePresentationInput' } } } }
+      responses:
+        '201': { description: Đã tạo PPTX và xác minh checksum, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+
+  /drive/files/{fileId}/content:
+    parameters:
+      - { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    get:
+      tags: [Drive cơ bản VCworkspace]
+      summary: Tải nội dung một tệp mà người gọi được đọc
+      responses:
+        '200':
+          description: Nội dung tệp; Content-Disposition dùng tên đã làm sạch
+          headers:
+            Content-Disposition: { schema: { type: string } }
+            X-Content-SHA256: { schema: { type: string, pattern: '^[a-f0-9]{64}$' } }
+          content:
+            text/plain: { schema: { type: string } }
+            application/octet-stream: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/StorageIntegrityMismatch' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+        '504': { $ref: '#/components/responses/StorageTimeout' }
+
+  /drive/files/{fileId}/editor-config:
+    parameters: [{ name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+    get:
+      tags: [Soạn thảo văn bản VCworkspace, Bảng tính VCworkspace, Trình chiếu VCworkspace]
+      summary: Cấu hình ONLYOFFICE cho DOCX/XLSX/PPTX có JWT; manager sửa, reader chỉ xem
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceEditorConfig' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /drive/files/{fileId}/export:
+    parameters:
+      - { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+      - { name: format, in: query, required: true, schema: { type: string, enum: [docx, xlsx, pptx, pdf] } }
+    get:
+      tags: [Soạn thảo văn bản VCworkspace, Bảng tính VCworkspace, Trình chiếu VCworkspace]
+      summary: Xuất bản hiện hành thành DOCX/XLSX/PPTX gốc hoặc PDF qua editor
+      responses:
+        '200':
+          description: Tệp xuất
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.presentationml.presentation: { schema: { type: string, format: binary } }
+            application/pdf: { schema: { type: string, format: binary } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+
+  /drive/editor/content:
+    get:
+      tags: [Soạn thảo văn bản VCworkspace, Bảng tính VCworkspace, Trình chiếu VCworkspace]
+      summary: Máy editor tải bản hiện hành bằng vé ký và hết hạn
+      security: []
+      parameters: [{ name: ticket, in: query, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Nội dung DOCX, XLSX hoặc PPTX
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.presentationml.presentation: { schema: { type: string, format: binary } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /drive/editor/callback:
+    post:
+      tags: [Soạn thảo văn bản VCworkspace, Bảng tính VCworkspace, Trình chiếu VCworkspace]
+      summary: ONLYOFFICE callback; error 0 chỉ sau khi phiên bản Drive đã lưu
+      security: []
+      parameters: [{ name: ticket, in: query, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceEditorCallback' } } } }
+      responses:
+        '200': { description: Kết quả callback, content: { application/json: { schema: { type: object, required: [error], properties: { error: { type: integer, enum: [0, 1] } } } } } }
+
+  /drive/items/{itemId}:
+    parameters: [{ name: itemId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+    patch:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Đổi tên hoặc di chuyển mục, giữ nguyên itemId
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveItemUpdate' } } } }
+      responses:
+        '200': { description: Đã đổi tên hoặc di chuyển, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveItem' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/StorageConflict' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+        '504': { $ref: '#/components/responses/StorageTimeout' }
+
+  /drive/files/{fileId}/versions:
+    parameters: [{ name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+    get:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Liệt kê các phiên bản bất biến của tệp
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveVersionList' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Tạo phiên bản nội dung mới và giữ bản cũ
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } }
+      responses:
+        '201': { description: Đã tạo bản mới và xác minh checksum, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/WorkspacePayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/StorageIntegrityMismatch' }
+
+  /drive/files/{fileId}/versions/{versionId}/restore:
+    parameters:
+      - { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+      - { name: versionId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    post:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Khôi phục đúng byte/checksum của một phiên bản
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '200': { description: Đã khôi phục, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/StorageIntegrityMismatch' }
+
+  /drive/items/{itemId}/trash:
+    parameters: [{ name: itemId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+    post:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Đưa mục vào thùng rác logic, không xoá vĩnh viễn blob
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '200': { description: Đã vào thùng rác, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceTrashResult' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /drive/trash:
+    get:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Liệt kê thùng rác của một không gian
+      parameters: [{ name: spaceId, in: query, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveItemList' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /drive/items/{itemId}/restore:
+    parameters: [{ name: itemId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }]
+    post:
+      tags: [Drive an toàn dữ liệu VCworkspace]
+      summary: Khôi phục mục về thư mục cha cũ và giữ nguyên itemId
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '200': { description: Đã khôi phục, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveItem' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
 
   # ───────────────────────── M03 ─────────────────────────
   /folders:
@@ -1397,6 +1763,209 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  # ───────────────────────── Email cơ bản VCworkspace ─────────────────────────
+  /mail/messages:
+    get:
+      tags: [Quản lý Email]
+      summary: Danh sách hoặc tìm thư trong mailbox người dùng được đọc
+      parameters:
+        - { name: mailbox, in: query, schema: { type: string, format: email }, description: 'Bỏ trống = mailbox cá nhân; mailbox nhóm cần quyền read' }
+        - { name: folder, in: query, schema: { type: string, default: inbox }, description: 'Thư mục logic; nhãn độc lập với thư mục' }
+        - { name: q, in: query, schema: { type: string, maxLength: 200 }, description: 'Tìm trong from, subject hoặc body MIME' }
+        - { name: scope, in: query, schema: { type: string, enum: [all, from, subject, body], default: all } }
+        - { name: label, in: query, schema: { type: string, maxLength: 80 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/MailMessage' } } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /mail/threads/{id}:
+    get:
+      tags: [Email cơ bản]
+      summary: Đọc hội thoại trong chính mailbox người đăng nhập
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }, { name: mailbox, in: query, schema: { type: string, format: email } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, required: [id, items], properties: { id: { type: string }, items: { type: array, items: { $ref: '#/components/schemas/MailMessage' } } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/drafts:
+    post:
+      tags: [Email cơ bản]
+      summary: Tạo bản nháp trong chính mailbox người đăng nhập
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MailCompose' } } } }
+      responses:
+        '201': { description: Đã lưu nháp, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailDraft' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /mail/drafts/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [Email cơ bản]
+      summary: Mở lại bản nháp của chính người đăng nhập
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MailDraft' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Email cơ bản]
+      summary: Lưu thay đổi bản nháp của chính người đăng nhập
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MailCompose' } } } }
+      responses:
+        '200': { description: Đã lưu, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailDraft' } } } }
+  /mail/send:
+    post:
+      tags: [Email cơ bản]
+      summary: Gửi thư nội bộ và chỉ trả thành công sau mail server ACK
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/MailCompose' } }
+          multipart/form-data: { schema: { type: object, required: [to, subject, text], properties: { to: { type: string, description: 'JSON array địa chỉ nội bộ' }, subject: { type: string }, text: { type: string }, html: { type: string }, draftId: { type: string }, inReplyTo: { type: string }, references: { type: string, description: 'JSON array Message-ID' }, attachments: { type: array, maxItems: 8, items: { type: string, format: binary } } } } }
+      responses:
+        '201': { description: Mail server đã nhận, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessage' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+  /mail/messages/{id}/raw:
+    get:
+      tags: [Email cơ bản]
+      summary: Tải raw MIME của thư trong chính mailbox người đăng nhập
+      parameters: [{ $ref: '#/components/parameters/IdPath' }, { name: mailbox, in: query, schema: { type: string, format: email }, description: 'Bắt buộc khi đọc shared mailbox' }]
+      responses:
+        '200': { description: MIME nguyên bản, content: { message/rfc822: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/messages/{id}/labels:
+    patch:
+      tags: [Quản lý Email]
+      summary: Thay toàn bộ nhãn nghiệp vụ của thư, không đổi thư mục
+      parameters: [{ $ref: '#/components/parameters/IdPath' }, { $ref: '#/components/parameters/Csrf' }, { name: mailbox, in: query, schema: { type: string, format: email } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [labels], properties: { labels: { type: array, maxItems: 20, uniqueItems: true, items: { type: string, minLength: 1, maxLength: 80 } } } } } } }
+      responses:
+        '200': { description: Đã lưu nhãn, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessage' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/labels:
+    get:
+      tags: [Quản lý Email]
+      summary: Danh sách nhãn trong mailbox được đọc
+      parameters: [{ name: mailbox, in: query, schema: { type: string, format: email } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/MailLabel' } } } } } } } }
+    post:
+      tags: [Quản lý Email]
+      summary: Tạo nhãn dùng được cho nhiều thư
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }, { name: mailbox, in: query, schema: { type: string, format: email } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 1, maxLength: 80 }, color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' } } } } } }
+      responses:
+        '201': { description: Đã tạo, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailLabel' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /mail/filters:
+    get:
+      tags: [Quản lý Email]
+      summary: Danh sách bộ lọc thư đến
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/MailFilter' } } } } } } } }
+    post:
+      tags: [Quản lý Email]
+      summary: Tạo bộ lọc hữu hạn, không chuyển tiếp hoặc tự sinh thư
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MailFilterInput' } } } }
+      responses:
+        '201': { description: Đã tạo, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailFilter' } } } }
+  /mail/filters/{id}:
+    patch:
+      tags: [Quản lý Email]
+      summary: Bật, tắt hoặc sửa bộ lọc của chính người dùng
+      parameters: [{ $ref: '#/components/parameters/IdPath' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MailFilterInput' } } } }
+      responses:
+        '200': { description: Đã cập nhật, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailFilter' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/aliases:
+    get:
+      tags: [Quản lý Email]
+      summary: Danh tính gửi cá nhân và alias; không gồm shared mailbox
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/MailAlias' } } } } } } } }
+    post:
+      tags: [Quản lý Email]
+      summary: Tạo alias gửi cho chính người dùng, không tạo mailbox dùng chung
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [address], properties: { address: { type: string, format: email }, displayName: { type: string, maxLength: 120 } } } } } }
+      responses:
+        '201': { description: Đã tạo alias, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailAlias' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /mail/shared-mailboxes:
+    get:
+      tags: [Quản lý Email]
+      summary: Danh sách hộp thư nhóm người dùng đang là thành viên
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/SharedMailbox' } } } } } } } }
+    post:
+      tags: [Quản lý Email]
+      summary: Tạo hộp thư nhóm; người tạo có read, send và manage
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [address, name], properties: { address: { type: string, format: email }, name: { type: string, minLength: 1, maxLength: 120 } } } } } }
+      responses:
+        '201': { description: Đã tạo, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/SharedMailbox' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /mail/shared-mailboxes/{id}/members:
+    patch:
+      tags: [Quản lý Email]
+      summary: Cấp hoặc thu hồi thành viên; roles rỗng là thu hồi ngay
+      parameters: [{ $ref: '#/components/parameters/IdPath' }, { $ref: '#/components/parameters/Csrf' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, roles], properties: { email: { type: string, format: email }, roles: { type: array, uniqueItems: true, description: "Quyền gửi bắt buộc đi cùng quyền đọc; quyền manage có thể độc lập.", items: { type: string, enum: [read, send, manage] } } } } } } }
+      responses:
+        '200': { description: Đã cập nhật quyền, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/SharedMailbox' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/offboarding/{userId}:
+    post:
+      tags: [Quản lý Email]
+      summary: Khoá đăng nhập mail, thu hồi alias, quyền hộp thư nhóm và phiên của người nghỉ việc
+      description: Chỉ HCNS hoặc quản trị hệ thống. Thao tác yêu cầu mail engine xác nhận trước khi đánh dấu người dùng đã nghỉ.
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string } }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      responses:
+        '201': { description: Đã thu hồi, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { type: object, required: [userId, address, status], properties: { userId: { type: string }, address: { type: string, format: email }, status: { type: string, enum: [left] } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+  /mail/messages/{messageId}/attachments/{part}/save-to-drive:
+    post:
+      tags: [Liên thông Email–Drive–Office]
+      summary: Lưu đúng attachment MIME vào thư mục Drive đã có quyền ghi
+      description: Đọc raw MIME từ mailbox đã được cấp quyền; part là chỉ số attachment theo thứ tự parser. Retry cùng Idempotency-Key không tạo file trùng; cùng key nhưng đổi source message, part, mailbox hoặc đích Drive trả 409. Tệp lưu giữ provenance message/part/hash.
+      parameters:
+        - { name: messageId, in: path, required: true, schema: { type: string } }
+        - { name: part, in: path, required: true, schema: { type: integer, minimum: 0 } }
+        - { name: mailbox, in: query, schema: { type: string, format: email } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/Idempotency' }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [spaceId], properties: { spaceId: { $ref: '#/components/schemas/Id' }, parentId: { $ref: '#/components/schemas/Id' }, expectedSha256: { type: string, pattern: '^[0-9a-f]{64}$' } } } } } }
+      responses:
+        '201': { description: Attachment đã được ghi bền vững vào Drive, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceDriveFile' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+  /mail/send-drive-file:
+    post:
+      tags: [Liên thông Email–Drive–Office]
+      summary: Gửi snapshot một version Drive hoặc link cần đăng nhập tới đúng version
+      description: Attachment là snapshot bất biến của versionId/hash lúc compose. Link không tự cấp quyền; mọi người nhận phải có ACL đọc sẵn và vẫn phải đăng nhập khi tải. Idempotency-Key bind toàn payload; đổi file/version/hash/người nhận/nội dung với cùng key trả 409, kể cả sau crash hoặc request đồng thời. Email link dùng URL tuyệt đối của web app; token nằm trong fragment để không đi vào access log, web app giữ returnTo qua đăng nhập rồi mới gọi API tải.
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [to, subject, fileId, versionId, expectedSha256, mode], properties: { to: { type: array, minItems: 1, maxItems: 50, items: { type: string, format: email } }, subject: { type: string, maxLength: 300 }, text: { type: string }, fromIdentity: { type: string, format: email }, fileId: { $ref: '#/components/schemas/Id' }, versionId: { $ref: '#/components/schemas/Id' }, expectedSha256: { type: string, pattern: '^[0-9a-f]{64}$' }, mode: { type: string, enum: [attachment, link] } } } } } }
+      responses:
+        '201': { description: Mail engine đã ACK; version/hash gửi được cố định trong journal, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessage' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/StorageUnavailable' }
+  /drive/shared-links/{token}:
+    get:
+      tags: [Liên thông Email–Drive–Office]
+      summary: Tải đúng version qua link có xác thực và ACL người nhận
+      parameters: [{ name: token, in: path, required: true, schema: { type: string, minLength: 20, maxLength: 100 } }]
+      responses:
+        '200': { description: Nội dung version bất biến, headers: { X-Content-SHA256: { schema: { type: string } } }, content: { application/octet-stream: { schema: { type: string, format: binary } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     session:
@@ -1413,7 +1982,7 @@ components:
     Sort: { name: sort, in: query, description: 'Ví dụ -createdAt,title (dấu trừ = giảm dần)', schema: { type: string } }
     Q: { name: q, in: query, description: 'Tìm theo chữ', schema: { type: string } }
     Csrf: { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
-    Idempotency: { name: Idempotency-Key, in: header, required: true, description: 'Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ', schema: { type: string, minLength: 8, maxLength: 128 } }
+    Idempotency: { name: Idempotency-Key, in: header, required: true, description: 'Chuỗi ngẫu nhiên do FE sinh; giữ 24 giờ và bind toàn method/path/payload. Lặp đúng payload trả kết quả cũ; cùng key khác payload trả 409.', schema: { type: string, minLength: 8, maxLength: 128 } }
 
   headers:
     RequestId: { description: 'Trả lại X-Request-Id của yêu cầu', schema: { type: string } }
@@ -1445,8 +2014,96 @@ components:
     TooMany: { description: 'Quá nhiều yêu cầu (600/phút/người; tìm kiếm 60/phút)', headers: { Retry-After: { description: 'Số giây chờ trước khi gọi lại', schema: { type: integer, minimum: 1 } } }, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     PayloadTooLarge: { description: 'Thân JSON > 1 MB hoặc file > 100 MB', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     DriveError: { description: 'Google trả lỗi (DRIVE_ERROR)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    StorageConflict: { description: 'Tên đã tồn tại hoặc kho từ chối ghi đè (STORAGE_CONFLICT)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    WorkspacePayloadTooLarge: { description: 'Tệp Drive cơ bản lớn hơn 10 MiB (PAYLOAD_TOO_LARGE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    UnsupportedMediaType: { description: 'Loại tệp chưa được phép trong giai đoạn thử (UNSUPPORTED_MEDIA_TYPE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    StorageIntegrityMismatch: { description: 'Checksum đọc lại không khớp nội dung đã nhận (STORAGE_INTEGRITY_MISMATCH)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    StorageUnavailable: { description: 'Kho tạm thời không sẵn sàng (STORAGE_UNAVAILABLE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    StorageTimeout: { description: 'Kho không phản hồi trong thời hạn (STORAGE_TIMEOUT)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   schemas:
+    MailCompose:
+      type: object
+      properties:
+        to: { type: array, items: { type: string, format: email }, maxItems: 50 }
+        subject: { type: string, maxLength: 300 }
+        text: { type: string }
+        html: { type: string }
+        draftId: { $ref: '#/components/schemas/Id' }
+        inReplyTo: { type: string }
+        references: { type: array, items: { type: string } }
+        attachments: { type: array, maxItems: 8, items: { type: object, required: [filename, contentBase64], properties: { filename: { type: string }, contentType: { type: string }, contentBase64: { type: string } } } }
+        fromIdentity: { type: string, format: email, description: 'Alias hoặc địa chỉ shared mailbox đã được cấp quyền gửi' }
+        mailbox: { type: string, format: email, description: 'Mailbox nghiệp vụ khi gửi thay hộp thư nhóm' }
+    MailDraft:
+      allOf:
+        - { $ref: '#/components/schemas/MailCompose' }
+        - { type: object, required: [id, ownerEmail, createdAt, updatedAt], properties: { id: { $ref: '#/components/schemas/Id' }, ownerEmail: { type: string, format: email }, attachmentNames: { type: array, items: { type: string } }, createdAt: { $ref: '#/components/schemas/DateTime' }, updatedAt: { $ref: '#/components/schemas/DateTime' } } }
+    MailMessage:
+      type: object
+      required: [id, mailboxOwner, threadId, from, to, subject, sentAt, folder, deliveryStatus]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        mailboxOwner: { type: string, format: email }
+        threadId: { type: string }
+        from: { type: string, format: email }
+        to: { type: array, items: { type: string, format: email } }
+        subject: { type: string }
+        sentAt: { $ref: '#/components/schemas/DateTime' }
+        folder: { type: string }
+        labels: { type: array, uniqueItems: true, items: { type: string } }
+        deliveryStatus: { type: string, enum: [accepted, failed] }
+        inReplyTo: { type: string }
+        preview: { type: string }
+        attachmentCount: { type: integer, minimum: 0 }
+    MailLabel:
+      type: object
+      required: [id, ownerEmail, name, color, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        ownerEmail: { type: string, format: email }
+        name: { type: string }
+        color: { type: string }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        updatedAt: { $ref: '#/components/schemas/DateTime' }
+    MailFilterInput:
+      type: object
+      required: [name, field, operator, value]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        field: { type: string, enum: [from, to, subject, body] }
+        operator: { type: string, enum: [equals, contains] }
+        value: { type: string, minLength: 1, maxLength: 200 }
+        addLabels: { type: array, maxItems: 20, uniqueItems: true, items: { type: string, minLength: 1, maxLength: 80 } }
+        moveToFolder: { type: string, maxLength: 80 }
+        stop: { type: boolean, default: false }
+        enabled: { type: boolean, default: true }
+    MailFilter:
+      allOf:
+        - { $ref: '#/components/schemas/MailFilterInput' }
+        - { type: object, required: [id, ownerEmail, enabled, createdAt, updatedAt], properties: { id: { $ref: '#/components/schemas/Id' }, ownerEmail: { type: string, format: email }, createdAt: { $ref: '#/components/schemas/DateTime' }, updatedAt: { $ref: '#/components/schemas/DateTime' } } }
+    MailAlias:
+      type: object
+      required: [id, ownerEmail, address, displayName, active, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        ownerEmail: { type: string, format: email }
+        address: { type: string, format: email }
+        displayName: { type: string }
+        active: { type: boolean }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        updatedAt: { $ref: '#/components/schemas/DateTime' }
+    SharedMailbox:
+      type: object
+      required: [id, address, name, members, currentRoles, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        address: { type: string, format: email }
+        name: { type: string }
+        currentRoles: { type: array, uniqueItems: true, items: { type: string, enum: [read, send, manage] } }
+        members: { type: array, items: { type: object, required: [email, roles], properties: { email: { type: string, format: email }, roles: { type: array, uniqueItems: true, items: { type: string, enum: [read, send, manage] } } } } }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        updatedAt: { $ref: '#/components/schemas/DateTime' }
     # ── Kiểu cơ bản ──
     Id: { type: string, pattern: '^[a-f0-9]{24}$', example: 6712f0c2a1b2c3d4e5f60718 }
     Date: { type: string, format: date, example: '2026-10-19' }
@@ -1475,7 +2132,7 @@ components:
     CodeType: { type: string, enum: [department, function, channel, project, division], x-gia-dinh: 'Hợp đồng không liệt kê loại mã' }
     CodeStatus: { type: string, enum: [pending, approved, rejected, retired], x-gia-dinh: 'Hợp đồng chỉ nói pending' }
     HoldReasonType: { type: string, enum: [dispute, inspection, warranty, receivable, contract_open, board_request], description: 'Tranh chấp · Thanh tra, kiểm toán · Bảo hành · Công nợ · Hợp đồng chưa thanh lý · Ban Điều hành yêu cầu (BR-22, D5)' }
-    ErrorCode: { type: string, enum: [VALIDATION, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, DUPLICATE, STATE_INVALID, RULE_VIOLATION, LOCKED, PAYLOAD_TOO_LARGE, RATE_LIMITED, DRIVE_ERROR, MAINTENANCE, INTERNAL] }
+    ErrorCode: { type: string, enum: [VALIDATION, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, DUPLICATE, STATE_INVALID, RULE_VIOLATION, LOCKED, PAYLOAD_TOO_LARGE, RATE_LIMITED, DRIVE_ERROR, STORAGE_CONFLICT, UNSUPPORTED_MEDIA_TYPE, STORAGE_INTEGRITY_MISMATCH, STORAGE_UNAVAILABLE, STORAGE_TIMEOUT, MAINTENANCE, INTERNAL] }
 
     # ── Khung chung ──
     Base:
@@ -1488,6 +2145,147 @@ components:
         createdBy: { $ref: '#/components/schemas/Id' }
         updatedAt: { $ref: '#/components/schemas/DateTime' }
         updatedBy: { $ref: '#/components/schemas/Id' }
+
+    # ── Drive cơ bản VCworkspace ──
+    WorkspaceSpaceKind: { type: string, enum: [department, personal] }
+    WorkspaceSpaceRole: { type: string, enum: [manager, reader] }
+    WorkspaceSpace:
+      type: object
+      required: [id, kind, name, role, rootFolderId, allowedActions]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        kind: { $ref: '#/components/schemas/WorkspaceSpaceKind' }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        role: { $ref: '#/components/schemas/WorkspaceSpaceRole' }
+        rootFolderId: { $ref: '#/components/schemas/Id' }
+        allowedActions:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [list, create-folder, upload, download] }
+    WorkspaceSpaceList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/WorkspaceSpace' } }
+    WorkspaceDriveFolderInput:
+      type: object
+      required: [spaceId, name]
+      properties:
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    WorkspaceDocumentInput:
+      type: object
+      required: [spaceId, name]
+      properties:
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string, minLength: 1, maxLength: 250 }
+    WorkspaceSpreadsheetInput:
+      type: object
+      required: [spaceId, name]
+      properties:
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string, minLength: 1, maxLength: 250 }
+    WorkspacePresentationInput:
+      type: object
+      required: [spaceId, name]
+      properties:
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        name: { type: string, minLength: 1, maxLength: 250 }
+    WorkspaceDriveFolder:
+      type: object
+      required: [id, spaceId, kind, name, storageKey, createdAt, createdBy, allowedActions]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        kind: { type: string, const: folder }
+        name: { type: string }
+        storageKey: { type: string, description: 'Định danh trung lập do StoragePort trả về; không lộ credential hoặc đường dẫn máy chủ' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        createdBy: { $ref: '#/components/schemas/Id' }
+        allowedActions:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [list, create-folder, upload, rename, move, trash, restore] }
+    WorkspaceDriveFile:
+      type: object
+      required: [id, spaceId, kind, name, mimeType, size, contentSha256, storageKey, createdAt, createdBy, allowedActions]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        spaceId: { $ref: '#/components/schemas/Id' }
+        parentId: { $ref: '#/components/schemas/Id' }
+        kind: { type: string, const: file }
+        name: { type: string }
+        mimeType: { type: string, enum: [text/plain, application/octet-stream, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/pdf] }
+        size: { type: integer, minimum: 0, maximum: 10485760 }
+        contentSha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        currentVersionId: { $ref: '#/components/schemas/Id' }
+        versionNumber: { type: integer, minimum: 1 }
+        trashedAt: { $ref: '#/components/schemas/DateTime' }
+        storageKey: { type: string, description: 'Định danh trung lập do StoragePort trả về; không lộ credential hoặc đường dẫn máy chủ' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        createdBy: { $ref: '#/components/schemas/Id' }
+        allowedActions:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [download, rename, move, upload-version, list-versions, restore-version, trash, restore] }
+    WorkspaceDriveItem:
+      oneOf:
+        - $ref: '#/components/schemas/WorkspaceDriveFolder'
+        - $ref: '#/components/schemas/WorkspaceDriveFile'
+    WorkspaceDriveItemList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/WorkspaceDriveItem' } }
+        nextCursor: { type: string }
+    WorkspaceDriveItemUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        parentId: { $ref: '#/components/schemas/Id' }
+    WorkspaceDriveVersion:
+      type: object
+      required: [id, fileId, number, mimeType, size, contentSha256, createdAt, createdBy]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        fileId: { $ref: '#/components/schemas/Id' }
+        number: { type: integer, minimum: 1 }
+        mimeType: { type: string }
+        size: { type: integer, minimum: 0, maximum: 10485760 }
+        contentSha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        createdBy: { $ref: '#/components/schemas/Id' }
+    WorkspaceDriveVersionList:
+      type: object
+      required: [items]
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/WorkspaceDriveVersion' } } }
+    WorkspaceTrashResult:
+      type: object
+      required: [id, trashedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        trashedAt: { $ref: '#/components/schemas/DateTime' }
+    WorkspaceEditorConfig:
+      type: object
+      required: [documentServerUrl, config, mode]
+      properties:
+        documentServerUrl: { type: string, format: uri }
+        config: { type: object, additionalProperties: true }
+        mode: { type: string, enum: [edit, view] }
+    WorkspaceEditorCallback:
+      type: object
+      required: [key, status]
+      properties:
+        key: { type: string }
+        status: { type: integer, enum: [1, 2, 3, 4, 6, 7] }
+        url: { type: string, format: uri }
+        token: { type: string }
     # allowedActions (D9): tên kebab-case = đoạn cuối đường dẫn; sửa thông tin (PATCH) = update.
     # FE chỉ hiện nút có trong danh sách; BE vẫn kiểm lại khi gọi.
     DocumentActions:
@@ -1628,6 +2426,39 @@ components:
         departmentId: { $ref: '#/components/schemas/Id' }
 
     # ── M01 ──
+    IdentityLifecycleInput:
+      type: object
+      required: [subject, email, groups, active]
+      properties:
+        subject: { type: string, minLength: 1, maxLength: 300 }
+        email: { type: string, format: email }
+        groups: { type: array, uniqueItems: true, maxItems: 100, items: { type: string, minLength: 1, maxLength: 200 } }
+        active: { type: boolean }
+        globalRevoke: { type: boolean, default: false }
+    IdentityLifecycleStep:
+      type: object
+      required: [name, status, attempts]
+      properties:
+        name: { type: string, enum: [app-deny, authentik, nextcloud, app-commit] }
+        status: { type: string, enum: [pending, running, failed, done] }
+        attempts: { type: integer, minimum: 0 }
+        lastError: { type: string }
+        completedAt: { $ref: '#/components/schemas/DateTime' }
+    IdentityLifecycleOperation:
+      type: object
+      required: [id, subject, subjectRevision, desired, status, steps, version, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        subject: { type: string }
+        subjectRevision: { type: integer, minimum: 1 }
+        desired: { $ref: '#/components/schemas/IdentityLifecycleInput' }
+        status: { type: string, enum: [pending, running, partial, superseded, done] }
+        steps: { type: array, items: { $ref: '#/components/schemas/IdentityLifecycleStep' } }
+        version: { type: integer, minimum: 0 }
+        lastError: { type: string }
+        completedAt: { $ref: '#/components/schemas/DateTime' }
+        createdAt: { $ref: '#/components/schemas/DateTime' }
+        updatedAt: { $ref: '#/components/schemas/DateTime' }
     Me:
       type: object
       required: [user, systemRoles, drives, csrfToken, limits]

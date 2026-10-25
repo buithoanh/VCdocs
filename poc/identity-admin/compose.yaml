@@ -1,0 +1,134 @@
+name: vcworkspace-identity12
+services:
+  nc-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+    secrets: [nc_db_password]
+    volumes: [nc_db:/var/lib/postgresql]
+    networks: [identity12]
+
+  nextcloud:
+    image: nextcloud@sha256:431d389fd8e28b2421149cc877df6c54105f1baaee8c77a3c66ff6cf87d7df33
+    platform: linux/arm64
+    restart: "no"
+    depends_on: [nc-db]
+    environment:
+      POSTGRES_HOST: nc-db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+      NEXTCLOUD_ADMIN_USER: admin12
+      NEXTCLOUD_ADMIN_PASSWORD_FILE: /run/secrets/nc_admin_password
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost nextcloud
+      PHP_MEMORY_LIMIT: 512M
+    secrets: [nc_db_password, nc_admin_password, oidc_nc_client_secret]
+    volumes: [nextcloud:/var/www/html]
+    networks: [identity12, loopback]
+    cpus: 2.0
+    mem_limit: 2g
+
+  ak-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD_FILE: /run/secrets/ak_db_password
+    secrets: [ak_db_password]
+    volumes: [ak_db:/var/lib/postgresql]
+    networks: [identity12]
+
+  redis:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["--save", "60", "1", "--loglevel", "warning"]
+    volumes: [redis:/data]
+    networks: [identity12]
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server@sha256:c0ce79a3fc4533045bfd203254d0c2f71a871d8607a3412f181da247b542e3a1
+    platform: linux/arm64
+    restart: "no"
+    command: server
+    depends_on: [ak-db, redis]
+    environment: &ak_env
+      AUTHENTIK_POSTGRESQL__HOST: ak-db
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/ak_db_password
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/ak_secret_key
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_LISTEN__HTTP: 0.0.0.0:18121
+    secrets: [ak_db_password, ak_secret_key, ak_bootstrap_password, ak_bootstrap_token]
+    volumes: [ak_media:/media, ak_templates:/templates]
+    networks:
+      identity12:
+        aliases: [authentik.localtest.me]
+      loopback: {}
+    cpus: 2.0
+    mem_limit: 2g
+
+  nextcloud-loopback-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18120", "-e", "nc", "nextcloud", "80"]
+    depends_on: [nextcloud]
+    ports: ["127.0.0.1:18120:18120"]
+    networks: [identity12, host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+  authentik-loopback-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18121", "-e", "nc", "authentik-server", "18121"]
+    depends_on: [authentik-server]
+    ports: ["127.0.0.1:18121:18121"]
+    networks: [identity12, host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server@sha256:c0ce79a3fc4533045bfd203254d0c2f71a871d8607a3412f181da247b542e3a1
+    platform: linux/arm64
+    restart: "no"
+    command: worker
+    depends_on: [ak-db, redis]
+    environment: *ak_env
+    env_file: ./secrets/authentik-bootstrap.env
+    secrets: [ak_db_password, ak_secret_key]
+    volumes: [ak_media:/media, ak_templates:/templates, ak_certs:/certs]
+    networks: [identity12]
+    cpus: 2.0
+    mem_limit: 2g
+
+networks:
+  identity12:
+    internal: true
+  loopback:
+    internal: true
+  host_edge: {}
+
+volumes:
+  nc_db: {name: vcworkspace_identity12_nc_db_pg18}
+  nextcloud: {name: vcworkspace_identity12_nextcloud}
+  ak_db: {name: vcworkspace_identity12_ak_db_pg18}
+  redis: {name: vcworkspace_identity12_redis}
+  ak_media: {name: vcworkspace_identity12_ak_media}
+  ak_templates: {name: vcworkspace_identity12_ak_templates}
+  ak_certs: {name: vcworkspace_identity12_ak_certs}
+
+secrets:
+  nc_db_password: {file: ./secrets/nc_db_password}
+  nc_admin_password: {file: ./secrets/nc_admin_password}
+  ak_db_password: {file: ./secrets/ak_db_password}
+  ak_secret_key: {file: ./secrets/ak_secret_key}
+  ak_bootstrap_password: {file: ./secrets/ak_bootstrap_password}
+  ak_bootstrap_token: {file: ./secrets/ak_bootstrap_token}
+  oidc_nc_client_secret: {file: ./secrets/oidc_nc_client_secret}

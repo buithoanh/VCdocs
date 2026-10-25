@@ -1,4 +1,4 @@
-# @vcdocs/api – máy chủ nghiệp vụ VCdocs
+# @vcdocs/api – máy chủ nghiệp vụ VCworkspace
 
 NestJS + TypeScript + MongoDB. Giai đoạn 1: M01–M09, M14 và `/jobs`, đúng theo
 `contract/openapi.yaml` (1.3.0-gd1) (gốc chung FE/BE, không sinh từ mã). Google Drive giữ
@@ -114,7 +114,7 @@ Nguyên tắc đã làm theo hợp đồng mục 1, 7:
   (403) cũng ghi. Nhật ký không ghi token, nội dung file.
 - POST có `Idempotency-Key` (theo hợp đồng) gửi lại trong 24 giờ trả đúng kết quả
   cũ; lỗi thì không giữ key.
-- Việc gọi Google nhiều bước trả 202 + `jobId`; sổ VCdocs chỉ ghi sau khi Drive
+- Việc gọi Google nhiều bước trả 202 + `jobId`; sổ VCworkspace chỉ ghi sau khi Drive
   làm xong; bước lỗi thì việc dừng, `GET /jobs/{id}` báo bước nào.
 - Giới hạn 600 yêu cầu/phút/người, tìm kiếm 60/phút (429 kèm Retry-After); thân
   JSON ≤ 1 MB, file ≤ 100 MB (vượt → 413 PAYLOAD_TOO_LARGE).
@@ -169,7 +169,7 @@ nhóm đúng dạng C1 mà sơ đồ không có. Sau khi IT tạo nhóm, R9 ch�
 
 ## Nhận cây thư mục có sẵn trên Drive (Google thật)
 
-Sau `nap-so-do`, đưa thư mục đã có trên drive của các phòng vào sổ VCdocs (`folders`) để
+Sau `nap-so-do`, đưa thư mục đã có trên drive của các phòng vào sổ VCworkspace (`folders`) để
 tài liệu, hồ sơ có chỗ lưu. **Chỉ đọc Drive** — không tạo, đổi tên, di chuyển gì.
 
 ```bash
@@ -191,12 +191,18 @@ pnpm --filter api run nhan-cay-thu-muc -- --drive 11                 # một dri
   thư mục năm **và** mọi thư mục trong năm đúng `YYYY-MM` — tránh tạo `2026-10` cạnh `Tháng 10`.
   Chạy lại sau khi sửa tên thì tự bật.
 - Chạy lại không trùng: khớp theo googleId; thư mục đã có trong sổ giữ nguyên (đổi tên/chuyển chỗ/
-  vào thùng rác trên Drive chỉ cảnh báo — dùng "Làm mới"). Số đã dùng ghi `folder_numbers` nên VCdocs
+  vào thùng rác trên Drive chỉ cảnh báo — dùng "Làm mới"). Số đã dùng ghi `folder_numbers` nên VCworkspace
   không cấp lại. Mỗi thư mục nhận ghi `audit_logs` (`folder.import`).
 - Cảnh báo thêm: khung thiếu (00 Tài liệu, 02 QT/03 HD/04 BM, 99), mảng/dự án chưa có mã, số trùng,
   mã chưa có trong Bảng mã (vẫn nhận), thư mục có cha đã vào thùng rác.
 
 ## Những gì còn dùng bản giả hoặc chưa làm
+
+- **Drive cơ bản VCworkspace**: `WORKSPACE_STORAGE_MODE=fake` là mặc định.
+  Chế độ `nextcloud` chỉ chấp nhận HTTP loopback, chọn credential riêng theo
+  email từ `WORKSPACE_STORAGE_CREDENTIALS_JSON`; không dùng danh tính Google.
+  Integration test local dùng Nextcloud cô lập ở `poc/drive-nextcloud/` và không
+  đọc `.env` thật. Secret vận hành/production chưa được thiết kế.
 
 - **Google**: test và chạy local dùng `FakeGoogle` (trong bộ nhớ). Bản thật
   (`src/google/real/real-google.ts`, googleapis + 2 tài khoản máy) đã viết nhưng
@@ -217,3 +223,7 @@ pnpm --filter api run nhan-cay-thu-muc -- --drive 11                 # một dri
 - `/dev/fake-google` chỉ có khi `GOOGLE_MODE=fake`, không thuộc hợp đồng.
 
 Chỗ hợp đồng thiếu/sai và giả định BE đã chọn: `DE_NGHI_SUA_HOP_DONG.md`.
+
+> Tên dự án hiện tại là VCworkspace (từ 2026-10-23). Các định danh `vcdocs`,
+> package `@vcdocs/*` và cấu hình hạ tầng trong ví dụ vẫn đang dùng tên kỹ thuật cũ.
+> Phiên code AI: xem [quy tắc chung](../../AGENTS.md) trước khi khởi động dịch vụ thật.

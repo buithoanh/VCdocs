@@ -99,11 +99,19 @@ export function idem(key: string) {
 
 let unauthorizedHandler: () => void = () => {
   if (typeof window === 'undefined') return;
-  const { pathname, search } = window.location;
+  const { pathname, search, hash } = window.location;
   if (pathname.startsWith(LOGIN_PATH)) return;
-  const returnTo = encodeURIComponent(pathname + search);
+  const returnTo = encodeURIComponent(authenticatedReturnTo({ pathname, search, hash }, window.sessionStorage));
   window.location.assign(`${LOGIN_PATH}?returnTo=${returnTo}`);
 };
+export const DRIVE_LINK_TOKEN_STORAGE = 'vcworkspace.drive-link-token';
+export function authenticatedReturnTo(location: Pick<Location, 'pathname' | 'search' | 'hash'>, storage?: Pick<Storage, 'setItem'>) {
+  if (location.pathname === '/bo-nho/lien-ket' && /^#[A-Za-z0-9_-]{20,100}$/.test(location.hash)) {
+    storage?.setItem(DRIVE_LINK_TOKEN_STORAGE, location.hash.slice(1));
+    return location.pathname + location.search;
+  }
+  return location.pathname + location.search + location.hash;
+}
 /** Cho test thay cách xử lý 401. */
 export function setUnauthorizedHandler(fn: () => void) {
   unauthorizedHandler = fn;

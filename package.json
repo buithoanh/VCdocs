@@ -2,14 +2,19 @@
   "name": "vcdocs",
   "private": true,
   "packageManager": "pnpm@9.2.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "contract:lint": "redocly lint contract/openapi.yaml --format=summary",
     "contract:mock": "prism mock -p 4010 -d contract/openapi.yaml",
     "dev:api": "pnpm --filter @vcdocs/api dev",
     "dev:web": "pnpm --filter @vcdocs/web dev",
     "test": "pnpm -r test",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "ai:check": "node scripts/ai/check.mjs",
+    "ai:check:full": "node scripts/ai/check.mjs --full",
+    "ai:guard:test": "node --test scripts/ai/guard.test.mjs scripts/ai/gate.test.mjs"
   },
   "devDependencies": {
     "@redocly/cli": "1.25.11",

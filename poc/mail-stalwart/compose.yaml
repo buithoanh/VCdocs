@@ -1,0 +1,51 @@
+services:
+  mail:
+    image: stalwartlabs/stalwart:v0.16
+    container_name: vcworkspace-mail-chat07
+    command: ["--config", "/etc/stalwart/config.json"]
+    environment:
+      STALWART_RECOVERY_ADMIN: ${STALWART_RECOVERY_ADMIN:?Set local recovery credential}
+    volumes:
+      - vcworkspace_mail_chat07_etc:/etc/stalwart
+      - vcworkspace_mail_chat07_data:/var/lib/stalwart
+    networks:
+      internal:
+        aliases: [mail]
+
+  relay:
+    image: onlyoffice/documentserver:9.4.0.1
+    platform: linux/amd64
+    container_name: vcworkspace-mail-chat07-relay
+    environment:
+      MAIL_RELAY_CONTROL_TOKEN: ${MAIL_TEST_A_PASSWORD:?Set local relay control token}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /relay-tls
+        openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+          -subj /CN=mail.vcworkspace.test \
+          -keyout /relay-tls/key.pem -out /relay-tls/cert.pem >/dev/null 2>&1
+        chmod 600 /relay-tls/key.pem
+        exec /usr/bin/python3 /relay.py
+    volumes:
+      - ./relay.py:/relay.py:ro
+    ports:
+      - "127.0.0.1:18465:465"
+      - "127.0.0.1:18587:587"
+      - "127.0.0.1:18993:993"
+      - "127.0.0.1:14190:4190"
+      - "127.0.0.1:18084:8080"
+      - "127.0.0.1:19090:19090"
+    networks: [default, internal]
+    depends_on: [mail]
+
+networks:
+  internal:
+    internal: true
+
+volumes:
+  vcworkspace_mail_chat07_etc:
+    external: true
+  vcworkspace_mail_chat07_data:
+    external: true

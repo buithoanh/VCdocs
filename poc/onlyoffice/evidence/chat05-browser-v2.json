@@ -1,0 +1,55 @@
+{
+  "runId": "chat05final",
+  "fileId": "6adb4cfe8dc500771673bc51",
+  "versionNumber": 2,
+  "currentContentSha256": "1ffcf25fb3e1410c1884c4ae21e23d7b2b8615a06e7d8b0be06c3938285cec1b",
+  "versions": [
+    {
+      "id": "6adb4d028dc500771673bc83",
+      "number": 2,
+      "contentSha256": "1ffcf25fb3e1410c1884c4ae21e23d7b2b8615a06e7d8b0be06c3938285cec1b"
+    },
+    {
+      "id": "6adb4cfe8dc500771673bc57",
+      "number": 1,
+      "contentSha256": "3b2fd180e1531014b28acbe7a4de31c84e9f213a03ee2ab3e6ee36441a00c205"
+    }
+  ],
+  "xlsxBytes": 9131,
+  "xlsxSha256": "1ffcf25fb3e1410c1884c4ae21e23d7b2b8615a06e7d8b0be06c3938285cec1b",
+  "pdfBytes": 62245,
+  "pdfSha256": "8a3c69e1a5f69cb676224e9a4f28a7e66fbbce6ace7ec38f2960174b04b85e69",
+  "browser": {
+    "managerMode": "edit",
+    "readerMode": "view",
+    "readerWriteControlsPresent": false,
+    "savedStatus": "All changes saved",
+    "reopenedVersion": 2,
+    "reopenedD2": 4,
+    "filterModeVisible": true,
+    "versionButtons": [2, 1]
+  },
+  "contentInspection": {
+    "xlsxMagic": "PK",
+    "pdfMagic": "%PDF-",
+    "sharedStringsVietnamese": true,
+    "dateCellsPresent": true,
+    "autoFilterPresent": true,
+    "sortStateDescendingF2F4": true,
+    "formulas": {
+      "F2": "D2*E2",
+      "G2": "IF(F5>7000000,\"Vượt ngưỡng\",\"Trong ngưỡng\")",
+      "G3": "SUMIF(B2:B4,\"Phụ tùng\",F2:F4)",
+      "G4": "VLOOKUP(\"DV-01\",A2:F4,6,FALSE)",
+      "F5": "SUM(F2:F4)"
+    },
+    "cachedResults": { "F2": 6000000, "G2": "Vượt ngưỡng", "G3": 8000000, "G4": 2400000, "F5": 10400000 },
+    "independentExpectedTotal": 10400000,
+    "pdfTextContainsTotal": true,
+    "pdfTextContainsVietnameseHeaders": true
+  },
+  "limitations": [
+    "Không xác nhận Apps Script hoặc macro tương thích.",
+    "Chỉ kiểm các hàm đại diện và một lượt local; không phải sizing hay SLA production."
+  ]
+}

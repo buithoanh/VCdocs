@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-10-24T15:11:57.869Z",
+  "joiner": {
+    "subjectBound": true,
+    "subject": "85b1998f7b2f5e70a26444adf50ba77ebea2fa53655c975808b17f9d42e7ee45",
+    "initialGroups": [
+      "vcw-team-a"
+    ]
+  },
+  "renameEmail": {
+    "subjectStable": true,
+    "before": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+    "after": "6d3e4fff4e451db9d0ab6b080e938ed9f74e6c9634c585d733d98af69380ee87",
+    "emailReadback": "manager.renamed@tenant-a.test"
+  },
+  "mover": {
+    "removedTeamA": true,
+    "addedAdmins": true,
+    "oldAclStatus": 404
+  },
+  "leaver": {
+    "disabled": true,
+    "disabledDavStatus": 503,
+    "reenabled": true,
+    "reenabledDavStatus": 207
+  },
+  "partialFailure": {
+    "injectedAfterOperation": true,
+    "driftObservedBeforeReconcile": true,
+    "correlationId": "699e6070-aefc-4b6c-a58d-43ed4f93e888",
+    "retryIdempotent": true,
+    "journalRecovered": true,
+    "status": "done",
+    "attempts": 2
+  },
+  "secretsIncluded": false,
+  "race": {
+    "exactlyOneWinner": true,
+    "loserFailClosed": "LIFECYCLE_RECONCILE_ALREADY_RUNNING"
+  }
+}

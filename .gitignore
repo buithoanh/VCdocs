@@ -8,8 +8,19 @@ coverage/
 *.log
 .DS_Store
 
-.claude/
+.claude/*
+!.claude/settings.json
 
 # Cấu hình production trên máy chủ (deploy/README.md)
 deploy/api.env
 deploy/secrets/
+
+# Local AI check artifacts
+.ai-local/
+
+# PoC Drive local: credentials and generated evidence
+poc/drive-nextcloud/.poc-secrets
+poc/drive-nextcloud/evidence/
+
+# Python bytecode (PoC relay)
+__pycache__/

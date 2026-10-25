@@ -12,6 +12,11 @@ export type ErrorCode =
   | 'PAYLOAD_TOO_LARGE'
   | 'RATE_LIMITED'
   | 'DRIVE_ERROR'
+  | 'STORAGE_CONFLICT'
+  | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'STORAGE_INTEGRITY_MISMATCH'
+  | 'STORAGE_UNAVAILABLE'
+  | 'STORAGE_TIMEOUT'
   | 'MAINTENANCE'
   | 'INTERNAL';
 
@@ -56,6 +61,16 @@ export const Errors = {
     }),
   drive: (message = 'Google Drive trả lỗi, vui lòng thử lại sau') =>
     new AppError(HttpStatus.BAD_GATEWAY, 'DRIVE_ERROR', message),
+  storageConflict: (message = 'Tên đã tồn tại trong thư mục này') =>
+    new AppError(HttpStatus.CONFLICT, 'STORAGE_CONFLICT', message),
+  unsupportedMedia: (message = 'Loại tệp chưa được hỗ trợ') =>
+    new AppError(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 'UNSUPPORTED_MEDIA_TYPE', message),
+  storageIntegrity: (message = 'Checksum nội dung trong kho không khớp') =>
+    new AppError(HttpStatus.UNPROCESSABLE_ENTITY, 'STORAGE_INTEGRITY_MISMATCH', message),
+  storageUnavailable: (message = 'Kho tạm thời không sẵn sàng') =>
+    new AppError(HttpStatus.SERVICE_UNAVAILABLE, 'STORAGE_UNAVAILABLE', message),
+  storageTimeout: (message = 'Kho không phản hồi trong thời hạn') =>
+    new AppError(HttpStatus.GATEWAY_TIMEOUT, 'STORAGE_TIMEOUT', message),
   internal: (message = 'Lỗi hệ thống, vui lòng thử lại sau') =>
     new AppError(HttpStatus.INTERNAL_SERVER_ERROR, 'INTERNAL', message),
 };
