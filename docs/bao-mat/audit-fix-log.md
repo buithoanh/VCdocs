@@ -5,6 +5,62 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 4/12 — Nhập tài liệu ngoài tải url theo redirect, không chặn địa chỉ nội bộ
+
+- **Fingerprint:** `m04-documents/external-import/url-fetch-redirect-ssrf`.
+- **Nhánh:** `claude/audit-fix-04-url-fetch-ssrf-25262e` (cắt từ `claude/audit-fix-03-external-import-fileid-1aae87`, commit 54789a1).
+- **Kết luận:** lỗi **có thật**, đã tái hiện với `RealGoogle.urls.fetch` trên fixture loopback.
+
+### Tái hiện trước khi sửa
+
+Thêm file `apps/api/test/url-fetch-ssrf.spec.ts`. Test tự dựng hai fixture trên `127.0.0.1`: một dịch vụ "nội bộ" chỉ nói http trả chuỗi đánh dấu (đóng vai `web:3000`, `api:4000`), và một máy chủ https "của kẻ tấn công" có `/direct` (trả chuỗi đánh dấu) và `/redirect` (302). Chứng chỉ tự ký tạo bằng `openssl` vào thư mục tạm cho từng lần chạy. `RealGoogle.urls.fetch` dùng `fetch` toàn cục, chỉ tin chứng chỉ tự ký qua `NODE_EXTRA_CA_CERTS` đặt lúc khởi động, nên test gọi hàm trong một tiến trình con (`tsx`) có biến này. Khoá service account là khoá RSA sinh tạm, không gọi Google. Không có lưu lượng ra Internet.
+
+1. `từ chối url https trỏ thẳng vào loopback`: `https://127.0.0.1:<port>/direct`. Trước khi sửa: **FAIL**, hàm trả đúng chuỗi đánh dấu.
+2. `không đi theo redirect từ https về http nội bộ`: `/redirect` trả 302 về `http://127.0.0.1:<port>/internal`. Trước khi sửa: **FAIL**, hàm đi theo redirect sang http và trả chuỗi đánh dấu của dịch vụ nội bộ.
+
+Kết quả chạy trước khi sửa (`ALLOW_PARTIAL_COVERAGE=1 pnpm --filter @vcdocs/api run test --runInBand test/url-fetch-ssrf.spec.ts`): `Tests: 2 failed, 2 total`.
+
+Ghi chú: bản nháp đầu đặt `NODE_TLS_REJECT_UNAUTHORIZED=0` ngay trong Jest. `fetch` toàn cục không nhận cờ này, nên ca 1 "đạt" vì lỗi chứng chỉ chứ không phải vì bị chặn. Đã bỏ cách đó, chuyển sang tiến trình con và thêm assertion "không nhận chuỗi đánh dấu, fixture không nhận request".
+
+Chưa thử dải private, metadata đám mây hay tên nội bộ trên mã cũ, vì mã cũ sẽ mở kết nối thật tới mạng LAN hoặc tra DNS thật. Các ca này chỉ chạy sau khi sửa, khi chúng bị từ chối trước lúc kết nối.
+
+Ca e2e mới trong `test/external-import-source.e2e-spec.ts` (`Audit 4/12: url trỏ vào địa chỉ nội bộ bị từ chối ngay khi nhận, không tạo job`) chạy với controller cũ (gỡ tạm bản sửa controller, rồi áp lại): **FAIL**, nhận 202 thay vì 400.
+
+### Cách sửa
+
+- File mới `apps/api/src/common/safe-url.ts`:
+  - `isBlockedAddress(ip)` chặn IPv4: 0/8, 10/8, 100.64/10 (CGNAT), 127/8, 169.254/16, 172.16/12, 192.0.0/24, 192.0.2/24, 192.88.99/24, 192.168/16, 198.18/15, 198.51.100/24, 203.0.113/24, 224/4 (multicast), 240/4. IPv6 chỉ nhận unicast toàn cầu `2000::/3`, trừ Teredo `2001::/32`, `2001:db8::/32` và 6to4 `2002::/16`. Địa chỉ IPv4-mapped (`::ffff:a.b.c.d`, cả dạng hex) và IPv4-compatible được xét như IPv4. Địa chỉ có zone (`%en0`) hoặc không phải IP đều bị chặn. Dùng `net.BlockList` của Node.
+  - `urlProblem(url)` kiểm hình thức, không tra DNS: chỉ `https:`, không có user/password trong url, IP literal không thuộc dải chặn, tên không có dấu chấm, `localhost` và các đuôi `.localhost`, `.local`, `.localdomain`, `.internal`, `.intranet`, `.lan`, `.home.arpa` bị từ chối. Dấu chấm cuối được bỏ trước khi kiểm. Dạng `2130706433` hoặc `0x7f.1` đã được WHATWG URL chuẩn hoá về `127.0.0.1`.
+  - `safeFetch(url)` tự xử lý redirect, tối đa 5 bước. Mỗi bước gọi lại `urlProblem`, tra DNS (`dns.lookup` all). Chỉ cần một địa chỉ bị chặn là từ chối cả tên. Sau đó mở `https.request` với `lookup` cố định vào địa chỉ vừa kiểm, nên không có lần phân giải thứ hai (chặn DNS rebinding). Tên máy vẫn dùng cho SNI và kiểm chứng chỉ. Giới hạn 100 MB: kiểm `content-length` trước, rồi đếm byte khi đọc luồng và huỷ kết nối ngay khi vượt. Quá 30 giây thì huỷ. Gửi `accept-encoding: identity` để kích thước đếm được là kích thước thật.
+  - Thông báo lỗi không còn chứa tên máy (`Tải về lỗi HTTP <status>`). Địa chỉ nội bộ bị chặn trước khi kết nối, nên lỗi không còn dùng để dò máy nội bộ.
+- `real-google.ts` `urls.fetch` gọi `safeFetch`.
+- `documents.controller.ts` `importExternal` gọi `urlProblem` thay cho regex tiền tố `https://`. url sai scheme vẫn trả 400 `https_only` như cũ. url nội bộ trả 400 `internal_address` và không tạo job. Việc tra DNS chỉ làm ở job, vì kết quả DNS lúc nhận không còn đúng lúc tải.
+- `safeFetch` có ba tham số chỉ dùng cho test: `lookup` (thay DNS), `ca` (tin chứng chỉ tự ký) và `isBlocked` (coi `127.0.0.1` là công khai để fixture loopback đóng vai máy chủ ngoài). `RealGoogle` không truyền tham số nào, nên mã chạy thật luôn dùng chính sách mặc định.
+- Không thêm thư viện. Không đổi hợp đồng (`issue` của lỗi 400 là chuỗi tự do).
+
+### Sau khi sửa
+
+- `test/url-fetch-ssrf.spec.ts`: `Tests: 70 passed, 70 total`. Gồm 2 ca `RealGoogle` ở trên, và các ca `safeFetch`:
+  - Tải hợp lệ qua tên `entry.test` (DNS giả → `127.0.0.1`, chỉ phân giải một lần).
+  - Chính sách mặc định chặn loopback, cả IP lẫn tên, mà fixture không nhận request.
+  - Tên phân giải ra private, hoặc lẫn một địa chỉ private, bị chặn.
+  - Redirect về http, tên không dấu chấm, tên trỏ private, metadata `169.254.169.254`, `[::ffff:a9fe:a9fe]` và `localhost` đều bị chặn ở bước đó, dịch vụ nội bộ không nhận request.
+  - Vòng redirect dừng sau `maxRedirects`.
+  - Vượt kích thước theo `content-length`, và vượt khi đang đọc luồng không có `content-length`: máy chủ chưa gửi hết 200 khối 64 KB thì kết nối đã bị huỷ.
+  - Chứng chỉ không tin cậy bị từ chối.
+  - Bảng địa chỉ bị chặn và được phép, bảng url bị từ chối và hợp lệ.
+- `test/external-import-source.e2e-spec.ts` (6 ca, gồm ca mới), `m04-m05-documents`, `m06-m07-records`: đạt.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 261 passed, 270 total`, độ phủ hợp đồng 145/145.
+- Chưa chạy `pnpm ai:check:full`, chưa thử với Google thật hay trong container triển khai.
+
+### Còn để chủ dự án kiểm
+
+- Egress của container API (tường lửa, proxy) vẫn nên chặn dải nội bộ, vì đó là lớp bảo vệ thứ hai.
+- Nếu triển khai sau proxy egress bắt buộc (biến `HTTPS_PROXY`), `safeFetch` không dùng proxy mà kết nối thẳng. Cần kiểm lại đường ra mạng khi đó.
+- Tài liệu chỉ có trên máy chủ IPv6 hoặc trên tên miền nội bộ của đối tác sẽ không nhập được bằng url nữa. Người dùng tải file lên drive phòng rồi nhập bằng `fileId`.
+
+---
+
 ## 2026-10-25 · Đầu mối 3/12 — Nhập tài liệu ngoài chép fileId bất kỳ bằng service account
 
 - **Fingerprint:** `legacy/external-documents-import:fileId-service-account-copy-without-source-authorization` (kèm biến thể `templateId` của loại hồ sơ).

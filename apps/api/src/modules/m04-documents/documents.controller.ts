@@ -8,6 +8,7 @@ import { Roles } from '../../common/decorators';
 import { Errors } from '../../common/errors';
 import { DOC_TYPE_CODE } from '../../common/enums';
 import { pageResult, parsePage } from '../../common/pagination';
+import { urlProblem } from '../../common/safe-url';
 import { addDays, addMonthsToDateStr, dateVN, escapeRegex, normalizeText } from '../../common/util';
 import { AccessService } from '../../access/access.service';
 import { AuditService } from '../../audit/audit.service';
@@ -540,7 +541,11 @@ export class DocumentsController {
     if (!dept) throw Errors.validation('Phòng không tồn tại', [{ field: 'departmentId', issue: 'not_found' }]);
     // Service account ghi vào drive phòng đích thay người gọi → người gọi phải có quyền Đóng góp ở đó
     this.access.requireDriveRole(ctx, dept.driveId, 'writer');
-    if (body.url && !/^https:\/\//i.test(body.url)) throw Errors.validation('Chỉ nhận đường dẫn https', [{ field: 'url', issue: 'https_only' }]);
+    if (body.url) {
+      // Kiểm hình thức ngay khi nhận; job tải sẽ kiểm lại địa chỉ đã phân giải ở mọi bước redirect
+      const problem = typeof body.url === 'string' ? urlProblem(body.url) : 'Đường dẫn không hợp lệ';
+      if (problem) throw Errors.validation(problem, [{ field: 'url', issue: problem.includes('https') ? 'https_only' : 'internal_address' }]);
+    }
     if (body.fileId) {
       // Chỉ chép file nằm trên drive của công ty mà người gọi được xem; file ngoài drive đó coi như không đọc được (không lộ drive Mật)
       const meta = await this.google.drive.getFile(body.fileId);

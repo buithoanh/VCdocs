@@ -6,6 +6,7 @@ import { sheets as sheetsApi } from '@googleapis/sheets';
 import { admin as adminApi } from '@googleapis/admin';
 import { gmail as gmailApi } from '@googleapis/gmail';
 import { GoogleError } from '../../common/errors';
+import { safeFetch } from '../../common/safe-url';
 import type { AppConfig } from '../../config/config';
 import {
   DriveFileMeta,
@@ -406,23 +407,8 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
         }),
     },
     urls: {
-      fetch: async (url) => {
-        const u = new URL(url);
-        if (u.protocol !== 'https:') throw new GoogleError('Chỉ nhận đường dẫn https');
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 30_000);
-        try {
-          const r = await fetch(u, { signal: ctrl.signal, redirect: 'follow' });
-          if (!r.ok) throw new GoogleError(`Tải ${u.hostname} lỗi ${r.status}`);
-          const len = Number(r.headers.get('content-length') || 0);
-          if (len > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
-          const buf = Buffer.from(await r.arrayBuffer());
-          if (buf.length > 100 * 1024 * 1024) throw new GoogleError('File quá 100 MB');
-          return { content: buf, mimeType: (r.headers.get('content-type') || 'application/octet-stream').split(';')[0], fileName: decodeURIComponent(u.pathname.split('/').pop() || 'tai-lieu') };
-        } finally {
-          clearTimeout(timer);
-        }
-      },
+      // Kiểm https + địa chỉ công khai ở mọi bước redirect, gắn kết nối vào địa chỉ đã kiểm (audit 4/12)
+      fetch: (url) => safeFetch(url),
     },
     reports: {
       listExternalShares: (since) =>

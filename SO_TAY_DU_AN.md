@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 4/12 — tải url tài liệu ngoài không chạm mạng nội bộ
+
+- Nhánh `claude/audit-fix-04-url-fetch-ssrf-25262e` (cắt từ nhánh 3/12). Fingerprint `m04-documents/external-import/url-fetch-redirect-ssrf` **tái hiện được**: `RealGoogle.urls.fetch` tải `https://127.0.0.1/...` và đi theo 302 về `http://127.0.0.1/internal`, trả nội dung dịch vụ nội bộ (fixture loopback, chứng chỉ tự ký, tiến trình con có `NODE_EXTRA_CA_CERTS`).
+- Thêm `apps/api/src/common/safe-url.ts` (`isBlockedAddress`, `urlProblem`, `safeFetch`: https mọi bước, tối đa 5 redirect, chặn loopback/private/link-local/CGNAT/multicast/IPv6 tương đương và tên không dấu chấm, kết nối gắn địa chỉ đã kiểm, giới hạn 100 MB khi đọc luồng). `real-google.ts` dùng `safeFetch`; controller dùng `urlProblem` (400 `internal_address`). Test `test/url-fetch-ssrf.spec.ts` (trước sửa 2 fail/2, sau sửa 70 pass) và một ca e2e trong `external-import-source`. `pnpm ai:check` PASS (BE 261 pass, 9 skip). Không đổi hợp đồng, không thêm thư viện. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 8 đầu mối audit còn lại (phiên 5/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án kiểm egress container API và trường hợp có proxy egress bắt buộc (`safeFetch` kết nối thẳng).
+
 ### 2026-10-25 · Sửa audit 3/12 — nhập tài liệu ngoài và templateId chỉ chép file người gọi được xem
 
 - Nhánh `claude/audit-fix-03-external-import-fileid-1aae87` (cắt từ nhánh 2/12). Fingerprint `legacy/external-documents-import:fileId-service-account-copy-without-source-authorization` **tái hiện được**: `nv.mkt` chép file drive Mật 01 BĐH vào MKT (đọc được bản sao) và tạo EXT `effective` trên chính drive Mật; `tp.mkt` đặt `templateId` là file đó và hồ sơ mới mang nội dung mật.

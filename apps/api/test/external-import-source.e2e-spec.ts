@@ -54,6 +54,16 @@ describe('Nhập tài liệu ngoài và biểu mẫu hồ sơ chỉ chép file n
     expect(t.fake.fileState(d.fileId).text).toBe('Thông tư công khai');
   });
 
+  it('Audit 4/12: url trỏ vào địa chỉ nội bộ bị từ chối ngay khi nhận, không tạo job', async () => {
+    const { fileId: _f, ...base } = extBody(t.ids.depts.MKT.id, '');
+    for (const url of ['https://127.0.0.1/a.pdf', 'https://api:4000/v1/me', 'https://169.254.169.254/latest/meta-data/', 'https://[::ffff:10.0.0.1]/a.pdf']) {
+      const r = await nv.post('/external-documents', { ...base, url });
+      expect(r.status).toBe(400);
+      expect(r.body.error.details).toEqual([{ field: 'url', issue: 'internal_address' }]);
+    }
+    expect(await t.db.m.Job.countDocuments({ companyId: new Types.ObjectId(t.ids.companyId), type: 'external_document.import', 'payload.url': /127\.0\.0\.1|api:4000|169\.254|ffff/ })).toBe(0);
+  });
+
   it('trưởng phòng MKT không đặt được templateId là file của drive Mật', async () => {
     const rtId = t.ids.recordTypes.seoPlan;
     const p = await tp.patch(`/record-types/${rtId}`, { templateId: secretFileId });
