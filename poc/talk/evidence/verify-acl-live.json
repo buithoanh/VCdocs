@@ -1,0 +1,1971 @@
+{
+  "generatedAt": "2026-10-25T11:55:45.359Z",
+  "mode": "live",
+  "total": 264,
+  "pass": 264,
+  "failures": [],
+  "unchanged": true,
+  "positive": [
+    {
+      "target": "teamA",
+      "who": "successor-a",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    },
+    {
+      "target": "teamA",
+      "who": "member-a",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    },
+    {
+      "target": "oneToOneA",
+      "who": "member-a",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    },
+    {
+      "target": "oneToOneA",
+      "who": "successor-a",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    },
+    {
+      "target": "teamB",
+      "who": "manager-b",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    },
+    {
+      "target": "teamB",
+      "who": "member-b",
+      "room": 200,
+      "chat": 200,
+      "participants": 200
+    }
+  ],
+  "statusHistogram": {
+    "200": 19,
+    "303": 3,
+    "401": 12,
+    "403": 8,
+    "404": 222
+  },
+  "before": {
+    "teamA": {
+      "lastMessageId": 286,
+      "participants": [
+        "groups:35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74:3",
+        "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:3",
+        "users:732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622:3",
+        "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+      ],
+      "name": "talk17-team-a",
+      "type": 2,
+      "lobby": 0,
+      "hasPassword": false
+    },
+    "oneToOneA": {
+      "lastMessageId": 123,
+      "participants": [
+        "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:1",
+        "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+      ],
+      "name": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+      "type": 1,
+      "lobby": 0,
+      "hasPassword": false
+    },
+    "teamB": {
+      "lastMessageId": 261,
+      "participants": [
+        "groups:3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf:3",
+        "users:67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2:1",
+        "users:f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5:3"
+      ],
+      "name": "talk17-team-b",
+      "type": 2,
+      "lobby": 0,
+      "hasPassword": false
+    }
+  },
+  "after": "same as before",
+  "results": [
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "manager-b",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "member-b",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "outsider",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST share file into room",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST add self",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST make public",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "PUT lobby off",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamA",
+      "who": "anonymous",
+      "probe": "GET public page /call",
+      "status": 303,
+      "location": "/login",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "manager-b",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "outsider",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST share file into room",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST add self",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST make public",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "PUT lobby off",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "oneToOneA",
+      "who": "anonymous",
+      "probe": "GET public page /call",
+      "status": 303,
+      "location": "/login",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "successor-a",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "member-a",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST share file into room",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST add self",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST make public",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "PUT lobby off",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "outsider",
+      "probe": "GET public page /call",
+      "status": 200,
+      "note": "generic app shell, leaked=0",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET participants",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET chat context",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST chat",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST reaction",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET shared items",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET shared overview",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET mentions",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST share file into room",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST join room (active)",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST join call",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET call peers",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET signaling settings",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST signaling message",
+      "status": 200,
+      "note": "accepted-and-discarded (no session in room)",
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET signaling pull",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST add self",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST make public",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "PUT rename",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "PUT lobby off",
+      "status": 401,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "POST pin",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "DELETE room",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET avatar",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "target": "teamB",
+      "who": "anonymous",
+      "probe": "GET public page /call",
+      "status": 303,
+      "location": "/login",
+      "ok": true
+    }
+  ],
+  "secretsIncluded": false
+}

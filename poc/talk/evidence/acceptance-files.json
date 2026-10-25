@@ -1,0 +1,102 @@
+{
+  "generatedAt": "2026-10-25T11:53:58.860Z",
+  "run": "mvnrrulx",
+  "roomShare": {
+    "status": 200,
+    "permissions": 19,
+    "shareType": 10,
+    "msToCreate": 70
+  },
+  "chatMessage": {
+    "message": "{file}",
+    "fileParam": {
+      "type": "file",
+      "name": "mvnrrulx-bao-cao.txt",
+      "linkPath": "/f/1149",
+      "mimetype": "text/plain",
+      "permissions": "19",
+      "previewAvailable": "yes"
+    }
+  },
+  "participant": {
+    "receivedPath": "/Talk/mvnrrulx-bao-cao.txt",
+    "davGet": 200,
+    "sharedItemsApi": {
+      "status": 200,
+      "count": 3
+    },
+    "content": true,
+    "overwrite": 204,
+    "reshareToOwnTeamMate": null
+  },
+  "nonParticipants": {
+    "manager-b": {
+      "sharedItemsApi": 404,
+      "sharedWithMe": "none",
+      "fLink": 303,
+      "davGuessOwnerPath": 404,
+      "davGuessOwnTree": 404,
+      "preview": 404,
+      "shareById": 404,
+      "davSearchByFileId": 404
+    },
+    "member-b": {
+      "sharedItemsApi": 404,
+      "sharedWithMe": "none",
+      "fLink": 303,
+      "davGuessOwnerPath": 404,
+      "davGuessOwnTree": 404,
+      "preview": 404,
+      "shareById": 404,
+      "davSearchByFileId": 404
+    },
+    "outsider": {
+      "sharedItemsApi": 404,
+      "sharedWithMe": "none",
+      "fLink": 303,
+      "davGuessOwnerPath": 404,
+      "davGuessOwnTree": 404,
+      "preview": 404,
+      "shareById": 404,
+      "davSearchByFileId": 404
+    },
+    "anonymous": {
+      "sharedItemsApi": 404,
+      "sharedWithMe": "none",
+      "fLink": 401,
+      "davGuessOwnerPath": 401,
+      "davGuessOwnTree": 401,
+      "preview": 401,
+      "shareById": 401,
+      "davSearchByFileId": 401
+    }
+  },
+  "reshareWithoutPermission": {
+    "status": 404,
+    "message": "You are not allowed to share mvnrrulx-chi-doc.txt"
+  },
+  "readOnlyRoomShare": {
+    "status": 200,
+    "permissions": 1,
+    "participantRead": 200,
+    "participantOverwrite": 403
+  },
+  "revocation": {
+    "before": 200,
+    "afterRemovedFromRoom": 404,
+    "afterRemovedMs": 95,
+    "sharedWithMeAfterRemoval": "none",
+    "afterReAdd": 200,
+    "afterUnshare": 404
+  },
+  "crossGroup": {
+    "directUserShareToTeamB": {
+      "status": 403,
+      "message": "Failed to create share."
+    },
+    "roomShareIntoMixedRoom": 200,
+    "teamBReadsViaRoom": 200,
+    "teamBAfterRoomDeleted": "no-path"
+  },
+  "secretsIncluded": false
+}

@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-10-25T11:54:13.468Z",
+  "run": "mvnrs6hi",
+  "webhookListeners": [
+    {
+      "event": "OCA\\Talk\\Events\\ChatMessageSentEvent",
+      "status": 400,
+      "message": "OCA\\Talk\\Events\\ChatMessageSentEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\Talk\\Events\\RoomCreatedEvent",
+      "status": 400,
+      "message": "OCA\\Talk\\Events\\RoomCreatedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\Talk\\Events\\AttendeesAddedEvent",
+      "status": 400,
+      "message": "OCA\\Talk\\Events\\AttendeesAddedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\Talk\\Events\\CallStartedEvent",
+      "status": 400,
+      "message": "OCA\\Talk\\Events\\CallStartedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\Talk\\Events\\SystemMessageSentEvent",
+      "status": 400,
+      "message": "OCA\\Talk\\Events\\SystemMessageSentEvent is not an event class compatible with webhooks"
+    }
+  ],
+  "bot": {
+    "id": 2,
+    "features": "webhook",
+    "state": 2
+  },
+  "enable": {
+    "moderatorTeamAViaApi": 400,
+    "teamBUserOnTeamARoom": 404,
+    "memberListsBots": 403
+  },
+  "delivery": {
+    "postStatus": 201,
+    "postRequestMs": 75,
+    "firstSeenAtSinkMs": 163,
+    "count": 1,
+    "parsed": [
+      {
+        "headers": {
+          "contentType": "application/json",
+          "backend": "http://nc13.localtest.me:18130/",
+          "hasRandom": true,
+          "hasSignature": true
+        },
+        "signatureValid": true,
+        "type": "Create",
+        "actor": {
+          "type": "Person",
+          "idIsUid": true,
+          "hasName": true
+        },
+        "targetIsTeamA": true,
+        "targetName": "talk17-team-a",
+        "containsMessageText": true,
+        "containsMentionUid": true,
+        "teamBMessage": false,
+        "objectKeys": [
+          "content",
+          "id",
+          "mediaType",
+          "name",
+          "type"
+        ]
+      }
+    ],
+    "receiverCheck": "HMAC-SHA256(secret, X-Nextcloud-Talk-Random + body) == X-Nextcloud-Talk-Signature; verified above with the run secret"
+  },
+  "cleanup": {
+    "botsLeft": 0
+  },
+  "secretsIncluded": false
+}

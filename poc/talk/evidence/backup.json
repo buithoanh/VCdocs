@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-10-25T11:51:16.145Z",
+  "files": {
+    "nextcloud.dump": {
+      "sha256": "243d44035132ab489e0bf15a60e6de07bcd65f9d662d5d506c14b3af199b8188",
+      "bytes": 2862526
+    },
+    "nextcloud-html.tgz": {
+      "sha256": "9fb06276117069b93429f92db5cbe546ae332fc7deec1a62211fb26ffb748b77",
+      "bytes": 901045448
+    }
+  },
+  "maintenanceModeMs": 36470,
+  "mode": "0600",
+  "location": "poc/talk/backup/ (git-ignored)",
+  "note": "Phòng/thành viên/tin nhắn/bot Talk nằm trong DB Nextcloud; tệp đính kèm trong Files (thư mục /Talk) + oc_share",
+  "secretsIncluded": false
+}

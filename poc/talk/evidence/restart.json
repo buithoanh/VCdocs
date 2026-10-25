@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-10-25T11:49:27.338Z",
+  "containers": [
+    "vcworkspace-work13-redis-1",
+    "vcworkspace-work13-nextcloud-1"
+  ],
+  "nextcloudReadyMs": 1805,
+  "firstTalkApi200Ms": 2102,
+  "stateIdentical": true,
+  "postAfterRestart": 201,
+  "ownerSeesIt": true,
+  "note": "Sau restart chạy verify-acl.mjs after-restart",
+  "secretsIncluded": false
+}

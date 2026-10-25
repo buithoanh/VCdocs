@@ -1,0 +1,271 @@
+{
+  "generatedAt": "2026-10-25T11:55:31.313Z",
+  "run": "mvnrs9z3",
+  "browser": "Chrome/155.0.8059.85",
+  "settings": {
+    "status": 200,
+    "stun": [],
+    "turn": 0,
+    "server": ""
+  },
+  "oneToOne": {
+    "rounds": [
+      {
+        "round": 1,
+        "roomJoin": 200,
+        "callJoin": 200,
+        "peerJoin": 200,
+        "joinUntilPeerVisibleMs": 1213,
+        "offerToAnswerMs": 1973,
+        "offerToConnectedMs": 1991,
+        "offerToFirstRemoteVideoFrameMs": 2099,
+        "joinToConnectedMs": 3204,
+        "selectedPair": {
+          "rttMs": 0,
+          "localType": "host",
+          "remoteType": "host",
+          "protocol": "udp",
+          "localIsPrivate": true
+        },
+        "inboundB": {
+          "audio": {
+            "bytes": 6406,
+            "packets": 81,
+            "frames": null
+          },
+          "video": {
+            "bytes": 47732,
+            "packets": 69,
+            "frames": 31
+          }
+        },
+        "candidateTypesA": {
+          "host": 4
+        },
+        "intrusion": {
+          "postStatus": 200,
+          "intruderPullStatus": 404,
+          "calleeReceivedFrom": 1,
+          "calleeReceivedTypes": [
+            "candidate",
+            "offer",
+            "candidate",
+            "candidate",
+            "candidate"
+          ]
+        }
+      },
+      {
+        "round": 2,
+        "roomJoin": 200,
+        "callJoin": 200,
+        "peerJoin": 200,
+        "joinUntilPeerVisibleMs": 1163,
+        "offerToAnswerMs": 2076,
+        "offerToConnectedMs": 2119,
+        "offerToFirstRemoteVideoFrameMs": 2228,
+        "joinToConnectedMs": 3282,
+        "selectedPair": {
+          "rttMs": 0,
+          "localType": "host",
+          "remoteType": "host",
+          "protocol": "udp",
+          "localIsPrivate": true
+        },
+        "inboundB": {
+          "audio": {
+            "bytes": 6488,
+            "packets": 82,
+            "frames": null
+          },
+          "video": {
+            "bytes": 46852,
+            "packets": 72,
+            "frames": 32
+          }
+        },
+        "candidateTypesA": {
+          "host": 4
+        }
+      },
+      {
+        "round": 3,
+        "roomJoin": 200,
+        "callJoin": 200,
+        "peerJoin": 200,
+        "joinUntilPeerVisibleMs": 1154,
+        "offerToAnswerMs": 2076,
+        "offerToConnectedMs": 2109,
+        "offerToFirstRemoteVideoFrameMs": 2217,
+        "joinToConnectedMs": 3263,
+        "selectedPair": {
+          "rttMs": 0,
+          "localType": "host",
+          "remoteType": "host",
+          "protocol": "udp",
+          "localIsPrivate": true
+        },
+        "inboundB": {
+          "audio": {
+            "bytes": 6511,
+            "packets": 82,
+            "frames": null
+          },
+          "video": {
+            "bytes": 46102,
+            "packets": 70,
+            "frames": 31
+          }
+        },
+        "candidateTypesA": {
+          "host": 4
+        }
+      },
+      {
+        "round": 4,
+        "roomJoin": 200,
+        "callJoin": 200,
+        "peerJoin": 200,
+        "joinUntilPeerVisibleMs": 1171,
+        "offerToAnswerMs": 2088,
+        "offerToConnectedMs": 2140,
+        "offerToFirstRemoteVideoFrameMs": 2196,
+        "joinToConnectedMs": 3311,
+        "selectedPair": {
+          "rttMs": 0,
+          "localType": "host",
+          "remoteType": "host",
+          "protocol": "udp",
+          "localIsPrivate": true
+        },
+        "inboundB": {
+          "audio": {
+            "bytes": 6336,
+            "packets": 80,
+            "frames": null
+          },
+          "video": {
+            "bytes": 46102,
+            "packets": 70,
+            "frames": 31
+          }
+        },
+        "candidateTypesA": {
+          "host": 4
+        }
+      },
+      {
+        "round": 5,
+        "roomJoin": 200,
+        "callJoin": 200,
+        "peerJoin": 200,
+        "joinUntilPeerVisibleMs": 1163,
+        "offerToAnswerMs": 2088,
+        "offerToConnectedMs": 2092,
+        "offerToFirstRemoteVideoFrameMs": 2198,
+        "joinToConnectedMs": 3255,
+        "selectedPair": {
+          "rttMs": 0,
+          "localType": "host",
+          "remoteType": "host",
+          "protocol": "udp",
+          "localIsPrivate": true
+        },
+        "inboundB": {
+          "audio": {
+            "bytes": 6410,
+            "packets": 81,
+            "frames": null
+          },
+          "video": {
+            "bytes": 44604,
+            "packets": 68,
+            "frames": 31
+          }
+        },
+        "candidateTypesA": {
+          "host": 4
+        }
+      }
+    ],
+    "offerToConnectedMs": {
+      "n": 5,
+      "p50": 2109,
+      "p95": 2140,
+      "max": 2140
+    },
+    "offerToFirstRemoteVideoFrameMs": {
+      "n": 5,
+      "p50": 2198,
+      "p95": 2228,
+      "max": 2228
+    },
+    "joinUntilPeerVisibleMs": {
+      "n": 5,
+      "p50": 1163,
+      "p95": 1213,
+      "max": 1213
+    },
+    "joinToConnectedMs": {
+      "n": 5,
+      "p50": 3263,
+      "p95": 3311,
+      "max": 3311
+    }
+  },
+  "groupCall": {
+    "participants": [
+      "successor-a",
+      "member-a",
+      "guest (password)"
+    ],
+    "joinToAllVisibleMs": 1283,
+    "firstOfferToFullMeshMs": 2290,
+    "streamsPerParticipant": 2,
+    "meshStats": {
+      "a": [
+        {
+          "state": "connected",
+          "videoFrames": 34,
+          "audioPackets": 86,
+          "pair": "host"
+        },
+        {
+          "state": "connected",
+          "videoFrames": 34,
+          "audioPackets": 86,
+          "pair": "host"
+        }
+      ],
+      "b": [
+        {
+          "state": "connected",
+          "videoFrames": 30,
+          "audioPackets": 76,
+          "pair": "host"
+        },
+        {
+          "state": "connected",
+          "videoFrames": 32,
+          "audioPackets": 87,
+          "pair": "host"
+        }
+      ],
+      "guest": [
+        {
+          "state": "connected",
+          "videoFrames": 32,
+          "audioPackets": 86,
+          "pair": "host"
+        },
+        {
+          "state": "connected",
+          "videoFrames": 28,
+          "audioPackets": 76,
+          "pair": "host"
+        }
+      ]
+    }
+  },
+  "secretsIncluded": false
+}
