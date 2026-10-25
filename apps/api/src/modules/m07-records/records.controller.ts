@@ -7,6 +7,7 @@ import { Db } from '../../db/db.service';
 import { GOOGLE, GooglePorts } from '../../google/ports';
 import { Ctx, CurrentCtx, VQuery } from '../../common/context';
 import { Roles } from '../../common/decorators';
+import { driveRoleAtLeast } from '../../common/enums';
 import { Errors } from '../../common/errors';
 import { pageResult, parsePage } from '../../common/pagination';
 import { dateVN, escapeRegex, normalizeText } from '../../common/util';
@@ -151,7 +152,8 @@ export class RecordsController {
     for (const d of drives) {
       for (const f of await this.google.drive.listFiles(d.driveId)) {
         if (known.has(f.fileId)) continue;
-        items.push({ fileId: f.fileId, name: f.name, mimeType: f.mimeType, driveId: f.driveId ?? d.driveId, parentGoogleId: f.parents[0], createdTime: f.createdTime, ownerEmail: f.createdByEmail, webViewLink: f.webViewLink });
+        const ownerEmail = await this.google.drive.getCreatorEmail(f.fileId);
+        items.push({ fileId: f.fileId, name: f.name, mimeType: f.mimeType, driveId: f.driveId ?? d.driveId, parentGoogleId: f.parents[0], createdTime: f.createdTime, ownerEmail, webViewLink: f.webViewLink });
       }
     }
     return { items: items.map((x) => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined))) };
@@ -167,15 +169,21 @@ export class RecordsController {
     const dept = await this.access.deptByDrive(ctx.companyId, meta.driveId);
     if (!dept) throw Errors.validation('File không nằm trong drive của VCdocs', [{ field: 'fileId', issue: 'outside_vcdocs' }]);
     await this.access.assertVisible(ctx, meta.driveId);
-    const creator = (meta.createdByEmail ?? '').toLowerCase() === ctx.user.email;
-    if (!creator && !(await this.access.isHeadOf(ctx, dept.id))) throw Errors.forbidden('Chỉ người tạo file hoặc trưởng phòng được đăng ký ngược');
+    // Người tạo lấy từ nguồn riêng; người sửa cuối (lastModifierEmail) không phải người tạo
+    const creator = (await this.google.drive.getCreatorEmail(body.fileId)) === ctx.user.email;
+    const head = await this.access.isHeadOf(ctx, dept.id);
+    if (!creator && !head) throw Errors.forbidden('Chỉ người tạo file hoặc trưởng phòng được đăng ký ngược');
     if (await this.db.m.Record.findOne({ companyId: cid, $or: [{ fileId: body.fileId }, { 'finalized.pdfFileId': body.fileId }] }).lean()) {
       throw Errors.duplicate('File này đã được đăng ký', [{ field: 'fileId', issue: 'already_registered' }]);
     }
     if (await this.db.m.Document.findOne({ companyId: cid, $or: [{ fileId: body.fileId }, { 'current.fileId': body.fileId }] }).lean()) throw Errors.duplicate('File này là tài liệu hệ thống');
     const fileCreatedDate = dateVN(new Date(meta.createdTime));
     const subject = body.subject ?? meta.name.replace(/\.[a-z0-9]{2,4}$/i, '');
-    const { createdDate } = await this.records.validateInput(ctx, { ...body, subject }, { fileCreatedDate });
+    const { createdDate, folder } = await this.records.validateInput(ctx, { ...body, subject }, { fileCreatedDate });
+    // Tài khoản máy sẽ chuyển file ra khỏi drive nguồn: người gọi phải tự làm được việc đó (Quản lý drive nguồn) hoặc là trưởng phòng nguồn
+    if (folder.driveId !== meta.driveId && !head && !driveRoleAtLeast(this.access.driveRole(ctx, meta.driveId), 'organizer')) {
+      throw Errors.forbidden('Chuyển file sang drive khác cần trưởng phòng hoặc quyền Quản lý trên drive đang chứa file');
+    }
     const payload = { ...body, subject, createdDate, originalName: meta.name };
     const jobId = await this.jobs.enqueue(ctx, 'record.claim', payload);
     await this.audit.record(ctx, { action: 'record.claim', objectType: 'record', after: { ...payload, fileName: recordFileName(payload), jobId } });

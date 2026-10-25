@@ -5,6 +5,57 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 11/12 — Đăng ký ngược coi người sửa cuối là người tạo rồi chuyển file ra khỏi drive nguồn
+
+- **Fingerprint:** `legacy/records-claim:creator-check-uses-lastModifyingUser`.
+- **Nhánh:** `claude/audit-fix-11-records-claim-creator-c6f9d9` (cắt từ `claude/audit-fix-10-approvals-r3-confidential-96b801`, commit 328e76c).
+- **Kết luận:** lỗi **có thật** ở mã, đã tái hiện bằng harness Jest (Google giả, MongoDB tạm) sau khi cho bản giả trả người sửa cuối như adapter thật. Chưa quan sát được Google thật (xem "Giới hạn").
+
+### Tái hiện trước khi sửa
+
+Bản giả trước đây lưu người tạo thật vào `createdByEmail`, nên test cũ không chạm vào ánh xạ của adapter thật. Bước đầu chỉ sửa bản giả, chưa sửa mã: `FakeFile` có thêm người tạo (`creatorEmail`) và người sửa cuối; `editFile(fileId, text, byEmail)` đổi người sửa cuối; `meta()` trả `createdByEmail` = người sửa cuối, giống `toMeta` của bản thật lúc đó.
+
+Test hồi quy `apps/api/test/records-claim-creator.e2e-spec.ts` (4 ca) và unit test `apps/api/test/real-google-creator.spec.ts` (3 ca). Trước khi sửa `Tests: 6 failed, 1 passed, 7 total`:
+
+1. File trên drive chung VCPV (00), người tạo `hcns`, người sửa cuối `nv.mkt`. `nv.mkt` chỉ là Đóng góp drive MKT và Người xem drive VCPV. `nv.mkt` `POST /records/claim` vào loại hồ sơ `seoPlan` của MKT thì nhận **202** (mong đợi 403). Chạy thêm một ca dò (không commit) cho thấy job `done`, file bị chuyển sang thư mục tháng của drive MKT (`driveId: drv-11`), Record có `isClaimed: true` và `createdBy` = `nv.mkt`.
+2. Người tạo thật là `nv.mkt` nhưng chỉ là Người xem drive nguồn VCPV. Claim sang drive MKT nhận **202** (mong đợi 403, vì Đóng góp hay Người xem đều không tự chuyển được file ra khỏi shared drive).
+3. Đối chứng: trưởng phòng nguồn (`hcns`, trưởng VCPV, Quản lý drive HCNS) claim file VCPV sang loại hồ sơ của HCNS nhận 202. Ca này đạt cả trước lẫn sau.
+4. Cùng drive MKT, người tạo `nv.mkt`, người sửa cuối `leader.mkt`. `leader.mkt` claim nhận **202** (mong đợi 403); còn `nv.mkt` thì bị chặn.
+5. Unit: `toMeta` ghi `lastModifyingUser` thành `createdByEmail`, và `creatorFromRevisions` chưa có (2 ca fail vì hàm không tồn tại).
+
+### Cách sửa
+
+- **Kiểu dữ liệu** (`apps/api/src/google/ports.ts`): bỏ `DriveFileMeta.createdByEmail`, thay bằng `lastModifierEmail` (ghi rõ đây không phải người tạo). Thêm `drive.getCreatorEmail(fileId)`, trả email chữ thường hoặc `undefined`.
+- **Adapter thật** (`real-google.ts`): `toMeta` chỉ ghi `lastModifierEmail`. `getCreatorEmail` đọc `createdTime`, rồi gọi `revisions.list` với các trường `id,modifiedTime,lastModifyingUser(emailAddress)` và đi qua hàm thuần `creatorFromRevisions`: người tạo là `lastModifyingUser` của phiên bản sớm nhất. Nếu phiên bản đó cách `createdTime` quá 1 giờ, hoặc thiếu email, hoặc không có phiên bản nào, thì trả `undefined` (fail-closed: khi đó chỉ trưởng phòng đăng ký ngược được). Không cần thêm quyền uỷ quyền toàn miền, vì scope `drive` đã có.
+- **Bản giả:** `creatorEmail` là trường nội bộ, không trả qua `meta()`. `getCreatorEmail` trả trường này. `createLooseFile({ createdByEmail })` vẫn giữ tên tham số, đặt cả người tạo lẫn người sửa cuối, nên test cũ không phải đổi.
+- **Claim** (`records.controller.ts`):
+  - Người tạo lấy từ `getCreatorEmail`, không lấy từ metadata của file.
+  - Sau `validateInput`, nếu thư mục đích nằm ở drive khác drive nguồn thì người gọi phải là trưởng phòng nguồn hoặc có vai trò Quản lý (`organizer`) trên drive nguồn. Không đạt thì nhận 403. Mức Quản lý theo BA `docs/ba/BA-dac-ta-nguoi-dung.md` dòng 528: chuyển ra drive khác cần Quản lý; Quản lý nội dung chỉ chuyển trong drive.
+  - Claim trong cùng drive giữ như cũ: người tạo thật có quyền Đóng góp trên drive đích vẫn đăng ký được. Hợp đồng không đổi: claim vẫn dành cho người tạo file và R4.
+- **`/records/unregistered`:** `ownerEmail` (giao diện ghi "Người tạo") lấy từ `getCreatorEmail` cho từng file chưa đăng ký. Ở bản thật, mỗi file như vậy tốn thêm một lượt `files.get` và `revisions.list`.
+
+### Giới hạn
+
+- Chưa chạy với Google thật. Drive API v3 không có trường người tạo cho file trên shared drive (`owners` rỗng). Cách dùng phiên bản đầu có ba giả định chưa kiểm:
+  - Drive giữ phiên bản đầu của file Google Docs/Sheets.
+  - File nhị phân có thể mất phiên bản cũ (sau 30 ngày hoặc khi quá 100 phiên bản, nếu không bật keepForever). Khi đó cửa sổ 1 giờ sẽ trả `undefined`.
+  - Phiên bản đầu của Docs gộp các lần sửa đầu tiên của người tạo, nên `modifiedTime` của nó có thể trễ hơn `createdTime` vài phút.
+- Muốn có nguồn chắc chắn hơn thì dùng Admin Reports (sự kiện `create` của Drive; scope `admin.reports.audit.readonly` đã có). Cách này có độ trễ và giới hạn thời gian lưu nhật ký, nên phiên này chưa dùng.
+- Quyền chỉ được kiểm lúc nhận yêu cầu. Job chạy sau đó không kiểm lại; việc này giống trước khi sửa.
+
+### Sau khi sửa
+
+- `records-claim-creator.e2e-spec.ts` + `real-google-creator.spec.ts` + `m06-m07-records.e2e-spec.ts`: `Test Suites: 3 passed`, `Tests: 27 passed`. `tsc --noEmit` của API đạt.
+- `pnpm ai:check`: **PASS** (exit 0). Guard 44/44, OpenAPI hợp lệ, typecheck API đạt, BE `Test Suites: 9 skipped, 35 passed`, `Tests: 9 skipped, 293 passed, 302 total`. Không chạy test FE vì không đổi FE.
+- Chưa chạy `pnpm ai:check:full`.
+
+### Việc của chủ dự án
+
+- Trên Workspace thử với tài khoản giả: xác nhận `revisions.list` của file trên shared drive có phiên bản đầu với `lastModifyingUser` là người tạo (cả Docs lẫn file tải lên), và độ lệch giữa `modifiedTime` của phiên bản đó với `createdTime`. Đồng thời xác nhận nhân viên thường có vai trò gì trên drive chung 00.
+- Chốt chính sách: đăng ký ngược sang drive khác chỉ dành cho trưởng phòng nguồn hoặc Quản lý drive nguồn. Người tạo là Đóng góp phải nhờ trưởng phòng, hoặc chuyển file vào drive đích trước rồi mới claim.
+
+---
+
 ## 2026-10-25 · Đầu mối 10/12 — R3 đọc phiếu duyệt của drive Mật mình không là thành viên
 
 - **Fingerprint:** `legacy/approvals-load:R3-bypass-confidential-drive`.

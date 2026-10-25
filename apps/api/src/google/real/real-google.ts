@@ -63,7 +63,7 @@ async function g<T>(op: string, fn: () => Promise<T>, retries = 3): Promise<T> {
   }
 }
 
-function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
+export function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
   const cr = f.contentRestrictions?.[0];
   return {
     fileId: f.id!,
@@ -74,7 +74,7 @@ function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
     description: f.description ?? undefined,
     createdTime: f.createdTime!,
     modifiedTime: f.modifiedTime ?? undefined,
-    createdByEmail: f.lastModifyingUser?.emailAddress ?? undefined,
+    lastModifierEmail: f.lastModifyingUser?.emailAddress ?? undefined,
     webViewLink: f.webViewLink ?? undefined,
     trashed: f.trashed ?? false,
     md5Checksum: f.md5Checksum ?? undefined,
@@ -82,6 +82,25 @@ function toMeta(f: drive_v3.Schema$File): DriveFileMeta {
     contentRestriction: cr ? { readOnly: !!cr.readOnly, reason: cr.reason ?? undefined, ownerRestricted: !!(cr as any).ownerRestricted } : undefined,
     downloadRestricted: !!(f as any).downloadRestrictions?.itemDownloadRestriction?.restrictedForReaders,
   };
+}
+
+/** Phiên bản đầu còn giữ phải sát lúc tạo file; xa hơn thì coi như phiên bản gốc đã bị Drive xoá */
+const CREATOR_REVISION_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Người tạo file = lastModifyingUser của phiên bản sớm nhất. Shared drive không có owners nên
+ * Drive API v3 không có trường người tạo. Drive có thể xoá phiên bản cũ của file nhị phân
+ * (không keepForever), nên phiên bản sớm nhất phải nằm trong cửa sổ quanh createdTime; không thì
+ * trả undefined để chỉ trưởng phòng đăng ký ngược được.
+ */
+export function creatorFromRevisions(createdTime: string | null | undefined, revisions: drive_v3.Schema$Revision[]): string | undefined {
+  const created = createdTime ? Date.parse(createdTime) : NaN;
+  if (Number.isNaN(created)) return undefined;
+  const first = revisions
+    .filter((r) => r.modifiedTime && !Number.isNaN(Date.parse(r.modifiedTime)))
+    .sort((a, b) => Date.parse(a.modifiedTime!) - Date.parse(b.modifiedTime!))[0];
+  if (!first || Date.parse(first.modifiedTime!) - created > CREATOR_REVISION_WINDOW_MS) return undefined;
+  return first.lastModifyingUser?.emailAddress?.toLowerCase() || undefined;
 }
 
 export function createRealGoogle(cfg: AppConfig): GooglePorts {
@@ -264,6 +283,15 @@ export function createRealGoogle(cfg: AppConfig): GooglePorts {
             ...all,
             requestBody: { downloadRestrictions: { itemDownloadRestriction: { restrictedForReaders: restricted, restrictedForWriters: restricted } } } as any,
           });
+        }),
+      getCreatorEmail: (fileId) =>
+        g('revisions.list', async () => {
+          const meta = await d.files.get({ fileId, ...all, fields: 'createdTime' });
+          const revs = await paged(async (pageToken) => {
+            const r = await d.revisions.list({ fileId, pageSize: 1000, pageToken, fields: 'nextPageToken,revisions(id,modifiedTime,lastModifyingUser(emailAddress))' });
+            return { items: r.data.revisions ?? [], next: r.data.nextPageToken };
+          });
+          return creatorFromRevisions(meta.data.createdTime, revs);
         }),
       latestRevision: (fileId) =>
         g('revisions.list', async () => {

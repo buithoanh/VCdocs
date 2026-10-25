@@ -33,6 +33,8 @@ interface FakeFile extends DriveFileMeta {
   /** PDF/ảnh tải lên: md5 nội dung */
   binaryMd5?: string;
   binaryBase64?: string;
+  /** Người tạo thật (trên shared drive files.get không trả người tạo; bản thật đọc phiên bản đầu) */
+  creatorEmail?: string;
 }
 
 interface World {
@@ -99,7 +101,7 @@ export class FakeGoogle implements GooglePorts {
     return f;
   }
   private meta(f: FakeFile): DriveFileMeta {
-    const { revision, text, rows, versionRows, openComments, permissions, binaryBase64, binaryMd5, ...m } = f;
+    const { revision, text, rows, versionRows, openComments, permissions, binaryBase64, binaryMd5, creatorEmail, ...m } = f;
     return { ...m, md5Checksum: binaryMd5, parents: [...f.parents] };
   }
   private newFile(p: Partial<FakeFile> & { name: string; mimeType: string; parents: string[]; driveId?: string }): FakeFile {
@@ -170,10 +172,11 @@ export class FakeGoogle implements GooglePorts {
   }
 
   /** Ai đó sửa file trực tiếp trên Drive → phiên bản mới */
-  editFile(fileId: string, text?: string) {
+  editFile(fileId: string, text?: string, byEmail?: string) {
     const f = this.file(fileId);
     f.revision++;
     if (text !== undefined) f.text = text;
+    if (byEmail) f.lastModifierEmail = byEmail;
     f.modifiedTime = new Date().toISOString();
     this.touch();
   }
@@ -187,7 +190,8 @@ export class FakeGoogle implements GooglePorts {
         name: p.name,
         mimeType: p.mimeType ?? GDOC_MIME,
         parents: [p.parentGoogleId],
-        createdByEmail: p.createdByEmail,
+        creatorEmail: p.createdByEmail,
+        lastModifierEmail: p.createdByEmail,
         createdTime: p.createdTime ?? new Date().toISOString(),
       }),
     );
@@ -248,6 +252,10 @@ export class FakeGoogle implements GooglePorts {
       this.check('drive.getFile');
       const f = this.world.files[fileId];
       return f ? this.meta(f) : undefined;
+    },
+    getCreatorEmail: async (fileId: string) => {
+      this.check('drive.getCreatorEmail');
+      return this.world.files[fileId]?.creatorEmail?.toLowerCase();
     },
     listFiles: async (driveId: string, opts?: { foldersOnly?: boolean }) =>
       Object.values(this.world.files)

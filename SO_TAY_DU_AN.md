@@ -212,6 +212,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCworkspace nhận, hay để VCworkspace chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCworkspace không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
 - (Audit 10/12, 2026-10-25) R3 (kiểm soát tài liệu) có cần xem hoặc nhắc phiếu duyệt ở drive Mật mà mình không là thành viên không? Bản sửa theo hợp đồng hiện tại: 404 cho cả xem lẫn nhắc; R3 vẫn xem/nhắc phiếu ở drive không Mật và drive Mật mình là thành viên. Nếu cần nhắc mà không xem, phải đổi hợp đồng `/approvals/{id}/remind`.
+- (Audit 11/12, 2026-10-25) Đăng ký ngược (`/records/claim`) sang drive khác giờ chỉ cho trưởng phòng nguồn hoặc Quản lý drive nguồn (theo BA dòng 528); người tạo là Đóng góp phải nhờ trưởng phòng. Giữ vậy? Và trên Workspace thử: phiên bản đầu (`revisions.list`) của file shared drive có đúng người tạo không (Docs và file tải lên), lệch bao lâu so với `createdTime`.
 
 ## 5. Lưu ý & bài học
 
@@ -227,6 +228,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Sửa audit 11/12 — đăng ký ngược không coi người sửa cuối là người tạo
+
+- Nhánh `claude/audit-fix-11-records-claim-creator-c6f9d9` (cắt từ nhánh 10/12). Fingerprint `legacy/records-claim:creator-check-uses-lastModifyingUser` **tái hiện được** (bản giả trả người sửa cuối như adapter thật): người sửa cuối `nv.mkt` claim file drive chung VCPV do `hcns` tạo → 202, file bị chuyển sang drive MKT, Record `createdBy` = `nv.mkt`.
+- Sửa: `DriveFileMeta.createdByEmail` → `lastModifierEmail`; thêm `drive.getCreatorEmail` (bản thật: `lastModifyingUser` của phiên bản sớm nhất, lệch `createdTime` quá 1 giờ thì `undefined`); claim dùng người tạo từ đó và khi chuyển sang drive khác đòi trưởng phòng nguồn hoặc Quản lý drive nguồn; `/records/unregistered` lấy `ownerEmail` từ `getCreatorEmail`. Test mới `records-claim-creator.e2e-spec.ts` và `real-google-creator.spec.ts` (trước 6/7 fail, sau 7/7). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 1 đầu mối audit còn lại (phiên 12/12 cắt từ nhánh này); chưa kiểm cách lấy người tạo với Google thật (mục 4); chưa chạy `ai:check:full`.
 
 ### 2026-10-25 · Sửa audit 10/12 — R3 không đọc phiếu duyệt drive Mật ngoài phòng
 
