@@ -50,7 +50,7 @@ export class WorkspaceInteropService {
     for (const address of recipients) {
       const email = await this.mail.userEmailOf(ctx, address);
       const user = email ? await this.db.m.User.findOne({ companyId:this.cid(ctx), email }).lean<any>() : null;
-      if (!user || !await this.db.m.WorkspaceSpaceMember.exists({ companyId:this.cid(ctx), spaceId:new Types.ObjectId(spaceId), userId:user._id })) throw Errors.forbidden('Người nhận chưa có quyền đọc tệp Drive; gửi link không tự cấp quyền');
+      if (!await this.drive.canRead(ctx.companyId, user, spaceId)) throw Errors.forbidden('Người nhận chưa có quyền đọc tệp Drive; gửi link không tự cấp quyền');
     }
   }
   async sendDriveFile(ctx: Ctx, body: any, key: string) {

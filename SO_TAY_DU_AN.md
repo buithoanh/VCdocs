@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 5/12 — quyền không gian Drive theo phòng ban và R4 hiện tại
+
+- Nhánh `claude/audit-fix-05-space-membership-54dd1c` (cắt từ nhánh 4/12). Fingerprint `drive-basic/space-membership/never-reconciled-after-role-or-department-change` **tái hiện được**: user chuyển phòng vẫn đọc, tải, nhận link Drive phòng cũ; trưởng phòng mất R4 (đồng bộ Google hoặc R9 gỡ R4 tay) vẫn upload, tạo thư mục; vé editor cấp trước vẫn lưu được phiên bản mới.
+- Sửa `drive-basic.service.ts`: quyền suy động từ `WorkspaceSpace` (`ownerUserId`/`departmentId`) và `departmentId`, R4 hiện tại (`roleIn`/`memberOf`); `WorkspaceSpaceMember` chỉ còn là bản đối soát (`ensureDefaultSpaces` `$set` vai trò, xoá dòng lệch); `editor/content` và `editor/callback` tra lại quyền hiện tại của user trong vé. `workspace-interop` kiểm người nhận link bằng `drive.canRead`. Test mới `test/space-membership.e2e-spec.ts` (trước sửa 2 fail/1 pass, sau sửa 3 pass). `pnpm ai:check` PASS (BE 264 pass, 9 skip). Không đổi hợp đồng, schema. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 7 đầu mối audit còn lại (phiên 6/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án rà `workspace_spaces` thiếu `departmentId`/`ownerUserId` trong dữ liệu thật (sẽ không ai vào được); chưa có cơ chế chia sẻ không gian cho người ngoài phòng (dòng thành viên thêm tay không còn cấp quyền).
+
 ### 2026-10-25 · Sửa audit 4/12 — tải url tài liệu ngoài không chạm mạng nội bộ
 
 - Nhánh `claude/audit-fix-04-url-fetch-ssrf-25262e` (cắt từ nhánh 3/12). Fingerprint `m04-documents/external-import/url-fetch-redirect-ssrf` **tái hiện được**: `RealGoogle.urls.fetch` tải `https://127.0.0.1/...` và đi theo 302 về `http://127.0.0.1/internal`, trả nội dung dịch vụ nội bộ (fixture loopback, chứng chỉ tự ký, tiến trình con có `NODE_EXTRA_CA_CERTS`).

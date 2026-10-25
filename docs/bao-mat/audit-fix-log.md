@@ -5,6 +5,59 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 5/12 — Quyền không gian Drive không thu hồi khi đổi phòng hoặc mất R4
+
+- **Fingerprint:** `drive-basic/space-membership/never-reconciled-after-role-or-department-change`.
+- **Nhánh:** `claude/audit-fix-05-space-membership-54dd1c` (cắt từ `claude/audit-fix-04-url-fetch-ssrf-25262e`, commit 857dfb3).
+- **Kết luận:** lỗi **có thật**, đã tái hiện bằng harness Jest với Google giả, kho giả và Mongo in-memory. Phạm vi rộng hơn mô tả audit: vé editor cấp trước khi đổi quyền vẫn lưu được phiên bản mới.
+
+### Tái hiện trước khi sửa
+
+Thêm file `apps/api/test/space-membership.e2e-spec.ts` (bật editor giả như `drive-documents`). Đổi phòng/vai trò bằng `GoogleSyncService.applyAccess` (đúng đường đồng bộ Google: rời nhóm, `groupRoles: []`, `departmentId` = KD) và bằng `PATCH /users/:id` của R9 (`it`).
+
+1. `đổi phòng và mất R4 qua đồng bộ Google…`: `tp.mkt` (R4) và `nv.mkt` mở `GET /spaces`, `tp.mkt` tải tệp, tạo văn bản, lấy cấu hình editor (vé `edit`), gửi link Drive cho `nv.mkt`. Sau đó chuyển `nv.mkt` rồi `tp.mkt` sang KD, `tp.mkt` mất R4. Trước khi sửa: **FAIL** ở assertion đầu (không gian MKT vẫn có trong `GET /spaces` của `nv.mkt`).
+2. `đối chứng: người chưa từng ở MKT nhận 404…`: `nv.kd` upload và liệt kê không gian MKT nhận 404, `leader.mkt` vẫn liệt kê được. Đạt cả trước và sau khi sửa.
+3. `R9 gỡ R4 gán tay qua PATCH /users/:id…`: `it` gán R4 tay cho `xem.mkt`, `xem.mkt` upload được (201), rồi `it` gỡ R4. Trước khi sửa: **FAIL**, upload vẫn 201 thay vì 403.
+
+Kết quả trước khi sửa (`ALLOW_PARTIAL_COVERAGE=1 pnpm --filter @vcdocs/api run test --runInBand test/space-membership.e2e-spec.ts`): `Tests: 2 failed, 1 passed, 3 total`.
+
+Một test thăm dò tạm (xoá ngay sau khi chạy) ghi trạng thái của mọi bước sau khi chuyển phòng, trên mã cũ:
+- `nv.mkt` đã sang KD: không gian MKT vẫn liệt kê (vai trò cũ), `GET /drive/items` 200, tải nội dung tệp MKT 200, link Drive cũ 200, và `tp.mkt` gửi link mới cho `nv.mkt` vẫn 201. Không gian KD không xuất hiện.
+- `tp.mkt` đã sang KD và mất R4: không gian MKT vẫn liệt kê với vai trò `manager`, upload 201, tạo thư mục 201, đọc nội dung 200, `editor-config` 200. Không gian đầu tiên loại `department` trong `GET /spaces` vẫn là MKT, không phải KD.
+- Vé editor cấp trước khi chuyển: `editor/content` 200, `editor/callback` trả `{error:0}`, tệp lên phiên bản 2.
+- `xem.mkt` bị gỡ R4: upload 201, tạo thư mục 201, `GET /spaces` vẫn `manager`.
+
+### Cách sửa
+
+Chọn **kiểm động**: quyền không còn đọc từ `WorkspaceSpaceMember`, mà suy từ `WorkspaceSpace` và trạng thái hiện tại của user. Lý do: `ctx.user` được nạp lại từ DB mỗi request (`auth.guard.ts`), nên đổi phòng/vai trò bằng bất kỳ đường nào (đồng bộ Google, PATCH R9, OIDC ghi lại `systemRoles`, sửa tay DB) có hiệu lực ngay ở request kế tiếp, không cần móc vào từng đường ghi.
+
+- `drive-basic.service.ts`:
+  - `roleIn(space, user)`: không gian cá nhân chỉ cho `ownerUserId` (manager). Không gian phòng ban chỉ khi `space.departmentId` khớp `departmentId` hiện tại; vai trò `manager` nếu user đang có R4, ngược lại `reader`. Không gian thiếu khoá (`ownerUserId`/`departmentId`) bị từ chối.
+  - `member()` (dùng cho `items`, `file`, `content`, `versionContent`, `upload`, `createFolder`, `updateItem`, `trash`, `restore`, `editorConfig`, `exportDocument`) gọi `memberOf` → 404 nếu không có quyền. Vai trò manager/reader lấy theo R4 hiện tại.
+  - `ensureDefaultSpaces` đối soát bảng thành viên: `$set` vai trò hiện tại (thay `$setOnInsert`), và xoá mọi dòng của user cho không gian khác không gian cá nhân và phòng ban hiện tại. `spaces()` lọc lại bằng `roleIn`, nên danh sách luôn khớp quyền thật.
+  - Vé editor: `editorContent` và `editorCallback` tra lại user của vé (còn active, không bị treo) và quyền hiện tại trên không gian chứa tệp. `editor/content` cần còn đọc được (404 nếu không). `editor/callback` cần còn là manager, nếu không ghi `EDITOR_FORBIDDEN` vào `WorkspaceEditorSave` và trả `{error:1}`. Vé cấp trước khi đổi quyền hết tác dụng ngay, không đợi 15 phút.
+  - `canRead(companyId, user, spaceId)` công khai cho liên thông.
+- `workspace-interop.service.ts` `assertRecipientsCanRead` dùng `drive.canRead` thay cho kiểm dòng `WorkspaceSpaceMember`. Tải link (`downloadLink`) vốn đi qua `versionContent` → `member()` của người nhận, nên cũng theo quyền hiện tại.
+- Không đổi hợp đồng, không đổi schema.
+
+### Thành viên thêm thủ công
+
+Không có API hay đường mã nào thêm thành viên ngoài `ensureDefaultSpaces` (chỉ test chèn thẳng DB). Sau bản sửa, **dòng `WorkspaceSpaceMember` không cấp quyền**: dòng thêm tay vào không gian không khớp phòng ban/chủ sở hữu bị bỏ qua khi kiểm quyền, và bị xoá ở lần user đó gọi `GET /spaces`. Nếu sau này cần chia sẻ không gian cho người ngoài phòng, phải thêm trường nguồn (ví dụ `source: 'manual'`, người cấp, hạn) và cho `roleIn` xét riêng loại đó.
+
+Hệ quả khác:
+- Người nhận link Drive cùng phòng nay được nhận link dù chưa từng mở Drive (trước đây phải có dòng thành viên).
+- Không gian phòng ban/cá nhân tạo trước khi có khoá `departmentId`/`ownerUserId` (trước b5ae95f) sẽ không ai vào được. Chủ dự án cần rà `workspace_spaces` thiếu khoá trong dữ liệu thật trước khi triển khai.
+- User không có `departmentId` chỉ còn không gian cá nhân.
+
+### Sau khi sửa
+
+- `test/space-membership.e2e-spec.ts`: `Tests: 3 passed, 3 total`.
+- Test sẵn có `drive-basic`, `drive-documents`, `drive-spreadsheets`, `drive-presentations`, `drive-basic-storage`, `workspace-interop`, `mailbox-owner`, `review-fixes` cùng file mới: `Tests: 27 passed, 27 total`.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 264 passed, 273 total`, độ phủ hợp đồng 145/145.
+- Chưa chạy `pnpm ai:check:full`, chưa thử với Nextcloud thật hay ONLYOFFICE thật.
+
+---
+
 ## 2026-10-25 · Đầu mối 4/12 — Nhập tài liệu ngoài tải url theo redirect, không chặn địa chỉ nội bộ
 
 - **Fingerprint:** `m04-documents/external-import/url-fetch-redirect-ssrf`.

@@ -28,11 +28,34 @@ export class DriveBasicService {
   private cid(ctx: Ctx) { return new Types.ObjectId(ctx.companyId); }
   private uid(ctx: Ctx) { return new Types.ObjectId(ctx.user.id); }
   private actor(ctx: Ctx) { return { email: ctx.user.email }; }
-  private async member(ctx: Ctx, spaceId: string) {
-    const member = await this.db.m.WorkspaceSpaceMember.findOne({ companyId: this.cid(ctx),
-      spaceId: new Types.ObjectId(spaceId), userId: this.uid(ctx) }).lean<any>();
-    if (!member) throw Errors.notFound('Không tìm thấy không gian');
-    return member;
+  // Quyền suy từ phòng ban và R4 hiện tại của user; dòng WorkspaceSpaceMember chỉ là bản đối soát,
+  // không phải nguồn quyền (đổi phòng hoặc mất R4 phải có hiệu lực ngay, kể cả với vé editor và link).
+  private roleIn(space: any, user: { id: string; departmentId?: string; systemRoles: string[] }): 'manager' | 'reader' | undefined {
+    if (space.kind === 'personal') return space.ownerUserId && String(space.ownerUserId) === user.id ? 'manager' : undefined;
+    if (space.kind !== 'department' || !space.departmentId || !user.departmentId
+      || String(space.departmentId) !== String(user.departmentId)) return undefined;
+    return user.systemRoles.includes('R4') ? 'manager' : 'reader';
+  }
+  private async memberOf(companyId: string, user: { id: string; departmentId?: string; systemRoles: string[] }, spaceId: string) {
+    const space = await this.db.m.WorkspaceSpace.findOne({ _id: new Types.ObjectId(spaceId),
+      companyId: new Types.ObjectId(companyId) }).lean<any>();
+    const role = space && this.roleIn(space, user);
+    if (!role) throw Errors.notFound('Không tìm thấy không gian');
+    return { spaceId: space._id, role };
+  }
+  private member(ctx: Ctx, spaceId: string) { return this.memberOf(ctx.companyId, ctx.user, spaceId); }
+  /** User (bản ghi DB) hiện còn đọc được không gian không — dùng cho kiểm người nhận link Drive. */
+  async canRead(companyId: string, user: any, spaceId: string) {
+    if (!user || user.status === 'left' || user.isSuspended) return false;
+    return this.memberOf(companyId, { id: String(user._id), departmentId: user.departmentId ? String(user.departmentId) : undefined,
+      systemRoles: user.systemRoles || [] }, spaceId).then(() => true, () => false);
+  }
+  /** Vé editor ký trước đó chỉ còn dùng khi user vẫn active và vẫn có quyền trên không gian chứa tệp. */
+  private async ticketRole(ticket: EditorTicket, spaceId: string) {
+    const user = await this.db.m.User.findOne({ _id: ticket.userId, companyId: ticket.companyId }).lean<any>();
+    if (!user || user.status === 'left' || user.isSuspended) return undefined;
+    return this.memberOf(ticket.companyId, { id: String(user._id), departmentId: user.departmentId ? String(user.departmentId) : undefined,
+      systemRoles: user.systemRoles || [] }, String(spaceId)).then((m) => m.role, () => undefined);
   }
   private actions(kind: string, role: string) {
     if (kind === 'space') return role === 'manager'
@@ -52,6 +75,7 @@ export class DriveBasicService {
         companyId: this.cid(ctx) }, { name: 1 }).lean<any>();
       if (department) defaults.unshift({ kind: 'department', name: department.name, key: { departmentId: department._id } });
     }
+    const current: Types.ObjectId[] = [];
     for (const item of defaults) {
       const filter = { companyId: this.cid(ctx), kind: item.kind, ...item.key };
       let space = await this.db.m.WorkspaceSpace.findOne(filter);
@@ -65,20 +89,25 @@ export class DriveBasicService {
         }
       }
       if (!space) throw Errors.notFound('Không tìm thấy không gian');
-      const role = item.kind === 'personal' || ctx.user.systemRoles.includes('R4') ? 'manager' : 'reader';
+      const role = this.roleIn(space, ctx.user);
+      if (!role) throw Errors.notFound('Không tìm thấy không gian');
+      current.push(space._id);
       await this.db.m.WorkspaceSpaceMember.updateOne({ companyId: this.cid(ctx), spaceId: space._id,
-        userId: this.uid(ctx) }, { $setOnInsert: { role, createdBy: this.uid(ctx),
-        updatedBy: this.uid(ctx) } }, { upsert: true });
+        userId: this.uid(ctx) }, { $set: { role, updatedBy: this.uid(ctx) }, $setOnInsert: { createdBy: this.uid(ctx) } },
+      { upsert: true });
       await this.storage.ensureFolder(space.rootStorageKey, this.actor(ctx));
     }
+    // Đối soát: bỏ dòng thành viên của không gian không còn khớp phòng ban/chủ sở hữu hiện tại.
+    await this.db.m.WorkspaceSpaceMember.deleteMany({ companyId: this.cid(ctx), userId: this.uid(ctx), spaceId: { $nin: current } });
   }
   async spaces(ctx: Ctx) {
     await this.ensureDefaultSpaces(ctx);
     const memberships = await this.db.m.WorkspaceSpaceMember.find({ companyId: this.cid(ctx), userId: this.uid(ctx) }).lean<any[]>();
     const spaces = await this.db.m.WorkspaceSpace.find({ companyId: this.cid(ctx), _id: { $in: memberships.map((m) => m.spaceId) } }).lean<any[]>();
-    const roles = new Map(memberships.map((m) => [String(m.spaceId), m.role]));
-    return { items: spaces.map((s) => ({ ...toApi(s, ['rootStorageKey']), rootFolderId: String(s._id),
-      role: roles.get(String(s._id)), allowedActions: this.actions('space', roles.get(String(s._id))) })) };
+    return { items: spaces.flatMap((s) => {
+      const role = this.roleIn(s, ctx.user);
+      return role ? [{ ...toApi(s, ['rootStorageKey']), rootFolderId: String(s._id), role, allowedActions: this.actions('space', role) }] : [];
+    }) };
   }
   async items(ctx: Ctx, spaceId: string, parentId?: string) {
     const member = await this.member(ctx, spaceId);
@@ -466,7 +495,7 @@ export class DriveBasicService {
     const ticket = this.readTicket(ticketValue);
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId,
       kind: 'file', trashedAt: { $exists: false } }).lean<any>();
-    if (!row) throw Errors.notFound('Không tìm thấy văn bản');
+    if (!row || !await this.ticketRole(ticket, row.spaceId)) throw Errors.notFound('Không tìm thấy văn bản');
     const stored = await this.storage.get(row.storageKey, { email: ticket.email });
     if (stored.sha256 !== row.contentSha256) throw Errors.storageIntegrity();
     return { row, bytes: stored.bytes! };
@@ -501,6 +530,7 @@ export class DriveBasicService {
     try {
       const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file' }).lean<any>();
       if (!row) throw new Error('NOT_FOUND');
+      if (await this.ticketRole(ticket, row.spaceId) !== 'manager') throw new Error('EDITOR_FORBIDDEN');
       // Hai phiên cùng version dùng chung key. Sau khi một callback đã tạo version
       // mới, callback khác mang key cũ không được ghi đè currentVersion.
       if (editorKey !== `vcw-${ticket.fileId}-v${row.versionNumber}`) throw new Error('EDITOR_STALE_VERSION');
