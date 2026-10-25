@@ -352,6 +352,9 @@ const WorkspaceMailMessage = mk({
   references: { type: [String], default: [] },
   from: { type: String, required: true },
   to: { type: [String], required: true },
+  cc: { type: [String], default: [] },
+  // Chỉ bản "Đã gửi" của người gửi giữ danh sách Bcc; bản của người nhận không có trường này.
+  bcc: { type: [String], default: undefined },
   subject: { type: String, required: true },
   sentAt: { type: Date, required: true },
   folder: { type: String, required: true },
@@ -366,7 +369,8 @@ WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, folder: 1, sentAt: -
 
 const WorkspaceMailDraft = mk({
   ownerEmail: { type: String, required: true, lowercase: true },
-  to: { type: [String], default: [] }, subject: { type: String, default: '' },
+  to: { type: [String], default: [] }, cc: { type: [String], default: [] }, bcc: { type: [String], default: [] },
+  subject: { type: String, default: '' },
   text: { type: String, default: '' }, html: String,
   inReplyTo: String, references: { type: [String], default: [] },
   attachmentNames: { type: [String], default: [] },

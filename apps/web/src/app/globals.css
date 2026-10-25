@@ -355,6 +355,22 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
 .mail-compose-fields select { width: 100%; border: 0; outline: 0; color: #1f2937; background: transparent; font: inherit; }
 .mail-compose-fields .mail-body-field { flex: 1; display: block; min-height: 320px; padding: 1rem 0; border-bottom: 0; }
 .mail-compose-fields textarea { min-height: 300px; resize: vertical; line-height: 1.6; }
+.mail-recipient-row { display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid var(--mail-line); }
+.mail-recipient-row label { flex: 1; border-bottom: 0; }
+.mail-copies-toggle { flex: 0 0 auto; padding: .3rem .55rem; color: #475569; background: transparent; border: 1px solid transparent; border-radius: 6px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+.mail-copies-toggle:hover, .mail-copies-toggle[aria-expanded="true"] { color: var(--mail-blue); background: #edf6fd; }
+.mail-copy-fields { display: flex; flex-direction: column; }
+.mail-editor-wrap { display: flex; flex-direction: column; min-height: 300px; }
+.mail-editor-toolbar { display: flex; flex-wrap: wrap; gap: .15rem; padding: .25rem; margin-bottom: .5rem; border: 1px solid var(--mail-line); border-radius: 7px; background: #f8fafc; }
+.mail-editor-tool { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; color: #334155; background: transparent; border: 1px solid transparent; border-radius: 5px; font: inherit; font-size: .9rem; cursor: pointer; }
+.mail-editor-tool:hover { background: #fff; border-color: var(--mail-line); }
+.mail-editor-tool:focus-visible { outline: 2px solid var(--mail-blue); outline-offset: 1px; }
+.mail-editor-tool .mail-icon { width: 16px; height: 16px; }
+.mail-editor { flex: 1; min-height: 260px; padding: .25rem 0; color: #1f2937; line-height: 1.6; outline: 0; overflow-wrap: anywhere; }
+.mail-editor:empty::before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; }
+.mail-editor blockquote { margin: .5rem 0; padding-left: .85rem; color: #475569; border-left: 3px solid #cbd5e1; }
+.mail-editor ul, .mail-editor ol { margin: .35rem 0; padding-left: 1.5rem; }
+.mail-editor a { color: var(--mail-blue); text-decoration: underline; }
 .mail-attachment { align-self: flex-start; display: flex; align-items: center; gap: .45rem; margin: 0 1.25rem .75rem; padding: .45rem .6rem; border: 1px solid var(--mail-line); border-radius: 6px; background: #f8fafc; font-size: .82rem; }
 .mail-attachment button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .mail-attachment button .mail-icon { width: 14px; height: 14px; }

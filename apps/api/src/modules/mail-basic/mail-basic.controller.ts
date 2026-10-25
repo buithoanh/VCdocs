@@ -16,10 +16,12 @@ export class MailBasicController {
   @Post('send') @HttpCode(201) @UseInterceptors(FilesInterceptor('attachments', 8, { limits: { fileSize: 10 * 1024 * 1024 } }))
   send(@CurrentCtx() ctx: Ctx, @Body() body: any, @UploadedFiles() files: Express.Multer.File[], @Headers('idempotency-key') key?: string) {
     if (!key) throw Errors.validation('Thiếu Idempotency-Key');
-    let to: string[]; let references: string[] | undefined;
-    try { to = typeof body.to === 'string' ? JSON.parse(body.to) : body.to; references = typeof body.references === 'string' ? JSON.parse(body.references) : body.references; }
+    // Form multipart gửi to/cc/bcc/references dạng chuỗi JSON array; JSON body gửi mảng thật.
+    const list = (value: unknown) => { const parsed = typeof value === 'string' ? JSON.parse(value) : value; if (parsed !== undefined && parsed !== null && !Array.isArray(parsed)) throw new Error('NOT_ARRAY'); return parsed as string[] | undefined; };
+    let to: string[] | undefined, cc: string[] | undefined, bcc: string[] | undefined, references: string[] | undefined;
+    try { to = list(body.to); cc = list(body.cc); bcc = list(body.bcc); references = list(body.references); }
     catch { throw Errors.validation('Danh sách địa chỉ hoặc References không hợp lệ'); }
-    const parsed = { ...body, to, references };
+    const parsed = { ...body, to, cc, bcc, references };
     return this.service.send(ctx, parsed, key, files ?? []);
   }
   @Get('messages/:id/raw') @Header('Cache-Control', 'private, no-store') async raw(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Query('mailbox') mailbox: string | undefined, @Res() res: Response) {

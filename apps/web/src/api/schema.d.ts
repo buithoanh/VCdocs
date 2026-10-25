@@ -5496,7 +5496,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Gửi thư nội bộ và chỉ trả thành công sau mail server ACK */
+        /**
+         * Gửi thư nội bộ và chỉ trả thành công sau mail server ACK
+         * @description SMTP envelope gồm To ∪ Cc ∪ Bcc; MIME có header To và Cc, không bao giờ có Bcc. Idempotency-Key bind cả Cc/Bcc; cùng key khác người nhận trả 409. Thành công trả bản "Đã gửi" của người gửi (có bcc).
+         */
         post: {
             parameters: {
                 query?: never;
@@ -5514,6 +5517,10 @@ export interface paths {
                     "multipart/form-data": {
                         /** @description JSON array địa chỉ nội bộ */
                         to: string;
+                        /** @description JSON array địa chỉ nội bộ (Cc) */
+                        cc?: string;
+                        /** @description JSON array địa chỉ nội bộ (Bcc, chỉ ở SMTP envelope) */
+                        bcc?: string;
                         subject: string;
                         text: string;
                         html?: string;
@@ -6247,10 +6254,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description To/Cc/Bcc cùng luật địa chỉ nội bộ @vcworkspace.test; server bỏ trùng trong và giữa ba danh sách (ưu tiên To → Cc → Bcc); tổng sau bỏ trùng tối đa 50 (400). Gửi thư bắt buộc có ít nhất một địa chỉ To. */
         MailCompose: {
             to?: string[];
+            /** @description Hiện trong header Cc của mọi bản giao */
+            cc?: string[];
+            /** @description Chỉ nằm trong SMTP envelope; không bản giao nào có header Bcc */
+            bcc?: string[];
             subject?: string;
+            /** @description Bản văn bản thuần, luôn gửi kèm làm phương án dự phòng của html */
             text?: string;
+            /** @description Server lọc allowlist trước khi lưu/gửi: chỉ p, br, div, strong, b, em, i, u, s, ul, ol, li, blockquote, h2, h3, code, pre, a; bỏ nội dung script/style/iframe/object/svg/math/template; bỏ mọi thuộc tính trừ href của a (chỉ http, https, mailto) và tự thêm rel="noopener noreferrer" target="_blank" */
             html?: string;
             draftId?: components["schemas"]["Id"];
             inReplyTo?: string;
@@ -6287,6 +6301,9 @@ export interface components {
             /** Format: email */
             from: string;
             to: string[];
+            cc?: string[];
+            /** @description Chỉ có ở bản "Đã gửi" của mailbox người gửi; bản của người nhận không bao giờ có trường này */
+            bcc?: string[];
             subject: string;
             sentAt: components["schemas"]["DateTime"];
             folder: string;

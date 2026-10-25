@@ -59,6 +59,9 @@ importers:
       express:
         specifier: 5.2.1
         version: 5.2.1
+      htmlparser2:
+        specifier: 10.1.0
+        version: 10.1.0
       mailparser:
         specifier: 3.12.4
         version: 3.12.4

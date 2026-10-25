@@ -50,7 +50,7 @@ Cần runtime thật (ONLYOFFICE/Stalwart/Authentik) để chứng minh, nên ch
 | O11 | TB | FE `/bo-nho`: không hiện lỗi cho người dùng (QA: tạo thư mục 400 im lặng); không mở được thư mục con; mỗi lần bấm Gửi tạo Idempotency-Key mới (nguy cơ gửi đôi); giao diện là form thô, chưa thiết kế | `bo-nho/page.tsx`, `email/page.tsx` |
 | O12 | TB | Lifecycle: lease quá 30 giây bị coi là `LIFECYCLE_SUPERSEDED` vĩnh viễn dù không có revision mới | `identity-lifecycle.service.ts` |
 | O13 | Thấp | Nextcloud dùng credential từng người: tệp phòng ban nằm trong home người tải lên, người đọc khác 404; cần tài khoản dịch vụ hoặc Team Folder | `nextcloud-storage.ts` |
-| O14 | Thấp | Link chia sẻ lưu token rõ cạnh `tokenHash`; `createLabel/setLabels` hộp nhóm chỉ cần quyền đọc; thiếu `helmet`/`nosniff`; `sanitizeHtml` bằng regex (chưa khai thác được vì FE hiện text); `upload` không kiểm `parentId` cùng space | nhiều file |
+| O14 | Thấp | Link chia sẻ lưu token rõ cạnh `tokenHash`; `createLabel/setLabels` hộp nhóm chỉ cần quyền đọc; thiếu `helmet`/`nosniff`; `sanitizeHtml` bằng regex (chưa khai thác được vì FE hiện text; **đã thay** bằng allowlist htmlparser2 trên nhánh `claude/mail-compose-cc-bcc-richtext`, 2026-10-25); `upload` không kiểm `parentId` cùng space | nhiều file |
 | O15 | Thấp | Trang `/email` ở bề rộng 800px cắt cột đọc thư; OIDC đổi sang email đã có người dùng trả 500 | `email/page.tsx`, `auth.controller.ts` |
 
 ## Đã kiểm và thấy ổn
