@@ -1,0 +1,43 @@
+name: vcworkspace-cal16
+# Chat16 overlay on the running work13 stack: a NEW isolated Stalwart (fresh
+# volumes, never the chat07 ones) on the work13 internal network so Nextcloud
+# can send iMIP invitations to local .test mailboxes. The internal network has
+# no route to the Internet, so nothing can leave the machine. The only host
+# exposure is a loopback relay to the Stalwart HTTP/JMAP port (admin + reading
+# test mailboxes). Started by up-cal16.mjs (passes the recovery admin from secrets/).
+services:
+  mail16:
+    image: stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c
+    platform: linux/arm64
+    restart: "no"
+    command: ["--config", "/etc/stalwart/config.json"]
+    environment:
+      STALWART_RECOVERY_ADMIN: ${STALWART_RECOVERY_ADMIN:?run through up-cal16.mjs}
+    volumes:
+      - ./stalwart/config.json:/etc/stalwart/config.json:ro
+      - mail_data:/var/lib/stalwart
+    networks:
+      work13:
+        aliases: [mail16, mail16.vcworkspace.test]
+    mem_limit: 768m
+
+  mail16-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18160", "-e", "nc", "mail16", "8080"]
+    depends_on: [mail16]
+    ports: ["127.0.0.1:18160:18160"]
+    networks: [work13, host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+networks:
+  work13:
+    external: true
+    name: vcworkspace-work13_work13
+  host_edge:
+    external: true
+    name: vcworkspace-work13_host_edge
+
+volumes:
+  mail_data: {name: vcworkspace_cal16_mail_data}

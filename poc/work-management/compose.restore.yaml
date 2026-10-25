@@ -1,0 +1,54 @@
+name: vcworkspace-work13-restore
+# Independent restore target for chat 13: own volumes, own internal network,
+# loopback port 18133. Authentik is not restored here (Nextcloud ACL is checked
+# with the restored app passwords); OIDC browser login on the restore is NOT_TESTED.
+services:
+  restore-nc-db:
+    image: postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29
+    restart: "no"
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/nc_db_password
+    secrets: [nc_db_password]
+    volumes: [restore_nc_db:/var/lib/postgresql]
+    networks:
+      restore_internal:
+        aliases: [nc-db]
+
+  restore-redis:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    networks:
+      restore_internal:
+        aliases: [redis]
+
+  restore-nextcloud:
+    image: nextcloud@sha256:431d389fd8e28b2421149cc877df6c54105f1baaee8c77a3c66ff6cf87d7df33
+    platform: linux/arm64
+    restart: "no"
+    depends_on: [restore-nc-db, restore-redis]
+    volumes:
+      - restore_nextcloud:/var/www/html
+      - ./apache-keepalive-off.conf:/etc/apache2/conf-enabled/zz-work13-keepalive-off.conf:ro
+    networks: [restore_internal]
+    mem_limit: 2g
+
+  restore-nextcloud-loopback-relay:
+    image: redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    restart: "no"
+    command: ["nc", "-lk", "-p", "18133", "-e", "nc", "restore-nextcloud", "80"]
+    depends_on: [restore-nextcloud]
+    ports: ["127.0.0.1:18133:18133"]
+    networks: [restore_internal, restore_host_edge]
+    read_only: true
+    cap_drop: [ALL]
+
+networks:
+  restore_internal: {internal: true}
+  restore_host_edge: {}
+volumes:
+  restore_nc_db: {name: vcworkspace_work13_restore_nc_db_pg18}
+  restore_nextcloud: {name: vcworkspace_work13_restore_nextcloud}
+secrets:
+  nc_db_password: {file: ./secrets/nc_db_password}

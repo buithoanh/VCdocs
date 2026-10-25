@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 2.3.0-gd2
+  version: 2.4.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
@@ -61,6 +61,8 @@ tags:
   - name: M09 Chia sẻ ngoài
   - name: M14 Thông báo
   - name: Việc nền
+  - name: Flow VCworkspace
+    description: Chat14 — nhận event Nextcloud webhook_listeners, journal/idempotency, worker nền, readback trước khi tác động
 
 paths:
   # ───────────────────────── M01 ─────────────────────────
@@ -1741,6 +1743,64 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '422': { $ref: '#/components/responses/RuleViolation' }
 
+  # ───────────────────────── Flow VCworkspace (chat14) ─────────────────────────
+  /flow/nextcloud/webhooks:
+    post:
+      tags: [Flow VCworkspace]
+      summary: Nhận event từ Nextcloud webhook_listeners (endpoint nội bộ)
+      description: |
+        Chỉ Nextcloud gọi, qua mạng nội bộ. Xác thực bằng header bí mật X-VCW-Flow-Token
+        (so thời gian hằng; nhiều bí mật còn hiệu lực trong lúc xoay vòng), không dùng phiên
+        hay CSRF. Thân là payload webhook_listeners nguyên bản; Nextcloud gửi không kèm
+        Content-Type nên máy chủ đọc mọi kiểu thân là JSON (tối đa 256 KB).
+
+        Allowlist lớp event: OCA\Forms\Events\FormSubmittedEvent; OCA\Tables\Event\Row{Added,Updated,Deleted}Event;
+        OCP\Files\Events\Node\Node{Created,Written,Deleted,Renamed}Event. Lớp khác → 422 RULE_VIOLATION (rule FLOW-01).
+        Máy chủ chỉ lấy lớp event, id số nguyên, time và user.uid để định tuyến; dữ liệu nghiệp vụ
+        luôn đọc lại qua API bằng quyền người chạy flow, không tin payload, không tải URL trong payload.
+
+        Idempotency theo (lớp event, tài nguyên, time): gửi lại/replay trả 202 duplicate=true, không tạo
+        việc mới. Xử lý chạy nền theo thứ tự từng tài nguyên; companyId lấy từ cấu hình máy chủ.
+      security: [{ flowWebhookToken: [] }]
+      parameters:
+        - { name: X-VCW-Flow-Token, in: header, required: true, schema: { type: string, minLength: 32, maxLength: 256 } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/FlowNextcloudWebhook' } } } }
+      responses:
+        '202':
+          description: Đã ghi journal (hoặc đã có từ trước nếu duplicate=true); xử lý chạy nền
+          headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/FlowWebhookAccepted' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/RuleViolation' }
+        '503': { description: Flow chưa bật trên máy chủ (MAINTENANCE), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /flow/events:
+    get:
+      tags: [Flow VCworkspace]
+      summary: R9 xem journal event Flow (trạng thái, số lần thử, replay, độ trễ, kết quả từng rule)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/FlowEventStatus' } }
+        - { name: ruleId, in: query, schema: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$' } }
+        - { name: resourceKey, in: query, schema: { type: string, maxLength: 200 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/FlowEventPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /flow/events/{id}:
+    parameters: [{ $ref: '#/components/parameters/IdPath' }]
+    get:
+      tags: [Flow VCworkspace]
+      summary: R9 đọc một event Flow và id tương quan audit
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/FlowEvent' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   # ───────────────────────── Việc nền ─────────────────────────
   /jobs:
     get:
@@ -1974,6 +2034,11 @@ components:
       name: vcdocs_sid
       description: Cookie phiên HttpOnly, Secure, SameSite=Lax, 8 giờ, tự gia hạn khi đang dùng (hợp đồng mục 8, Q4)
       x-gia-dinh: Tên cookie do file này chọn
+    flowWebhookToken:
+      type: apiKey
+      in: header
+      name: X-VCW-Flow-Token
+      description: Bí mật dùng chung giữa Nextcloud webhook_listeners (authMethod header) và máy chủ; xoay vòng bằng cách nhận song song bản mới và bản cũ
 
   parameters:
     IdPath: { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
@@ -3009,6 +3074,67 @@ components:
             startedAt: { $ref: '#/components/schemas/DateTime' }
             finishedAt: { $ref: '#/components/schemas/DateTime' }
             requestedBy: { $ref: '#/components/schemas/Id' }
+    FlowNextcloudWebhook:
+      type: object
+      description: Payload webhook_listeners nguyên bản (giữ trường lạ để băm và đối chiếu replay); máy chủ chỉ dùng class, id số nguyên, time, user.uid
+      required: [event, time]
+      additionalProperties: true
+      properties:
+        event:
+          type: object
+          required: [class]
+          additionalProperties: true
+          properties:
+            class: { type: string, maxLength: 200 }
+        user:
+          type: [object, 'null']
+          properties:
+            uid: { type: string, maxLength: 64 }
+            displayName: { type: string }
+        time: { type: integer, minimum: 1, description: 'Giây Unix do Nextcloud đặt lúc phát event' }
+        authentication: { description: 'Token tạm của webhook_listeners; máy chủ bỏ qua, không lưu' }
+    FlowWebhookAccepted:
+      type: object
+      required: [journalId, duplicate, status]
+      properties:
+        journalId: { $ref: '#/components/schemas/Id' }
+        duplicate: { type: boolean, description: 'true khi (lớp event, tài nguyên, time) đã có trong journal' }
+        status: { $ref: '#/components/schemas/FlowEventStatus' }
+    FlowEventStatus: { type: string, enum: [queued, running, done, skipped, failed] }
+    FlowEvent:
+      type: object
+      required: [id, source, eventClass, resourceKey, ruleIds, status, attempts, replayCount, correlationId, eventTime, receivedAt, deliveryLagMs, results]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        source: { type: string, enum: [webhook, reconcile] }
+        eventClass: { type: string }
+        resourceKey: { type: string, description: 'Ví dụ forms:submission:5:10, tables:row:5:29, files:node:643' }
+        ruleIds: { type: array, items: { type: string } }
+        status: { $ref: '#/components/schemas/FlowEventStatus' }
+        attempts: { type: integer, minimum: 0 }
+        replayCount: { type: integer, minimum: 0 }
+        claimedActorUid: { type: [string, 'null'], description: 'uid theo payload; chỉ ghi nhận, không dùng cấp quyền' }
+        correlationId: { type: string, description: 'requestId gắn vào mọi dòng audit_logs của event này' }
+        eventTime: { $ref: '#/components/schemas/DateTime' }
+        receivedAt: { $ref: '#/components/schemas/DateTime' }
+        finishedAt: { oneOf: [{ $ref: '#/components/schemas/DateTime' }, { type: 'null' }] }
+        deliveryLagMs: { type: integer, minimum: 0, description: 'receivedAt − eventTime (eventTime chỉ chính xác tới giây)' }
+        processingMs: { type: [integer, 'null'], minimum: 0 }
+        results:
+          type: array
+          items:
+            type: object
+            required: [outcome]
+            additionalProperties: true
+            properties:
+              ruleId: { type: [string, 'null'] }
+              outcome: { type: string, description: 'card_created, card_recovered, already_done, notified, no_recipient, tag_verified, no_rule, runner_forbidden, not_found, board_wider_than_results, …' }
+              message: { type: string }
+        lastError: { type: [string, 'null'] }
+    FlowEventPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMeta'
+        - { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/FlowEvent' } } } }
     JobPage:
       allOf:
         - $ref: '#/components/schemas/PageMeta'

@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-25T08:51:27.474Z",
+  "marker": "flow14-cron-1792918267611",
+  "workerStopped": true,
+  "journalRowsAfter10sWithoutWorker": 0,
+  "queuedWebhookJobs": 1,
+  "cronRunMs": 1316,
+  "deliveredAfterCronMs": 1296,
+  "totalFromSubmitMs": 11957,
+  "status": "done",
+  "outcome": "card_created",
+  "note": "Không có worker: thời gian chờ = khoảng tới lượt cron kế tiếp (cron 5 phút → 0–300 s). Có worker (interval 1 s): xem acceptance-forms-deck.json.",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

@@ -194,6 +194,68 @@ const Notification = mk({
 });
 Notification.index({ companyId: 1, userId: 1, isRead: 1, createdAt: -1 });
 
+// ── Flow (chat14): journal event Nextcloud và hiệu ứng đã làm ──
+const FlowEvent = mk({
+  /** sha256(lớp event | tài nguyên | time): lặp lại (replay, gửi trùng) không tạo dòng mới */
+  dedupeKey: { type: String, required: true },
+  source: { type: String, enum: ['webhook', 'reconcile'], required: true },
+  eventClass: { type: String, required: true },
+  /** Chỉ số nguyên lấy từ payload để định tuyến; dữ liệu nghiệp vụ luôn đọc lại qua API */
+  resource: { type: Mixed, required: true },
+  resourceKey: { type: String, required: true },
+  orderingKey: { type: String, required: true },
+  /** time của Nextcloud (giây) đổi sang Date */
+  eventTime: { type: Date, required: true },
+  /** uid người gây event theo payload: chỉ ghi nhận, không dùng để cấp quyền */
+  claimedActorUid: String,
+  payloadSha256: { type: String, required: true },
+  ruleIds: { type: [String], default: [] },
+  status: { type: String, enum: ['queued', 'running', 'done', 'skipped', 'failed'], required: true },
+  attempts: { type: Number, default: 0 },
+  nextAttemptAt: Date,
+  lockedUntil: Date,
+  receivedAt: { type: Date, required: true },
+  startedAt: Date,
+  finishedAt: Date,
+  /** Id tương quan gắn vào mọi dòng audit của event (requestId) */
+  correlationId: { type: String, required: true },
+  replayCount: { type: Number, default: 0 },
+  results: { type: [Mixed], default: [] },
+  lastError: String,
+});
+FlowEvent.index({ companyId: 1, dedupeKey: 1 }, { unique: true });
+FlowEvent.index({ companyId: 1, status: 1, eventTime: 1 });
+FlowEvent.index({ companyId: 1, orderingKey: 1, status: 1 });
+
+const FlowEffect = mk({
+  ruleId: { type: String, required: true },
+  /** Khoá nghiệp vụ, vd submission:5:10 — một hiệu ứng cho một tài nguyên dù event đến mấy lần */
+  effectKey: { type: String, required: true },
+  state: { type: String, enum: ['pending', 'done'], required: true },
+  output: { type: Mixed },
+  eventIds: { type: [OID], default: [] },
+});
+FlowEffect.index({ companyId: 1, ruleId: 1, effectKey: 1 }, { unique: true });
+
+const FlowCursor = mk({
+  ruleId: { type: String, required: true },
+  /** Lần đầu rule được nạp: đối soát chỉ bù tài nguyên tạo từ mốc này */
+  activatedAt: { type: Date, required: true },
+  lastReconcileAt: Date,
+  /** Chat15: lần đầu đối soát thư mục của rule Files (ảnh chụp fileid/ETag gốc) */
+  filesBaselineAt: Date,
+});
+FlowCursor.index({ companyId: 1, ruleId: 1 }, { unique: true });
+
+/** Chat15: ảnh chụp fileid → ETag của thư mục rule Files để đối soát thay đổi không có webhook */
+const FlowFileState = mk({
+  ruleId: { type: String, required: true },
+  fileId: { type: Number, required: true },
+  etag: { type: String, required: true },
+  seenAt: { type: Date, required: true },
+});
+FlowFileState.index({ companyId: 1, ruleId: 1, fileId: 1 }, { unique: true });
+
 // ── Drive cơ bản VCworkspace ──
 const WorkspaceSpace = mk({
   kind: { type: String, enum: ['department', 'personal'], required: true },
@@ -610,6 +672,10 @@ export const MODEL_DEFS = {
   AuditLog: { schema: AuditLog, collection: 'audit_logs' },
   Job: { schema: Job, collection: 'jobs' },
   Notification: { schema: Notification, collection: 'notifications' },
+  FlowEvent: { schema: FlowEvent, collection: 'flow_events' },
+  FlowEffect: { schema: FlowEffect, collection: 'flow_effects' },
+  FlowCursor: { schema: FlowCursor, collection: 'flow_cursors' },
+  FlowFileState: { schema: FlowFileState, collection: 'flow_file_states' },
   WorkspaceSpace: { schema: WorkspaceSpace, collection: 'workspace_spaces' },
   WorkspaceSpaceMember: { schema: WorkspaceSpaceMember, collection: 'workspace_space_members' },
   WorkspaceDriveItem: { schema: WorkspaceDriveItem, collection: 'workspace_drive_items' },

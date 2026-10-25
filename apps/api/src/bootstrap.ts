@@ -58,6 +58,8 @@ export async function createApp(cfg: AppConfig, opts: { logger?: boolean } = {})
   });
   app.use(requestContextMiddleware);
   app.use(cookieParser());
+  // Webhook Nextcloud (Flow) gửi JSON không kèm Content-Type: đọc mọi kiểu thân là JSON, tối đa 256 KB
+  app.use(`/${API_PREFIX}/flow/nextcloud/webhooks`, express.json({ limit: '256kb', type: () => true }));
   // Thân JSON ≤ 1 MB (hợp đồng mục 7); lỗi đọc thân trả đúng schema Error
   app.use(express.json({ limit: '1mb' }));
   app.use((err: any, req: any, res: any, next: any) => {

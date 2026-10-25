@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-10-25T11:56:00.708Z",
+  "run": "mvnru8vr",
+  "fixture": {
+    "fileShare": 200,
+    "participants": [
+      {
+        "who": "member-b",
+        "type": 1
+      },
+      {
+        "who": "manager-b",
+        "type": 3
+      }
+    ],
+    "successorReadsFile": 200
+  },
+  "transfer": {
+    "output": "Added or promoted user manager-b in 1 rooms.",
+    "projectParticipantsAfter": [
+      {
+        "who": "manager-b",
+        "type": 1
+      }
+    ],
+    "teamBRoomParticipantsAfter": [
+      {
+        "who": "manager-b",
+        "type": 1
+      },
+      {
+        "who": "groups",
+        "type": 3
+      },
+      {
+        "who": "member-b",
+        "type": 3
+      }
+    ],
+    "oneToOneVisibleForSuccessor": 200,
+    "historyKeepsLeaverMessages": true,
+    "leaverReadsProjectAfter": 404
+  },
+  "removeFromAll": {
+    "output": "Users successfully removed from all rooms.",
+    "leaverRooms": [],
+    "teamBParticipants": [
+      {
+        "who": "manager-b",
+        "type": 1
+      },
+      {
+        "who": "groups",
+        "type": 3
+      }
+    ]
+  },
+  "fileAfterOwnerDisabled": "not-listed",
+  "revoke": {
+    "device1RevokedAfterMs": 9367,
+    "timeline": [
+      {
+        "ms": 216,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 788,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 1359,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 1941,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 2513,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 3085,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 3657,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 4230,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 4802,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 5370,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 5941,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 6511,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 7081,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 7655,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 8228,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 8798,
+        "device1": 200,
+        "device2": 200
+      },
+      {
+        "ms": 9367,
+        "device1": 401,
+        "device2": 200
+      }
+    ],
+    "afterDisable": [
+      {
+        "ms": 206,
+        "device2Rooms": 401,
+        "device2Post": 401
+      },
+      {
+        "ms": 753,
+        "device2Rooms": 401,
+        "device2Post": 401
+      },
+      {
+        "ms": 1323,
+        "device2Rooms": 401,
+        "device2Post": 401
+      },
+      {
+        "ms": 1898,
+        "device2Rooms": 401,
+        "device2Post": 401
+      },
+      {
+        "ms": 2453,
+        "device2Rooms": 401,
+        "device2Post": 401
+      },
+      {
+        "ms": 3028,
+        "device2Rooms": 401,
+        "device2Post": 401
+      }
+    ],
+    "afterAllTokensDeleted": {
+      "final": 401,
+      "reachedAfterMs": 25,
+      "statuses": [
+        401
+      ]
+    }
+  },
+  "projectStillUsable": 201,
+  "secretsIncluded": false
+}

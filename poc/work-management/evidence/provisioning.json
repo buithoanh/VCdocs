@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-10-25T07:28:29.672Z",
+  "groups": [
+    {
+      "pk": "28e392cc-69f2-4172-81b8-78f1ea2b48a6",
+      "name": "vcw-team-a"
+    },
+    {
+      "pk": "39cd19f4-58de-4107-af2a-e685572aef1b",
+      "name": "vcw-team-b"
+    },
+    {
+      "pk": "4dac89b7-2a52-4d0d-9e0f-a67886d6a7d8",
+      "name": "vcw-outsiders"
+    }
+  ],
+  "personas": [
+    {
+      "pk": 5,
+      "uid": "f2d979e68e82949eb1ff74bdaf39f92236a9538fd0626d450d4ceb42e17d572d",
+      "username": "manager-a",
+      "email": "manager-a@team-a.test",
+      "is_active": true,
+      "groups": [
+        "28e392cc-69f2-4172-81b8-78f1ea2b48a6"
+      ]
+    },
+    {
+      "pk": 6,
+      "uid": "6409ea3cb990888a16eb7fe40372419e623e474495f8db7d4fcb734cebb2d1bb",
+      "username": "member-a",
+      "email": "member-a@team-a.test",
+      "is_active": true,
+      "groups": [
+        "28e392cc-69f2-4172-81b8-78f1ea2b48a6"
+      ]
+    },
+    {
+      "pk": 10,
+      "uid": "db614028b99ff9efe299ed86f6584187a9c430cd8928bc7a44a46a31244019f0",
+      "username": "successor-a",
+      "email": "successor-a@team-a.test",
+      "is_active": true,
+      "groups": [
+        "28e392cc-69f2-4172-81b8-78f1ea2b48a6"
+      ]
+    },
+    {
+      "pk": 7,
+      "uid": "32a6a3a7d3f0bf690ccd6b465df3c9861ca720ef550c0775a9cce07e32b2b23e",
+      "username": "manager-b",
+      "email": "manager-b@team-b.test",
+      "is_active": true,
+      "groups": [
+        "39cd19f4-58de-4107-af2a-e685572aef1b"
+      ]
+    },
+    {
+      "pk": 8,
+      "uid": "f3d9993153aa55db2616ce0ea49b94712d812560a9b709dac870e94d48776a34",
+      "username": "member-b",
+      "email": "member-b@team-b.test",
+      "is_active": true,
+      "groups": [
+        "39cd19f4-58de-4107-af2a-e685572aef1b"
+      ]
+    },
+    {
+      "pk": 9,
+      "uid": "f524880f5a8e56cb5e05d1e40b0dbfdcea81e4946a1d46e5b253b8a4faf25181",
+      "username": "outsider",
+      "email": "manager-a@outsider.test",
+      "is_active": true,
+      "groups": [
+        "4dac89b7-2a52-4d0d-9e0f-a67886d6a7d8"
+      ]
+    }
+  ],
+  "application": {
+    "slug": "nextcloud-work13",
+    "clientId": "nextcloud-work13",
+    "redirectUris": [
+      {
+        "matching_mode": "strict",
+        "url": "http://nc13.localtest.me:18130/apps/user_oidc/code"
+      }
+    ]
+  },
+  "secretsIncluded": false
+}

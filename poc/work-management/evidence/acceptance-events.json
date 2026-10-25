@@ -1,0 +1,134 @@
+{
+  "generatedAt": "2026-10-25T07:27:58.965Z",
+  "sinkUri": "http://hook-sink:8080/work13",
+  "userIdFilterMode": {
+    "marker": "work13-events-userIdFilter-1792913275231",
+    "summary": {
+      "forms": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 0,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": []
+      },
+      "tables": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 0,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": []
+      },
+      "files": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 0,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": []
+      },
+      "deck": {
+        "registered": false,
+        "registrationMessage": "OCA\\Deck\\Event\\CardCreatedEvent is not an event class compatible with webhooks",
+        "delivered": 0,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": []
+      }
+    },
+    "requests": []
+  },
+  "eventFilterMode": {
+    "marker": "work13-events-eventFilter-1792913277669",
+    "summary": {
+      "forms": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 1,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": [
+          "form",
+          "submission",
+          "class"
+        ]
+      },
+      "tables": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 1,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": true,
+        "payloadKeys": [
+          "tableId",
+          "rowId",
+          "previousValues",
+          "values",
+          "dataByAlias",
+          "class"
+        ]
+      },
+      "files": {
+        "registered": true,
+        "registrationMessage": null,
+        "delivered": 1,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": [
+          "node",
+          "class"
+        ]
+      },
+      "deck": {
+        "registered": false,
+        "registrationMessage": "OCA\\Deck\\Event\\CardCreatedEvent is not an event class compatible with webhooks",
+        "delivered": 0,
+        "allTokenHeader": true,
+        "allUserIdIsImmutableId": true,
+        "payloadContainsChangedData": false,
+        "payloadKeys": []
+      }
+    },
+    "requests": [
+      {
+        "requestLine": "POST /work13 HTTP/1.1",
+        "event": "OCA\\Forms\\Events\\FormSubmittedEvent",
+        "userId": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+        "time": 1792913277,
+        "tokenHeaderMatches": true,
+        "containsMarker": false
+      },
+      {
+        "requestLine": "POST /work13 HTTP/1.1",
+        "event": "OCA\\Tables\\Event\\RowAddedEvent",
+        "userId": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+        "time": 1792913277,
+        "tokenHeaderMatches": true,
+        "containsMarker": true
+      },
+      {
+        "requestLine": "POST /work13 HTTP/1.1",
+        "event": "OCP\\Files\\Events\\Node\\NodeWrittenEvent",
+        "userId": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+        "time": 1792913277,
+        "tokenHeaderMatches": true,
+        "containsMarker": false
+      }
+    ]
+  },
+  "notes": [
+    "Delivery is asynchronous: webhook calls are queued background jobs (cron.php was run explicitly).",
+    "Auth is a static header configured by an admin; the payload has no HMAC signature or replay nonce.",
+    "Probe webhooks were removed after each mode."
+  ],
+  "result": "LOCAL PASS for Forms/Tables/Files events with eventFilter; see userIdFilterMode and deck for gaps",
+  "secretsIncluded": false
+}

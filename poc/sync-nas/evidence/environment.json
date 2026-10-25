@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-10-25T09:56:55.973Z",
+  "nextcloud": {
+    "installed": true,
+    "version": "33.0.10.1",
+    "versionstring": "33.0.10",
+    "edition": "",
+    "maintenance": false,
+    "needsDbUpgrade": false,
+    "productname": "Nextcloud",
+    "extendedSupport": false
+  },
+  "apps": {
+    "files_external": "1.25.1",
+    "workflowengine": "2.15.0",
+    "webhook_listeners": "1.5.0",
+    "files_accesscontrol": "4.0.2",
+    "files_automatedtagging": "4.0.1"
+  },
+  "nas": {
+    "image": "vcworkspace-sync15/nas:alpine3.22.2-1 (FROM alpine@sha256:4b7ce07002c69e8f3d704a9c5d6fd3053be500b7f1c69fc0d80990c2ad8dd412)",
+    "smbd": "Version 4.21.9"
+  },
+  "nextcloudSmb": {
+    "image": "vcworkspace-sync15/nextcloud-smb:33.0.10-1 (FROM nextcloud@sha256:431d389f…)",
+    "smbclient": "Version 4.22.11-Debian-4.22.11+dfsg-0+deb13u1",
+    "phpExtension": "Extension [ <persistent> extension #47 smbclient version 1.1.1 ] {"
+  },
+  "notifyEntrypoint": "[\"php\",\"/var/www/html/occ\",\"--no-ansi\",\"files_external:notify\",\"-v\",\"1\"]",
+  "cliSyncClientImagePresent": false,
+  "sampleImages": [
+    "vcworkspace-sync15/nextcloud-smb:33.0.10-1 <none> 50377d5fe623",
+    "vcworkspace-sync15/nas:alpine3.22.2-1 <none> 710f88b0676f",
+    "postgres:18.1-alpine sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29 91f1036a9148",
+    "redis:8.2.3-alpine sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba 7dc4da3a2de9",
+    "alpine:3.22.2 sha256:4b7ce07002c69e8f3d704a9c5d6fd3053be500b7f1c69fc0d80990c2ad8dd412 171e65262c80"
+  ],
+  "secretsIncluded": false
+}

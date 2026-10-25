@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-10-25T08:47:10.739Z",
+  "marker": "flow14-inv-1792917998227",
+  "auth": {
+    "noToken": 401,
+    "wrongToken": 401,
+    "deckEventWithToken": 422,
+    "journalUnchanged": true
+  },
+  "replay": {
+    "firstJournalId": "6addc1f2f4c4f051ba5fec56",
+    "replayStatus": 202,
+    "replayBody": {
+      "journalId": "6addc1f2f4c4f051ba5fec56",
+      "duplicate": true,
+      "status": "done"
+    },
+    "secondReplayDuplicate": true,
+    "cards": 1,
+    "replayCount": 2
+  },
+  "rotation": {
+    "acceptedWithOldSecretDuringRotation": true,
+    "acceptedWithNewSecret": true,
+    "oldSecretAfterDrop": 401,
+    "newSecretAfterDrop": true
+  },
+  "restart": {
+    "crashExit": {
+      "code": null,
+      "signal": "SIGKILL"
+    },
+    "crashLogged": true,
+    "cardsRightAfterCrash": 1,
+    "statusAfterRestart": "done",
+    "outcome": "card_recovered",
+    "attempts": 2,
+    "cardsAfterRestart": 1
+  },
+  "missedDelivery": {
+    "nextcloudLoggedCallFailed": 2,
+    "nextcloudFailureSample": "Webhook(45) call failed: cURL error 56: Recv failure: Connection reset by peer (see https://curl.se/libcurl/c/libcurl-errors.html) for http://flow-receiver-rela",
+    "formSource": "reconcile",
+    "formOutcome": "card_created",
+    "rowSource": "reconcile",
+    "rowOutcome": "notified",
+    "cards": 1,
+    "journalRowsForSubmission": 1
+  },
+  "auditCorrelation": {
+    "correlationId": "flow-6addc20ba64a54c6b98b4d3a"
+  },
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

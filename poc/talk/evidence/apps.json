@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-10-25T10:54:57.239Z",
+  "apps": {
+    "spreed": "23.0.12",
+    "calendar": "6.6.3",
+    "contacts": "8.9.2",
+    "notifications": "6.0.0",
+    "activity": "6.0.0",
+    "webhook_listeners": "1.5.0",
+    "files_sharing": "1.25.2"
+  },
+  "pinnedFromPreflight": {
+    "spreed": "23.0.12"
+  },
+  "integrity": {
+    "spreed": "PASS"
+  },
+  "egressAttachedMs": 4852,
+  "nextcloudNetworksAfterInstall": [
+    "vcworkspace-work13_work13"
+  ],
+  "secretsIncluded": false
+}

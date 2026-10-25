@@ -15,6 +15,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { DriveBasicModule } from './drive-basic/drive-basic.module';
 import { MailBasicModule } from './mail-basic/mail-basic.module';
 import { WorkspaceInteropModule } from './workspace-interop/workspace-interop.module';
+import { FlowModule } from './flow/flow.module';
 
 /** Mỗi phân hệ là một module (BA 9.1) */
-export const FEATURE_MODULES = [SharedModule, M01Module, M02Module, M03Module, M04Module, M05Module, M06Module, M07Module, M08Module, M09Module, M14Module, DriveBasicModule, MailBasicModule, WorkspaceInteropModule, JobsApiModule, SeedModule, SchedulerModule];
+export const FEATURE_MODULES = [SharedModule, M01Module, M02Module, M03Module, M04Module, M05Module, M06Module, M07Module, M08Module, M09Module, M14Module, DriveBasicModule, MailBasicModule, WorkspaceInteropModule, FlowModule, JobsApiModule, SeedModule, SchedulerModule];

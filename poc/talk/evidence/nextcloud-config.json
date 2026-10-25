@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-10-25T10:58:50.031Z",
+  "config": {
+    "system": {
+      "has_internet_connection": "false"
+    },
+    "spreed": {
+      "stun_servers": "[]",
+      "turn_servers": "[]",
+      "signaling_servers": "{\"servers\":[],\"secret\":\"(empty)\",\"hideWarning\":true}",
+      "force_passwords": "1",
+      "call_recording": "no",
+      "sip_dialout": "no",
+      "federation_enabled": "no",
+      "allowed_groups": "(unset)",
+      "start_conversations": "(unset)",
+      "default_attachment_folder": "(unset)",
+      "conversations_files": "(unset)",
+      "conversations_files_public_shares": "(unset)"
+    },
+    "core": {
+      "shareapi_only_share_with_group_members": "yes",
+      "shareapi_restrict_user_enumeration_to_group": "yes",
+      "shareapi_restrict_user_enumeration_full_match": "no",
+      "shareapi_allow_share_dialog_user_enumeration": "(unset)",
+      "shareapi_allow_links": "no",
+      "shareapi_allow_resharing": "(unset)"
+    }
+  },
+  "occLists": {
+    "stun": "",
+    "turn": "",
+    "signaling": "servers:\nsecret: \nhideWarning: true"
+  },
+  "spreed": "23.0.12",
+  "secretsIncluded": false
+}

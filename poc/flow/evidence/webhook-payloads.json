@@ -1,0 +1,160 @@
+{
+  "generatedAt": "2026-10-25T08:23:09.151Z",
+  "marker": "flow14-capture-1792916587277",
+  "deliveredBy": "occ background-job:worker (container vcworkspace-flow14-webhook-worker-1), không chạy cron.php",
+  "allDeliveredWithinMs": 1319,
+  "samples": [
+    {
+      "requestLine": "POST /flow14-capture HTTP/1.1",
+      "headerNames": [
+        "Host",
+        "X-Flow14-Capture",
+        "User-Agent",
+        "Accept-Encoding",
+        "Content-Length"
+      ],
+      "authHeaderMatches": true,
+      "payload": {
+        "event": {
+          "form": {
+            "id": 5,
+            "hash": "6q5D29MaKTdtWrPi",
+            "title": "Flow14 Yêu cầu",
+            "description": "Form thử chat14 (dữ liệu giả)",
+            "ownerId": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+            "fileId": null,
+            "fileFormat": null,
+            "created": 1792916540,
+            "access": {
+              "permitAllUsers": false,
+              "showToAllUsers": false
+            },
+            "expires": 0,
+            "isAnonymous": false,
+            "submitMultiple": true,
+            "allowEditSubmissions": false,
+            "showExpiration": false,
+            "lastUpdated": 1792916587,
+            "submissionMessage": null,
+            "state": 0,
+            "lockedBy": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+            "lockedUntil": 1792917440,
+            "maxSubmissions": null,
+            "confirmationEmailEnabled": false,
+            "confirmationEmailSubject": null,
+            "confirmationEmailBody": null,
+            "confirmationEmailQuestionId": null,
+            "allowComments": false
+          },
+          "submission": {
+            "id": 10,
+            "formId": 5,
+            "userId": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+            "timestamp": 1792916587
+          },
+          "class": "OCA\\Forms\\Events\\FormSubmittedEvent"
+        },
+        "user": {
+          "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+          "displayName": "Member A"
+        },
+        "time": 1792916587
+      }
+    },
+    {
+      "requestLine": "POST /flow14-capture HTTP/1.1",
+      "headerNames": [
+        "Host",
+        "X-Flow14-Capture",
+        "User-Agent",
+        "Accept-Encoding",
+        "Content-Length"
+      ],
+      "authHeaderMatches": true,
+      "payload": {
+        "event": {
+          "tableId": 5,
+          "rowId": 29,
+          "previousValues": null,
+          "values": [
+            {
+              "columnId": 14,
+              "value": "Capture flow14-capture-1792916587277"
+            }
+          ],
+          "dataByAlias": {
+            "column_14": {
+              "columnId": 14,
+              "value": "Capture flow14-capture-1792916587277"
+            }
+          },
+          "class": "OCA\\Tables\\Event\\RowAddedEvent"
+        },
+        "user": {
+          "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+          "displayName": "Member A"
+        },
+        "time": 1792916587
+      }
+    },
+    {
+      "requestLine": "POST /flow14-capture HTTP/1.1",
+      "headerNames": [
+        "Host",
+        "X-Flow14-Capture",
+        "User-Agent",
+        "Accept-Encoding",
+        "Content-Length"
+      ],
+      "authHeaderMatches": true,
+      "payload": {
+        "event": {
+          "node": {
+            "id": 643,
+            "path": "/5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc/files/Flow14-HoSo/flow14-capture-1792916587277.txt",
+            "type": "file",
+            "mimetype": "text/plain",
+            "size": 37,
+            "mtime": 1792916587
+          },
+          "class": "OCP\\Files\\Events\\Node\\NodeCreatedEvent"
+        },
+        "user": {
+          "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+          "displayName": "Member A"
+        },
+        "time": 1792916587
+      }
+    },
+    {
+      "requestLine": "POST /flow14-capture HTTP/1.1",
+      "headerNames": [
+        "Host",
+        "X-Flow14-Capture",
+        "User-Agent",
+        "Accept-Encoding",
+        "Content-Length"
+      ],
+      "authHeaderMatches": true,
+      "payload": {
+        "event": {
+          "node": {
+            "id": 643,
+            "path": "/5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc/files/Flow14-HoSo/flow14-capture-1792916587277.txt",
+            "type": "file",
+            "mimetype": "text/plain",
+            "size": 37,
+            "mtime": 1792916587
+          },
+          "class": "OCP\\Files\\Events\\Node\\NodeWrittenEvent"
+        },
+        "user": {
+          "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+          "displayName": "Member A"
+        },
+        "time": 1792916587
+      }
+    }
+  ],
+  "secretsIncluded": false
+}

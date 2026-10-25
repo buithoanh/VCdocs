@@ -86,6 +86,105 @@ export interface AppConfig {
     internalOpsBlockCode: string;
   };
   rateLimit: { perMinute: number; searchPerMinute: number };
+  /** Chat14 Flow: nhận webhook Nextcloud webhook_listeners, journal + worker nền */
+  flow: FlowConfig;
+}
+
+export type FlowRule =
+  | { id: string; kind: 'forms.submission-to-deck'; runner: string; formId: number; boardId: number; stackId: number; allowSharedBoard?: boolean }
+  | { id: string; kind: 'tables.row-notify'; runner: string; tableId: number; recipients: string[] }
+  /** reconcile: chat15 — đối soát theo thư mục (thay đổi ngoài webhook, vd sửa trực tiếp trên NAS) */
+  | { id: string; kind: 'files.verify-tag'; runner: string; folderPath: string; tagName: string; reconcile?: boolean };
+
+export interface FlowConfig {
+  /** Tắt mặc định; route trả 503 khi tắt */
+  enabled: boolean;
+  /** Công ty nhận event của instance Nextcloud này (không lấy từ payload) */
+  companyId?: string;
+  /** Bí mật header X-VCW-Flow-Token; phần tử đầu là bản hiện hành, các phần tử sau còn nhận trong lúc xoay vòng */
+  webhookSecrets: string[];
+  nextcloud: {
+    baseUrl?: string;
+    timeoutMs: number;
+    /** runner → app password của chính người chạy flow (không dùng admin) */
+    credentials: Record<string, { username: string; password: string }>;
+    /** uid Nextcloud bất biến → email tài khoản VCworkspace nhận thông báo */
+    userBindings: Record<string, string>;
+  };
+  rules: FlowRule[];
+  /** Nhịp worker nền (ms); 0 = không tự chạy (test gọi drain) */
+  workerPollMs: number;
+  /** Hạn giữ việc đang chạy; quá hạn thì worker khác (sau restart) lấy lại */
+  leaseMs: number;
+  maxAttempts: number;
+  retryBaseMs: number;
+  /** Nhịp đối soát bù event bị lỡ (Nextcloud không gửi lại); 0 = tắt */
+  reconcileMs: number;
+}
+
+const FLOW_RULE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const NC_UID = /^[A-Za-z0-9._@-]{1,64}$/;
+
+function flowRules(v: string | undefined): FlowRule[] {
+  if (!v) return [];
+  const parsed = JSON.parse(v);
+  if (!Array.isArray(parsed)) throw new Error('FLOW_RULES_JSON phải là mảng');
+  return parsed as FlowRule[];
+}
+
+function stringMap(v: string | undefined, name: string): Record<string, string> {
+  if (!v) return {};
+  const parsed = JSON.parse(v);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.values(parsed).some((x) => typeof x !== 'string')) {
+    throw new Error(`${name} phải là object chuỗi → chuỗi`);
+  }
+  return parsed as Record<string, string>;
+}
+
+const posInt = (x: unknown) => Number.isSafeInteger(x) && (x as number) > 0;
+
+/** Kiểm cấu hình Flow ngay lúc khởi động: thiếu/sai thì dừng, không chạy nửa vời. */
+export function validateFlowConfig(f: FlowConfig, nodeEnv: string): void {
+  if (!f.enabled) return;
+  if (!f.companyId || !/^[a-f0-9]{24}$/.test(f.companyId)) throw new Error('FLOW_COMPANY_ID phải là ObjectId công ty');
+  if (!f.webhookSecrets.length || f.webhookSecrets.some((s) => Buffer.byteLength(s) < 32 || Buffer.byteLength(s) > 256 || /[\s,]/.test(s))) {
+    throw new Error('FLOW_WEBHOOK_SECRETS cần ít nhất một bí mật 32–256 byte, không khoảng trắng');
+  }
+  if (!f.nextcloud.baseUrl) throw new Error('FLOW_NEXTCLOUD_BASE_URL bắt buộc khi bật Flow');
+  const base = new URL(f.nextcloud.baseUrl);
+  if (base.username || base.password || base.search || base.hash) throw new Error('FLOW_NEXTCLOUD_BASE_URL không được chứa thông tin đăng nhập, query hay fragment');
+  if (nodeEnv === 'production' ? base.protocol !== 'https:' : !['https:', 'http:'].includes(base.protocol)) {
+    throw new Error('FLOW_NEXTCLOUD_BASE_URL production bắt buộc https');
+  }
+  if (nodeEnv !== 'production' && base.protocol === 'http:' && !['127.0.0.1', 'localhost', '::1', '[::1]'].includes(base.hostname) && !base.hostname.endsWith('.localtest.me')) {
+    throw new Error('Flow http chỉ được phép tới Nextcloud thử local');
+  }
+  const ids = new Set<string>();
+  for (const r of f.rules as any[]) {
+    if (!r || typeof r !== 'object' || !FLOW_RULE_ID.test(String(r.id)) || ids.has(r.id)) throw new Error('Rule Flow cần id duy nhất [a-z0-9-]');
+    ids.add(r.id);
+    if (!f.nextcloud.credentials[r.runner]) throw new Error(`Rule ${r.id}: runner chưa có credential`);
+    if (r.kind === 'forms.submission-to-deck') {
+      if (![r.formId, r.boardId, r.stackId].every(posInt)) throw new Error(`Rule ${r.id}: formId/boardId/stackId phải là số nguyên dương`);
+    } else if (r.kind === 'tables.row-notify') {
+      if (!posInt(r.tableId) || !Array.isArray(r.recipients) || !r.recipients.length || r.recipients.some((u: unknown) => typeof u !== 'string' || !NC_UID.test(u))) {
+        throw new Error(`Rule ${r.id}: tableId và recipients (uid Nextcloud) bắt buộc`);
+      }
+    } else if (r.kind === 'files.verify-tag') {
+      if (typeof r.folderPath !== 'string' || !/^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(r.folderPath) || typeof r.tagName !== 'string' || !r.tagName.trim()) {
+        throw new Error(`Rule ${r.id}: folderPath (ASCII, tương đối) và tagName bắt buộc`);
+      }
+      if (r.reconcile !== undefined && typeof r.reconcile !== 'boolean') throw new Error(`Rule ${r.id}: reconcile phải là boolean`);
+    } else {
+      throw new Error(`Rule ${r.id}: kind không hỗ trợ`);
+    }
+  }
+  for (const [uid, email] of Object.entries(f.nextcloud.userBindings)) {
+    if (!NC_UID.test(uid) || !email.includes('@')) throw new Error('FLOW_NEXTCLOUD_USER_BINDINGS_JSON: uid → email');
+  }
+  if (!(f.leaseMs >= 1000) || !(f.maxAttempts >= 1 && f.maxAttempts <= 20) || !(f.retryBaseMs >= 0) || !(f.workerPollMs >= 0) || !(f.reconcileMs >= 0)) {
+    throw new Error('Tham số worker Flow không hợp lệ');
+  }
 }
 
 function bool(v: string | undefined, d: boolean): boolean {
@@ -225,6 +324,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       internalOpsBlockCode: env.INTERNAL_OPS_BLOCK_CODE || 'VHNB',
     },
     rateLimit: { perMinute: num(env.RATE_LIMIT_PER_MINUTE, 600), searchPerMinute: num(env.RATE_LIMIT_SEARCH_PER_MINUTE, 60) },
+    flow: {
+      enabled: bool(env.FLOW_ENABLED, false),
+      companyId: env.FLOW_COMPANY_ID,
+      webhookSecrets: list(env.FLOW_WEBHOOK_SECRETS, []),
+      nextcloud: {
+        baseUrl: env.FLOW_NEXTCLOUD_BASE_URL,
+        timeoutMs: num(env.FLOW_NEXTCLOUD_TIMEOUT_MS, 10_000),
+        credentials: storageCredentials(env.FLOW_NEXTCLOUD_CREDENTIALS_JSON),
+        userBindings: stringMap(env.FLOW_NEXTCLOUD_USER_BINDINGS_JSON, 'FLOW_NEXTCLOUD_USER_BINDINGS_JSON'),
+      },
+      rules: flowRules(env.FLOW_RULES_JSON),
+      workerPollMs: num(env.FLOW_WORKER_POLL_MS, 500),
+      leaseMs: num(env.FLOW_LEASE_MS, 60_000),
+      maxAttempts: num(env.FLOW_MAX_ATTEMPTS, 5),
+      retryBaseMs: num(env.FLOW_RETRY_BASE_MS, 2_000),
+      reconcileMs: num(env.FLOW_RECONCILE_MS, 0),
+    },
     ...overrides,
   };
   if (cfg.nodeEnv === 'production' && cfg.googleMode === 'fake') {
@@ -256,6 +372,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     throw new Error('WORKSPACE_STORAGE_MODE phải là fake hoặc nextcloud');
   }
   if (!['fake', 'stalwart'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake hoặc stalwart');
+  validateFlowConfig(cfg.flow, cfg.nodeEnv);
   if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
   if (cfg.nodeEnv === 'production') {
     // Bản giả/khoá mặc định chỉ dành cho local/test; production phải cấu hình tường minh.

@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-10-25T08:22:21.092Z",
+  "owner": {
+    "persona": "successor-a",
+    "uid": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35"
+  },
+  "member": {
+    "persona": "member-a",
+    "uid": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc"
+  },
+  "forms": {
+    "formId": 5,
+    "titleQuestionId": 9,
+    "detailQuestionId": 10,
+    "sharedTo": "vcw-team-a (federated id), submit"
+  },
+  "deck": {
+    "boardId": 8,
+    "formsDeckStackId": 23,
+    "nestStackId": 24,
+    "boardAcl": "chỉ chủ board (không ACL nhóm)"
+  },
+  "formsDeckMapping": {
+    "status": 201,
+    "id": 1,
+    "response": "created"
+  },
+  "tables": {
+    "tableId": 5,
+    "columnId": 14,
+    "sharedTo": "member-a (user share, read+create)"
+  },
+  "files": {
+    "folder": "Flow14-HoSo",
+    "folderFileId": 642,
+    "shareId": "13",
+    "sharedTo": "vcw-team-a (federated id), permissions 15"
+  },
+  "secretsIncluded": false
+}

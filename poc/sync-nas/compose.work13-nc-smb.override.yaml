@@ -1,0 +1,7 @@
+# Chat15: override for the chat13 compose file — the work13 `nextcloud` service
+# runs the derived image (same Nextcloud 33.0.10 digest + smbclient + php-smbclient).
+# Volume, secrets, networks and configuration are unchanged; recreating the
+# container keeps all data (it lives in vcworkspace_work13_nextcloud).
+services:
+  nextcloud:
+    image: vcworkspace-sync15/nextcloud-smb:33.0.10-1

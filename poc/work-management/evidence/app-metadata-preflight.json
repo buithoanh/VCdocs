@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-10-25T07:09:11.334Z",
+  "source": "https://apps.nextcloud.com/api/v1/platform/33.0.10/apps.json",
+  "platform": "33.0.10",
+  "apps": [
+    {
+      "id": "user_oidc",
+      "stableVersion": "8.11.0",
+      "platformSpec": ">=29 <=35",
+      "released": "2026-08-24",
+      "download": "https://github.com/nextcloud-releases/user_oidc/releases/download/v8.11.0/user_oidc-v8.11.0.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true
+    },
+    {
+      "id": "deck",
+      "stableVersion": "1.17.8",
+      "platformSpec": ">=33 <=33",
+      "released": "2026-10-23",
+      "download": "https://github.com/nextcloud-releases/deck/releases/download/v1.17.8/deck-v1.17.8.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true
+    },
+    {
+      "id": "notes",
+      "stableVersion": "6.1.0",
+      "platformSpec": ">=33 <=36",
+      "released": "2026-09-15",
+      "download": "https://github.com/nextcloud-releases/notes/releases/download/v6.1.0/notes-v6.1.0.tar.gz",
+      "licenses": [
+        "AGPL-3.0-or-later"
+      ],
+      "signed": true
+    },
+    {
+      "id": "forms",
+      "stableVersion": "5.4.1",
+      "platformSpec": ">=33 <=35",
+      "released": "2026-10-22",
+      "download": "https://github.com/nextcloud-releases/forms/releases/download/v5.4.1/forms-v5.4.1.tar.gz",
+      "licenses": [
+        "AGPL-3.0-or-later"
+      ],
+      "signed": true
+    },
+    {
+      "id": "tables",
+      "stableVersion": "2.3.2",
+      "platformSpec": ">=33 <=36",
+      "released": "2026-10-14",
+      "download": "https://github.com/nextcloud-releases/tables/releases/download/v2.3.2/tables-v2.3.2.tar.gz",
+      "licenses": [
+        "AGPL-3.0-or-later"
+      ],
+      "signed": true
+    },
+    {
+      "id": "collectives",
+      "stableVersion": "4.7.1",
+      "platformSpec": ">=32 <=35",
+      "released": "2026-09-24",
+      "download": "https://github.com/nextcloud/collectives/releases/download/v4.7.1/collectives-4.7.1.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true
+    },
+    {
+      "id": "forms_deck",
+      "stableVersion": "0.7.0",
+      "platformSpec": ">=33 <=35",
+      "released": "2026-10-16",
+      "download": "https://gitlab.com/mrmvn/forms_deck/-/releases/v0.7.0/downloads/forms_deck-0.7.0.tar.gz",
+      "licenses": [
+        "AGPL-3.0-or-later"
+      ],
+      "signed": true
+    }
+  ],
+  "secretsIncluded": false
+}

@@ -1,0 +1,124 @@
+{
+  "generatedAt": "2026-10-25T11:49:27.189Z",
+  "base": "http://localhost:18130",
+  "personas": {
+    "successor-a": {
+      "kuz2j3g7": {
+        "name": "5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc",
+        "type": 1,
+        "participantType": 1,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:1",
+          "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+        ],
+        "messages": 2,
+        "messageIds": "458370a8ee6a534d",
+        "messageText": "b3fe7b26e2e96f34",
+        "sharedFiles": 0
+      },
+      "xd6s8ccu": {
+        "name": "talk17-team-a",
+        "type": 2,
+        "participantType": 1,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "groups:35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74:3",
+          "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:3",
+          "users:732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622:3",
+          "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+        ],
+        "messages": 73,
+        "messageIds": "3ae9912ef90fd11e",
+        "messageText": "fcd4b89f1f3d8e7a",
+        "sharedFiles": 2
+      }
+    },
+    "member-a": {
+      "kuz2j3g7": {
+        "name": "a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35",
+        "type": 1,
+        "participantType": 1,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:1",
+          "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+        ],
+        "messages": 2,
+        "messageIds": "458370a8ee6a534d",
+        "messageText": "8f6c6e64e1941659",
+        "sharedFiles": 0
+      },
+      "xd6s8ccu": {
+        "name": "talk17-team-a",
+        "type": 2,
+        "participantType": 3,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "groups:35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74:3",
+          "users:5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc:3",
+          "users:732a32b48f22ca6d4df95d82f074babe0ee5c8ce3b585ae03cf9dcf05bf24622:3",
+          "users:a0f27cdf6b6958bef2149d9c68e2fab004e95059d8ba28d99fcef77c0beadd35:1"
+        ],
+        "messages": 73,
+        "messageIds": "3ae9912ef90fd11e",
+        "messageText": "a497c9a8f0197d09",
+        "sharedFiles": 2
+      }
+    },
+    "manager-b": {
+      "p7skejji": {
+        "name": "talk17-team-b",
+        "type": 2,
+        "participantType": 1,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "groups:3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf:3",
+          "users:67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2:1",
+          "users:f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5:3"
+        ],
+        "messages": 6,
+        "messageIds": "d5f51daee4a436e8",
+        "messageText": "673cc1d7d8149038",
+        "sharedFiles": 0
+      }
+    },
+    "member-b": {
+      "p7skejji": {
+        "name": "talk17-team-b",
+        "type": 2,
+        "participantType": 3,
+        "lobbyState": 0,
+        "hasPassword": false,
+        "participants": [
+          "groups:3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf:3",
+          "users:67f57849bb7010472d7700bc9e008e1d066fa944adb267c9c7f51f2382cb58b2:1",
+          "users:f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5:3"
+        ],
+        "messages": 6,
+        "messageIds": "d5f51daee4a436e8",
+        "messageText": "9bbe78515aed4d28",
+        "sharedFiles": 0
+      }
+    },
+    "outsider": {}
+  },
+  "config": {
+    "stun_servers": "[]",
+    "turn_servers": "[]",
+    "force_passwords": "1",
+    "call_recording": "no",
+    "federation_enabled": "no",
+    "has_internet_connection": "false",
+    "shareapi_only_share_with_group_members": "yes",
+    "shareapi_restrict_user_enumeration_to_group": "yes",
+    "shareapi_restrict_user_enumeration_full_match": "no",
+    "spreedVersion": "23.0.12"
+  },
+  "secretsIncluded": false
+}

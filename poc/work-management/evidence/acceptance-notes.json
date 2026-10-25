@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-10-25T07:16:59.520Z",
+  "marker": "work13-notes-1792912618251",
+  "resources": {
+    "noteId": 481,
+    "notesPath": "Ghi chép",
+    "category": "TeamA-work13-notes-1792912618251",
+    "noteFile": "Meeting work13-notes-1792912618251.md",
+    "attachmentPath": ".attachments.481/work13-notes-1792912618251.png",
+    "shareId": "7",
+    "memberTarget": "TeamA-work13-notes-1792912618251"
+  },
+  "manager": {
+    "created": true,
+    "attachmentSha256": "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0",
+    "sharedTo": "vcw-team-a (federated id)",
+    "sharePermissions": 3,
+    "sawMemberEdit": true
+  },
+  "member": {
+    "webdavRead": 200,
+    "webdavEdit": 204,
+    "filesComment": 201
+  },
+  "deny": {
+    "manager-b": {
+      "notesApiRead": 404,
+      "notesApiUpdate": 404,
+      "notesAttachment": 404,
+      "webdavOwnerPath": 404,
+      "webdavSharedTarget": 404,
+      "filesComment": 404,
+      "shareInfo": 404,
+      "reshareToSelf": 404,
+      "notesListContainsNote": false
+    },
+    "outsider": {
+      "notesApiRead": 404,
+      "notesApiUpdate": 404,
+      "notesAttachment": 404,
+      "webdavOwnerPath": 404,
+      "webdavSharedTarget": 404,
+      "filesComment": 404,
+      "shareInfo": 404,
+      "reshareToSelf": 404,
+      "notesListContainsNote": false
+    }
+  },
+  "limitation": "Notes API only lists notes in the caller own Notes folder; shared notes are reached through Files/WebDAV, not the Notes app list.",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

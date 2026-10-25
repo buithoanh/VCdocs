@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-10-25T07:19:42.337Z",
+  "marker": "work13-tables-1792912780768",
+  "resources": {
+    "tableId": 1,
+    "columnId": 1,
+    "ownerRowId": 1,
+    "memberRowId": 2,
+    "shareId": 1
+  },
+  "manager": {
+    "shareTo": "vcw-team-a (federated id)",
+    "export": {
+      "schemeColumns": 1,
+      "rows": 2
+    }
+  },
+  "member": {
+    "readTable": 200,
+    "createRow": true,
+    "updateRow": true,
+    "deleteWithoutPermission": 403,
+    "reshareWithoutManage": 403
+  },
+  "deny": {
+    "manager-b": {
+      "readTable": 404,
+      "readScheme": 404,
+      "readRows": 404,
+      "readRow": 403,
+      "createRow": 404,
+      "updateRow": 404,
+      "deleteRow": 404,
+      "readShares": 404,
+      "shareToSelf": 404,
+      "listContainsTable": false
+    },
+    "outsider": {
+      "readTable": 404,
+      "readScheme": 404,
+      "readRows": 404,
+      "readRow": 403,
+      "createRow": 404,
+      "updateRow": 404,
+      "deleteRow": 404,
+      "readShares": 404,
+      "shareToSelf": 404,
+      "listContainsTable": false
+    }
+  },
+  "comments": "N/A: Tables 2.3.2 has no row comments.",
+  "attachments": "N/A: Tables has no file upload column; files can only be referenced by link.",
+  "result": "LOCAL PASS",
+  "secretsIncluded": false
+}

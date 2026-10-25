@@ -1,0 +1,381 @@
+{
+  "generatedAt": "2026-10-25T10:46:25.141Z",
+  "run": "mvnpcyis",
+  "registration": [
+    {
+      "event": "OCP\\Calendar\\Events\\CalendarObjectCreatedEvent",
+      "status": 200,
+      "message": "registered"
+    },
+    {
+      "event": "OCP\\Calendar\\Events\\CalendarObjectUpdatedEvent",
+      "status": 200,
+      "message": "registered"
+    },
+    {
+      "event": "OCP\\Calendar\\Events\\CalendarObjectDeletedEvent",
+      "status": 200,
+      "message": "registered"
+    },
+    {
+      "event": "OCP\\Calendar\\Events\\CalendarObjectMovedToTrashEvent",
+      "status": 200,
+      "message": "registered"
+    },
+    {
+      "event": "OCA\\DAV\\Events\\CardCreatedEvent",
+      "status": 400,
+      "message": "OCA\\DAV\\Events\\CardCreatedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\DAV\\Events\\CardUpdatedEvent",
+      "status": 400,
+      "message": "OCA\\DAV\\Events\\CardUpdatedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\DAV\\Events\\AddressBookUpdatedEvent",
+      "status": 400,
+      "message": "OCA\\DAV\\Events\\AddressBookUpdatedEvent is not an event class compatible with webhooks"
+    },
+    {
+      "event": "OCA\\DAV\\Events\\CalendarObjectCreatedEvent",
+      "status": 400,
+      "message": "OCA\\DAV\\Events\\CalendarObjectCreatedEvent is not an event class compatible with webhooks"
+    }
+  ],
+  "steps": [
+    {
+      "name": "member-a creates event via share",
+      "status": 201,
+      "atMs": 57
+    },
+    {
+      "name": "successor-a updates it",
+      "status": 204,
+      "atMs": 107
+    },
+    {
+      "name": "successor-a creates PRIVATE event",
+      "status": 201,
+      "atMs": 156
+    },
+    {
+      "name": "successor-a invites member-a (scheduling copy lands in member-a/personal)",
+      "status": 201,
+      "atMs": 275
+    },
+    {
+      "name": "manager-b creates event in Team B calendar",
+      "status": 201,
+      "atMs": 321
+    },
+    {
+      "name": "successor-a adds a contact to Team A address book",
+      "status": 201,
+      "atMs": 372
+    },
+    {
+      "name": "successor-a deletes the event",
+      "status": 204,
+      "atMs": 418
+    },
+    {
+      "name": "successor-a deletes the invitation (cancel)",
+      "status": 204,
+      "atMs": 533
+    }
+  ],
+  "deliveries": [
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectCreatedEvent",
+      "userUid": "member-a",
+      "time": 1792925179,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "cal16-flow-mvnpcyis.ics",
+      "classification": 0,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": false,
+      "hasAuthenticationField": true
+    },
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectUpdatedEvent",
+      "userUid": "successor-a",
+      "time": 1792925180,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "cal16-flow-mvnpcyis.ics",
+      "classification": 0,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": false,
+      "hasAuthenticationField": true
+    },
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectCreatedEvent",
+      "userUid": "successor-a",
+      "time": 1792925180,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "cal16-flow-private-mvnpcyis.ics",
+      "classification": 1,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": true,
+      "hasAuthenticationField": true
+    },
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectCreatedEvent",
+      "userUid": "successor-a",
+      "time": 1792925180,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "inv-cal16-flow-mvnpcyis.ics",
+      "classification": 0,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": false,
+      "hasAuthenticationField": true
+    },
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectMovedToTrashEvent",
+      "userUid": "successor-a",
+      "time": 1792925180,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "cal16-flow-mvnpcyis.ics",
+      "classification": 0,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": false,
+      "hasAuthenticationField": true
+    },
+    {
+      "tokenHeaderOk": true,
+      "contentType": null,
+      "eventClass": "OCP\\Calendar\\Events\\CalendarObjectMovedToTrashEvent",
+      "userUid": "successor-a",
+      "time": 1792925180,
+      "calendarId": 19,
+      "calendarUri": "cal16-team-a",
+      "calendarKeys": [
+        "id",
+        "principaluri",
+        "uri",
+        "{DAV:}displayname",
+        "{http://apple.com/ns/ical/}calendar-color",
+        "{http://apple.com/ns/ical/}calendar-order",
+        "{http://calendarserver.org/ns/}getctag",
+        "{http://nextcloud.com/ns}deleted-at",
+        "{http://nextcloud.com/ns}owner-displayname",
+        "{http://sabredav.org/ns}sync-token",
+        "{urn:ietf:params:xml:ns:caldav}calendar-description",
+        "{urn:ietf:params:xml:ns:caldav}calendar-timezone",
+        "{urn:ietf:params:xml:ns:caldav}schedule-calendar-transp",
+        "{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set"
+      ],
+      "sharesCount": 1,
+      "objectKeys": [
+        "calendardata",
+        "calendarid",
+        "classification",
+        "component",
+        "etag",
+        "id",
+        "lastmodified",
+        "size",
+        "uid",
+        "uri",
+        "{http://nextcloud.com/ns}deleted-at"
+      ],
+      "objectUri": "inv-cal16-flow-mvnpcyis.ics",
+      "classification": 0,
+      "fullIcsInPayload": true,
+      "privateSecretInPayload": false,
+      "hasAuthenticationField": true
+    }
+  ],
+  "summary": {
+    "calendarEventsWebhookCompatible": [
+      "CalendarObjectCreatedEvent",
+      "CalendarObjectUpdatedEvent",
+      "CalendarObjectDeletedEvent",
+      "CalendarObjectMovedToTrashEvent"
+    ],
+    "rejected": [
+      "CardCreatedEvent → 400",
+      "CardUpdatedEvent → 400",
+      "AddressBookUpdatedEvent → 400",
+      "CalendarObjectCreatedEvent → 400"
+    ],
+    "deliveredClasses": [
+      "CalendarObjectCreatedEvent",
+      "CalendarObjectUpdatedEvent",
+      "CalendarObjectCreatedEvent",
+      "CalendarObjectCreatedEvent",
+      "CalendarObjectMovedToTrashEvent",
+      "CalendarObjectMovedToTrashEvent"
+    ],
+    "allForTeamACalendar": true,
+    "teamBOrPersonalLeaked": false,
+    "privateEventDetailsInPayload": true,
+    "hooksRemovedAfterRun": true
+  },
+  "secretsIncluded": false
+}

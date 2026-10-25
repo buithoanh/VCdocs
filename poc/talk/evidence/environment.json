@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-10-25T11:53:41.053Z",
+  "nextcloud": {
+    "version": "33.0.10",
+    "edition": "community",
+    "php": "8.4.27"
+  },
+  "apps": {
+    "spreed": "23.0.12",
+    "calendar": "6.6.3",
+    "contacts": "8.9.2",
+    "notifications": "6.0.0",
+    "activity": "6.0.0",
+    "files_sharing": "1.25.2",
+    "user_oidc": "8.11.0",
+    "webhook_listeners": "1.5.0"
+  },
+  "browserForWebRTC": "Google Chrome 155.0.8059.85",
+  "node": "v22.22.2",
+  "containers": {
+    "vcworkspace-work13-nextcloud-1": {
+      "image": "vcworkspace-sync15/nextcloud-smb:33.0.10-1",
+      "imageId": "sha256:50377d5fe623",
+      "state": "running"
+    },
+    "vcworkspace-work13-nc-db-1": {
+      "image": "postgres@sha256:aa6eb304ddb6dd26df23d05db4e5cb05af8951cda3e0dc57731b771e0ef4ab29",
+      "imageId": "sha256:91f1036a9148",
+      "state": "running"
+    },
+    "vcworkspace-work13-redis-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    },
+    "vcworkspace-work13-hook-sink-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    },
+    "vcworkspace-work13-nextcloud-loopback-relay-1": {
+      "image": "redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
+      "imageId": "sha256:7dc4da3a2de9",
+      "state": "running"
+    }
+  },
+  "secretsIncluded": false
+}

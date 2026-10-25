@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-10-25T09:31:44.938Z",
+  "mounts": [
+    {
+      "mountId": 1,
+      "mountPoint": "/NAS-TeamA",
+      "backend": "\\OCA\\Files_External\\Lib\\Storage\\SMB",
+      "authentication": "password::password",
+      "host": "nas15",
+      "share": "team-a",
+      "nasAccount": "svc-nc-team-a",
+      "passwordInEvidence": false,
+      "applicableGroups": [
+        "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74"
+      ],
+      "applicableUsers": [],
+      "caseSensitive": false,
+      "options": {
+        "enable_sharing": true,
+        "filesystem_check_changes": 1,
+        "encrypt": false,
+        "previews": true,
+        "readonly": false,
+        "encoding_compatibility": true
+      },
+      "verify": [
+        "- status: ok",
+        "- code: 0",
+        "- message"
+      ]
+    },
+    {
+      "mountId": 2,
+      "mountPoint": "/NAS-TeamB",
+      "backend": "\\OCA\\Files_External\\Lib\\Storage\\SMB",
+      "authentication": "password::password",
+      "host": "nas15",
+      "share": "team-b",
+      "nasAccount": "svc-nc-team-b",
+      "passwordInEvidence": false,
+      "applicableGroups": [
+        "3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf"
+      ],
+      "applicableUsers": [],
+      "caseSensitive": false,
+      "options": {
+        "enable_sharing": true,
+        "filesystem_check_changes": 0,
+        "encrypt": false,
+        "previews": true,
+        "readonly": false,
+        "encoding_compatibility": true
+      },
+      "verify": [
+        "- status: ok",
+        "- code: 0",
+        "- message"
+      ]
+    }
+  ],
+  "secretsIncluded": false
+}
