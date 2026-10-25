@@ -376,7 +376,74 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
 .mail-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .65rem; }
 .mail-chips span { padding: .25rem .55rem; border-radius: 999px; color: #0b4a7e; background: #deecf9; font-size: .78rem; }
 .mail-chips .is-danger { color: #a11; border-color: #f3c3c3; background: #fff1f1; }
+/* Drive: dùng khung ba vùng của Email, cột giữa rộng hơn cho danh sách tệp */
+.drive-shell { grid-template-columns: 220px minmax(360px, 1fr) minmax(320px, 380px); }
+.drive-shell .mail-reading-pane { max-height: calc(100vh - 172px); overflow-y: auto; }
+.drive-muted { margin: .1rem 0 0; color: #64748b; font-size: .82rem; }
+.drive-space-name { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.drive-space-name, .drive-space-name small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.drive-space-name small { color: #64748b; font-size: .72rem; font-weight: 400; }
+.mail-folder-button:disabled { opacity: .45; cursor: not-allowed; }
+.drive-list-header { justify-content: space-between; gap: .75rem; }
+.drive-breadcrumb { min-width: 0; }
+.drive-breadcrumb nav { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem; }
+.drive-crumb { padding: .1rem .3rem; border: 0; border-radius: 5px; background: transparent; color: #0b4a7e; font: inherit; font-size: 1.02rem; font-weight: 650; cursor: pointer; }
+.drive-crumb:hover { background: #edf6fd; }
+.drive-crumb[aria-current="page"] { color: #1f2937; }
+.drive-crumb-wrap { display: inline-flex; align-items: center; color: #94a3b8; }
+.drive-crumb-wrap .mail-icon { width: 14px; height: 14px; }
+.drive-breadcrumb p { margin: .1rem .3rem 0; color: #64748b; font-size: .8rem; }
+.drive-upload { flex: 0 0 auto; border-color: var(--mail-line); }
+.drive-create { display: flex; flex-direction: column; gap: .6rem; padding: .85rem 1rem; border-bottom: 1px solid var(--mail-line); background: #f8fafc; }
+.drive-create-kinds { display: flex; flex-wrap: wrap; gap: .35rem; }
+.drive-chip { min-height: 32px; padding: .3rem .7rem; border: 1px solid var(--mail-line); border-radius: 999px; background: #fff; color: #334155; font: inherit; font-size: .82rem; cursor: pointer; }
+.drive-chip.is-active { color: #0b4a7e; background: #deecf9; border-color: #bfd5e8; font-weight: 650; }
+.drive-grow { flex: 1; }
+.drive-create input { width: 100%; min-height: 36px; padding: .4rem .6rem; border: 1px solid var(--mail-line); border-radius: 6px; font: inherit; background: #fff; }
+.drive-create .drive-ghost { color: #334155; background: transparent; border-color: transparent; }
+.drive-notice { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .75rem 1rem 0; }
+.drive-notice button { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.drive-notice .mail-icon { width: 14px; height: 14px; }
+.drive-rows { margin: 0; padding: 0; list-style: none; max-height: calc(100vh - 246px); overflow-y: auto; }
+.drive-row { align-items: center; }
+.drive-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; font-weight: 550; }
+.drive-open-hint { color: #94a3b8; }
+.drive-file-icon { width: 36px; height: 36px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: #475569; background: #f1f5f9; }
+.drive-file-icon.is-folder { color: #b7791f; background: #fef6e4; }
+.drive-file-icon.is-doc { color: #185abd; background: #e8f0fc; }
+.drive-file-icon.is-sheet { color: #107c41; background: #e6f4ec; }
+.drive-file-icon.is-slide { color: #c43e1c; background: #fcebe6; }
+.drive-file-icon.is-large { width: 46px; height: 46px; border-radius: 10px; }
+.drive-file-icon.is-large .mail-icon { width: 24px; height: 24px; }
+.drive-detail-title { min-width: 0; display: flex; align-items: center; gap: .75rem; }
+.drive-detail-title h2 { overflow-wrap: anywhere; font-size: 1.1rem; }
+.drive-actions { display: flex; flex-wrap: wrap; gap: .45rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--mail-line); }
+.drive-link-button { box-shadow: none; text-decoration: none; }
+.drive-link-button:hover { color: #fff; text-decoration: none; }
+.drive-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--mail-line); }
+.drive-section h3 { margin-bottom: .5rem; color: #334155; font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.drive-form { display: flex; flex-direction: column; gap: .55rem; }
+.drive-form label { display: flex; flex-direction: column; gap: .25rem; }
+.drive-form label > span { color: #64748b; font-size: .78rem; }
+.drive-form input, .drive-form select { width: 100%; min-height: 36px; padding: .4rem .6rem; border: 1px solid var(--mail-line); border-radius: 6px; font: inherit; background: #fff; }
+.drive-form-actions, .drive-inline { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.drive-form .mail-send-button { min-height: 36px; }
+.drive-versions { margin: .6rem 0 0; padding: 0; list-style: none; }
+.drive-versions li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .4rem 0; border-top: 1px solid #eef0f3; font-size: .84rem; }
+.drive-versions code { color: #64748b; font-size: .75rem; }
+.drive-versions .mail-text-button { min-height: 30px; margin-left: auto; padding: .2rem .5rem; }
+.drive-danger { border-bottom: 0; }
+.mail-text-button.is-danger { color: var(--red); }
+.mail-text-button.is-danger:hover { background: var(--red-soft); }
 @media (min-width: 1201px) { .main:has(.mail-page) { max-width: none; } }
+@media (max-width: 1100px) { .drive-shell { grid-template-columns: 180px minmax(300px, 1fr) 320px; } }
+@media (max-width: 640px) {
+  .drive-shell .mail-folders { overflow-x: auto; }
+  .drive-shell .mail-folder-button { width: auto; flex: 0 0 auto; padding: 0 .65rem; }
+  .drive-shell .mail-folder-button span { display: flex; }
+  .drive-space-name small { display: none; }
+  .drive-shell .mail-reading-pane { max-height: none; }
+}
 @media (max-width: 1100px) { .mail-shell { grid-template-columns: 180px 310px minmax(360px, 1fr); } .mail-account { display: none; } }
 @media (max-width: 850px) {
   .mail-titlebar { grid-template-columns: 1fr auto; }
