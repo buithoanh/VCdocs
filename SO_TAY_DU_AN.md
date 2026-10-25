@@ -211,6 +211,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Sơ đồ tổ chức (mẫu `apps/api/so-do-to-chuc.mau.yaml`): email GĐ 2 khối, trưởng 11 phòng, người giữ R1/R3/R8/R9; xác nhận khối của BDH, IT, VCE, MH, mã XDV, danh sách division. Nhóm "xem" của drive 00 có chứa cả công ty không, hay drive 00 cấp quyền cả tên miền.
 - Cây thư mục MKT: đổi ~70 thư mục `Tháng 01…12` thành `2026-01…` (đúng BR-10) để VCworkspace nhận, hay để VCworkspace chấp nhận thêm kiểu `Tháng NN`? Thư mục `Bài viết` trong thư mục tháng: giữ (VCworkspace không nhận) hay bỏ? Mảng `20 Social`, `30 Sàn TMĐT`, `40 Media` chưa có mã (BR-12; mẫu dùng SOCIAL, SAN, MEDIA). Drive 01 BDH và 21b LT trống, 7 drive chưa có `99 Lưu trữ`. Đề xuất: đổi tên trên Drive, không nới mẫu.
 - Thời hạn giữ bản sao kho PDF trên bucket `vcdocs-sao-luu-kho-pdf` (đề xuất 10 năm) trước khi khoá chính sách retention (khoá rồi không gỡ được).
+- (Audit 10/12, 2026-10-25) R3 (kiểm soát tài liệu) có cần xem hoặc nhắc phiếu duyệt ở drive Mật mà mình không là thành viên không? Bản sửa theo hợp đồng hiện tại: 404 cho cả xem lẫn nhắc; R3 vẫn xem/nhắc phiếu ở drive không Mật và drive Mật mình là thành viên. Nếu cần nhắc mà không xem, phải đổi hợp đồng `/approvals/{id}/remind`.
 
 ## 5. Lưu ý & bài học
 
@@ -226,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - `VCdocs` là repo tạo mới chứ không phải đổi tên từ `VCknowledge`, nên GitHub không tự chuyển hướng URL cũ.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-25 · Sửa audit 10/12 — R3 không đọc phiếu duyệt drive Mật ngoài phòng
+
+- Nhánh `claude/audit-fix-10-approvals-r3-confidential-96b801` (cắt từ nhánh 9/12). Fingerprint `legacy/approvals-load:R3-bypass-confidential-drive` **tái hiện được**: R3 `hcns` (không thuộc TC – KT) `GET /approvals/:id` và `POST /approvals/:id/remind` phiếu chia sẻ ngoài file mật của TC – KT đều 200.
+- Sửa `ApprovalsController.load`: người liên quan qua; R3 dùng `assertVisibleOrR3` (drive Mật không là thành viên → 404); người khác như cũ. `list` vốn lọc theo người liên quan nên không lộ. Test mới `apps/api/test/approvals-r3-confidential.e2e-spec.ts` (trước 2/5 fail, sau 5/5). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 2 đầu mối audit còn lại (phiên 11/12 cắt từ nhánh này); câu hỏi chính sách R3 với drive Mật ở mục 4; chưa chạy `ai:check:full`.
 
 ### 2026-10-25 · Sửa audit 9/12 — trang soạn thảo kiểm fileId và origin Document Server
 

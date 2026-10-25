@@ -5,6 +5,46 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 10/12 — R3 đọc phiếu duyệt của drive Mật mình không là thành viên
+
+- **Fingerprint:** `legacy/approvals-load:R3-bypass-confidential-drive`.
+- **Nhánh:** `claude/audit-fix-10-approvals-r3-confidential-96b801` (cắt từ `claude/audit-fix-09-editor-page-fileid-d6e01c`, commit 1c45df9).
+- **Kết luận:** lỗi **có thật**, đã tái hiện bằng harness Jest (Google giả, MongoDB tạm). Phạm vi là lộ dữ liệu khi đọc. Check, decide và cancel vẫn bị service giới hạn cho người trên phiếu. Riêng remind lại ghi thêm một lần nhắc và trả toàn bộ phiếu.
+
+### Tái hiện trước khi sửa
+
+Test hồi quy `apps/api/test/approvals-r3-confidential.e2e-spec.ts` (5 ca). `ktt` tạo hồ sơ trên drive Mật TC – KT rồi chia sẻ ngoài file đó, tạo phiếu `external_share` đang chờ duyệt với `objectTitle` chứa email người nhận. Người gọi là R3 `hcns`, thành viên HCNS, không thuộc TC – KT và không liên quan đến phiếu. Trước khi sửa `Tests: 2 failed, 3 passed, 5 total`:
+
+1. `GET /approvals/:id` trả **200** (mong đợi 404).
+2. `POST /approvals/:id/remind` trả **200** và trả toàn bộ phiếu (mong đợi 404, không ghi nhắc).
+3. Danh sách `GET /approvals` (mặc định, `inbox`, `sent`, lọc `external_share`) không có phiếu đó: đạt cả trước lẫn sau, vì `list` chỉ lấy phiếu người gọi trình, duyệt hoặc kiểm tra.
+4. Đối chứng: người trình (`ktt`) và người duyệt ngoài drive (`gdk.vhnb`) vẫn xem được, còn `nv.kd` không phải R3 nhận 404.
+5. Đối chứng: R3 vẫn xem và nhắc được bản sao phiếu đặt trên drive không Mật (MKT) và trên drive Mật mà R3 là thành viên (HCNS).
+
+### Cách sửa
+
+`ApprovalsController.load` (`apps/api/src/modules/m05-approvals/approvals.controller.ts`):
+
+- Người liên quan (người trình, người duyệt, người kiểm tra) được đi tiếp.
+- R3 đi qua `AccessService.assertVisibleOrR3(ctx, a.driveId)`: drive không Mật thì được; drive Mật thì phải là thành viên, nếu không nhận 404.
+- Người khác giữ như cũ: `assertVisible` trả 404 nếu là drive Mật, còn lại trả 403.
+
+`load` dùng chung cho `get`, `check`, `decide`, `cancel` và `remind`, nên R3 ngoài phòng không còn nhắc được phiếu của drive Mật. Bản sửa chọn theo hợp đồng hiện tại: `openapi.yaml` dòng 28 quy định đối tượng ở drive Mật mà người gọi không được xem thì trả 404. `/approvals/{id}/remind` ghi "submittedBy, R3" nhưng không nói gì về ngoại lệ cho drive Mật. Câu hỏi chính sách đã ghi ở mục 4 của sổ tay. Không sửa hợp đồng.
+
+Đã rà các đường khác đọc `Approval`: `preview` vốn đã gọi `assertVisible`; `documents.controller.ts:413` chỉ đọc nội bộ khi ban hành; `autoRemind` là tác vụ hệ thống, không trả gì cho người dùng.
+
+### Sau khi sửa
+
+- `approvals-r3-confidential.e2e-spec.ts`: `Tests: 5 passed`. Chạy cùng `m04-m05-documents`, `m06-m07-records`, `m08-m09-m14`: `Test Suites: 4 passed`, `Tests: 63 passed`.
+- `pnpm ai:check`: **PASS** (exit 0). Guard 44/44, OpenAPI hợp lệ, typecheck API đạt, BE `Test Suites: 9 skipped, 33 passed`, `Tests: 9 skipped, 286 passed, 295 total`. Không chạy test FE vì không đổi FE.
+- Chưa chạy `pnpm ai:check:full`.
+
+### Việc của chủ dự án
+
+- Quyết định R3 có cần xem hoặc nhắc phiếu duyệt ở drive Mật ngoài phòng không (đây cũng là mục owner-observed của audit). Nếu cần "nhắc mà không xem" thì phải đổi hợp đồng `remind`: ví dụ trả 204, hoặc trả phiếu đã lược bớt.
+
+---
+
 ## 2026-10-25 · Đầu mối 9/12 — Trang soạn thảo ghép fileId vào đường dẫn API và nạp script từ origin bất kỳ
 
 - **Fingerprint:** `web/bo-nho-soan-thao:fileId-path-injection-editor-config-script-src`.
