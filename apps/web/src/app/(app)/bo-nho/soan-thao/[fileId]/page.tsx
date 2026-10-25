@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '@/api/client';
+import { allowedDocumentServer, isObjectId } from '@/lib/document-server';
 
 declare global {
   interface Window { DocsAPI?: { DocEditor: new (id: string, config: Record<string, unknown>) => { destroyEditor?: () => void } } }
@@ -14,11 +15,17 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ fileI
     let cancelled = false;
     (async () => {
       const { fileId } = await params;
-      const response = await fetch(`${API_BASE}/drive/files/${fileId}/editor-config`, { credentials: 'same-origin' });
+      // fileId lấy từ link người khác gửi: chỉ nhận ObjectId, tránh `/`, `?`, `#` đổi sang API khác.
+      if (!isObjectId(fileId)) throw new Error('Mã tệp không hợp lệ.');
+      const response = await fetch(`${API_BASE}/drive/files/${encodeURIComponent(fileId)}/editor-config`, { credentials: 'same-origin' });
       if (!response.ok) throw new Error('Không lấy được cấu hình trình soạn thảo.');
       const payload = await response.json();
+      // Script chạy trong origin VCworkspace: chỉ nạp từ Document Server đã khai báo lúc build.
+      const documentServer = allowedDocumentServer(payload?.documentServerUrl);
+      if (!documentServer) throw new Error('Địa chỉ Document Server không nằm trong danh sách cho phép.');
+      if (cancelled) return;
       const script = document.createElement('script');
-      script.src = `${payload.documentServerUrl}/web-apps/apps/api/documents/api.js`;
+      script.src = `${documentServer}/web-apps/apps/api/documents/api.js`;
       script.onload = () => {
         if (cancelled || !window.DocsAPI) return;
         setMessage(payload.mode === 'edit' ? 'Đang soạn thảo · mọi lần lưu tạo một phiên bản Drive mới' : 'Chế độ chỉ xem');

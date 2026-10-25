@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 9/12 — trang soạn thảo kiểm fileId và origin Document Server
+
+- Nhánh `claude/audit-fix-09-editor-page-fileid-d6e01c` (cắt từ nhánh 8/12). Fingerprint `web/bo-nho-soan-thao:fileId-path-injection-editor-config-script-src` **tái hiện được** bằng Vitest/MSW: fileId `<id>/content#` hoặc `<id>?x=` làm trang gọi `/drive/files/<id>/content` hoặc `/drive/files/<id>` và chèn `<script>` từ `documentServerUrl` lạ.
+- Sửa: fileId phải là ObjectId 24 hex + `encodeURIComponent`; `api.js` chỉ nạp khi origin nằm trong `NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS` (build-time; ngoài production mặc định `127.0.0.1:18082`/`localhost:18082`, production không đặt thì tắt editor); CSP `script-src 'self' 'unsafe-inline' <origin DS>; object-src 'none'; base-uri 'self'` ở `next.config.ts` cho mọi phase trừ `next dev`. `deploy/web.Dockerfile` thêm ARG. Test mới `soan-thao.test.tsx` (trước 4/5 fail, sau 5/5) và `lib/document-server.test.ts`. Kiểm trình duyệt trên bản build QA. Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 3 đầu mối audit còn lại (phiên 10/12 cắt từ nhánh này); deploy muốn dùng editor phải truyền build arg; chưa chạy `ai:check:full`.
+
 ### 2026-10-25 · Sửa audit 8/12 — production không chạy lifecycle giả, OIDC không đè projection
 
 - Nhánh `claude/audit-fix-08-lifecycle-fake-prod-6561dc` (cắt từ nhánh 7/12). Fingerprint `m01-auth/identity-lifecycle/fake-port-allowed-in-production` **tái hiện được**: production OIDC không đặt `IDENTITY_LIFECYCLE_MODE` vẫn khởi động với cổng giả; R9 hạ quyền qua lifecycle báo `done`, đăng nhập OIDC lại với nhóm IdP cũ lấy lại R9; email đổi qua lifecycle bị token email cũ đè.

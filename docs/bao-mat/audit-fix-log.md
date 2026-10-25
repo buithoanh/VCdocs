@@ -5,6 +5,54 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 9/12 — Trang soạn thảo ghép fileId vào đường dẫn API và nạp script từ origin bất kỳ
+
+- **Fingerprint:** `web/bo-nho-soan-thao:fileId-path-injection-editor-config-script-src`.
+- **Nhánh:** `claude/audit-fix-09-editor-page-fileid-d6e01c` (cắt từ `claude/audit-fix-08-lifecycle-fake-prod-6561dc`, commit 085a99b).
+- **Kết luận:** lỗi **có thật** ở mã trang, đã tái hiện bằng Vitest + Testing Library + MSW (jsdom). Chưa dựng trọn chuỗi tấn công với tệp JSON tải lên thật và Document Server giả trên trình duyệt; trình duyệt chỉ dùng để kiểm bản đã sửa (dưới đây).
+
+### Tái hiện trước khi sửa
+
+Test hồi quy `apps/web/src/app/(app)/bo-nho/soan-thao/[fileId]/soan-thao.test.tsx` (5 ca). MSW trả JSON của kẻ tấn công `{"documentServerUrl":"https://attacker.example",...}` cho `GET /drive/files/:id/content` (dạng `text/plain`) và `GET /drive/files/:id`. Trước khi sửa `Tests: 4 failed | 1 passed (5)`:
+
+1. fileId `<id>/content#`: request tới `/api/v1/drive/files/<id>/content`, **có** thẻ `<script src="https://attacker.example/web-apps/apps/api/documents/api.js">`.
+2. fileId `<id>?x=`: request tới `/api/v1/drive/files/<id>` (phần `/editor-config` thành query), **có** script của attacker.
+3. fileId `<id>/content`: request tới `/api/v1/drive/files/<id>/content/editor-config` (route khác; không có script vì không có handler).
+4. `editor-config` hợp lệ về đường dẫn nhưng trả `documentServerUrl` lạ: **có** script của attacker.
+5. Ca đối chứng (origin `http://127.0.0.1:18082`) nạp `api.js`: đạt cả trước lẫn sau.
+
+Test giả định Next giao param đã giải mã (`%2F` → `/`, `%23` → `#`), như audit mô tả. Chưa kiểm hành vi giải mã thật của Next 15.5 trên trình duyệt với bản cũ; bản sửa từ chối cả dạng đã giải mã lẫn chưa giải mã.
+
+### Cách sửa
+
+- **fileId:** `isObjectId` (24 hex) trước khi gọi API, sau đó `encodeURIComponent`. Sai định dạng → "Mã tệp không hợp lệ.", không request nào.
+- **Origin Document Server:** `apps/web/src/lib/document-server.ts`. Danh sách lấy lúc build từ `NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS` (phẩy ngăn cách, khớp `DOCUMENT_EDITOR_PUBLIC_ORIGIN` của API). Không đặt biến: ngoài production mặc định `http://127.0.0.1:18082` và `http://localhost:18082` (PoC); production không có origin nào nên editor báo lỗi, khớp mặc định API `DOCUMENT_EDITOR_ENABLED=false` ở production. URL phải là http/https, không có user/pass, query hay hash, và `origin` phải khớp đúng. Path tiền tố vẫn giữ.
+- **CSP:** `next.config.ts` đổi sang dạng hàm theo `phase` và đặt `Content-Security-Policy: script-src 'self' 'unsafe-inline' <origin DS>; object-src 'none'; base-uri 'self'` cho mọi phase trừ `next dev` (dev cần eval/HMR). Không dùng `NODE_ENV` vì lúc `next build` nạp config thì biến này chưa là `production` (đã thử: manifest không có header). App Router chèn script inline khi hydrate nên phải giữ `'unsafe-inline'`; muốn bỏ thì cần nonce qua middleware (ngoài phạm vi). CSP này vẫn chặn script `src` ngoài origin, là đường của đầu mối này. **Không thêm CSP vào Caddyfile** để chỉ có một nguồn giữ danh sách origin.
+- `deploy/web.Dockerfile` thêm `ARG/ENV NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS` (mặc định rỗng). `apps/api/.env.example` thêm chú thích về việc giữ hai giá trị khớp nhau. `docker-compose.prod.yml` chưa truyền build arg vì production chưa bật editor.
+- **Rà trang khác:** các trang có tham số route (`kiem-tra/[code]`, `tai-lieu/[id]`, `tai-lieu/ma/[code]`, `danh-muc-ho-so/[id]`, `nhan-su/[id]`, `phe-duyet/[id]`, `ho-so/[id]`, `drive/[id]`) đều gọi qua `openapi-fetch`, mà bản 0.14.1 `encodeURIComponent` tham số path (`defaultPathSerializer`). Chỉ trang soạn thảo ghép thẳng param vào `fetch`. Ở `bo-nho/page.tsx` và `email/page.tsx` còn ghép `item.id`/`selected.id` vào đường dẫn, nhưng giá trị lấy từ phản hồi API chứ không từ URL. Không sửa ở đây, ghi lại để rà sau.
+
+### Kiểm trên trình duyệt local
+
+API giả `RUN_QA_FAKE_SERVER=1` (cổng 14100) cùng web build `NEXT_DIST_DIR=.next-qa NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=http://127.0.0.1:18082`, `next build` + `next start -p 13100`, đăng nhập Google giả:
+
+- `/` và `/bo-nho` có header CSP trên, trang hydrate và tải dữ liệu bình thường. Console không có vi phạm CSP; chỉ có một 401 từ lúc chưa đăng nhập.
+- Chèn thử `<script src="http://127.0.0.1:9/evil.js">` thì nhận `securitypolicyviolation` `script-src-elem`.
+- `/bo-nho/soan-thao/<id>%2Fcontent%23` hiện "Mã tệp không hợp lệ.", không request `drive/files` nào. `/bo-nho/soan-thao/<id>` gọi đúng `GET /api/v1/drive/files/<id>/editor-config` (404 vì tệp không tồn tại).
+- Chưa mở editor thật với ONLYOFFICE (không chạy Document Server). Origin cho phép có trong `script-src`.
+
+### Sau khi sửa
+
+- `soan-thao.test.tsx`: `Tests: 5 passed (5)`. `src/lib/document-server.test.ts` (production không có origin; origin giống/khác cổng/giao thức/userinfo; ObjectId): `3 passed`.
+- `pnpm ai:check`: **PASS** (exit 0). FE `Test Files 15 passed`, `Tests 84 passed`; typecheck web/API đạt; BE `Tests: 9 skipped, 281 passed, 290 total`. `ai:check` không build web. `next build` (dist `.next-qa`) đã chạy riêng sau thay đổi `next.config.ts` cuối cùng và đạt.
+- Chưa chạy `pnpm ai:check:full`.
+
+### Việc của chủ dự án
+
+- Khi bật editor ở môi trường triển khai, build web với `--build-arg NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=<origin công khai DS>`. Không truyền thì editor không nạp và CSP không cho origin DS.
+- Kiểm header CSP trên tên miền đã deploy sau khi bản này lên (theo audit, owner-observed).
+
+---
+
 ## 2026-10-25 · Đầu mối 8/12 — Production chấp nhận cổng identity-lifecycle giả
 
 - **Fingerprint:** `m01-auth/identity-lifecycle/fake-port-allowed-in-production`.
