@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 3/12 — nhập tài liệu ngoài và templateId chỉ chép file người gọi được xem
+
+- Nhánh `claude/audit-fix-03-external-import-fileid-1aae87` (cắt từ nhánh 2/12). Fingerprint `legacy/external-documents-import:fileId-service-account-copy-without-source-authorization` **tái hiện được**: `nv.mkt` chép file drive Mật 01 BĐH vào MKT (đọc được bản sao) và tạo EXT `effective` trên chính drive Mật; `tp.mkt` đặt `templateId` là file đó và hồ sơ mới mang nội dung mật.
+- Sửa `documents.controller.ts` `importExternal` (writer trên drive phòng đích; fileId phải nằm trên drive công ty người gọi xem được, sai thì 400 `not_found`) và `record-types.controller.ts` `checkRefs` (`templateId` phải là bản hiệu lực của BM đã đăng ký, xem được). Test mới `test/external-import-source.e2e-spec.ts` (trước sửa 3 fail/2 pass, sau sửa 5 pass). `pnpm ai:check` PASS (BE 190 pass, 9 skip). Không đổi hợp đồng. Chi tiết, giả định ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 9 đầu mối audit còn lại (phiên 4/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án cần rà `RecordType.templateId` hiện có trong dữ liệu thật; FE `danh-muc-ho-so` vẫn cho dán link Drive bất kỳ (BE sẽ trả 400).
+
 ### 2026-10-25 · Sửa audit 2/12 — hộp thư gắn email đúng tên miền công ty
 
 - Nhánh `claude/audit-fix-02-mailbox-owner-f16a35` (cắt từ nhánh 1/12). Fingerprint `mail-basic/mailbox-owner-local-part` **tái hiện được**: user `nv.mkt@other.example` chèn vào DB đọc được hộp thư `nv.mkt@vcworkspace.test`, tải được link Drive gửi cho nv.mkt; regex người nhận lấy nhầm user ngoài tên miền.

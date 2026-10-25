@@ -5,6 +5,53 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 3/12 — Nhập tài liệu ngoài chép fileId bất kỳ bằng service account
+
+- **Fingerprint:** `legacy/external-documents-import:fileId-service-account-copy-without-source-authorization` (kèm biến thể `templateId` của loại hồ sơ).
+- **Nhánh:** `claude/audit-fix-03-external-import-fileid-1aae87` (cắt từ `claude/audit-fix-02-mailbox-owner-f16a35`, commit 690fdec).
+- **Kết luận:** lỗi **có thật**, cả hai biến thể, đã tái hiện bằng harness Jest với Google giả và Mongo in-memory.
+
+### Tái hiện trước khi sửa
+
+Thêm file `apps/api/test/external-import-source.e2e-spec.ts`. Trong `beforeAll`, tạo file F trên drive Mật `drv-01` (01 BĐH) bằng Google giả, nội dung `Nội dung mật của Ban Điều hành`. `nv.mkt` (R6, writer drive 11 MKT) và `tp.mkt` (R4 MKT) không là thành viên drive 01.
+
+1. `R6 writer phòng MKT không chép được file của drive Mật vào phòng mình`: `nv.mkt` POST `/external-documents` với `fileId: F`, `departmentId: MKT`. Trước khi sửa: **FAIL**, nhận 202 thay vì 400.
+2. `R6 không phải thành viên drive Mật không ghi được tài liệu ngoài vào phòng đó`: như trên nhưng `departmentId: BDH`. Trước khi sửa: **FAIL**, nhận 202 thay vì 403.
+3. `trưởng phòng MKT không đặt được templateId là file của drive Mật`: `tp.mkt` PATCH `/record-types/{seoPlan}` và POST `/record-types` với `templateId: F`, rồi `nv.mkt` lập hồ sơ loại đó. Trước khi sửa: **FAIL**, PATCH nhận 200 thay vì 400.
+4. Hai ca đối chứng (vẫn phải đạt sau khi sửa): nhập file nằm trên drive MKT vào MKT (202, bản sao đúng nội dung), và đặt `templateId` là `current.fileId` của BM-VCPV-04 (drive Nội bộ, hiệu lực) được 200. Cả hai đạt trước khi sửa.
+
+Kết quả chạy trước khi sửa (`ALLOW_PARTIAL_COVERAGE=1 pnpm --filter @vcdocs/api run test --runInBand test/external-import-source.e2e-spec.ts`): `Tests: 3 failed, 2 passed, 5 total`.
+
+Một test thăm dò tạm (xoá ngay sau khi chạy, không bỏ assertion của file chính) ghi hậu quả thật trước khi sửa:
+- Nhập vào MKT: job `done`, Document EXT `effective` trên `drv-11`, bản sao (fileId khác F) chứa đúng nội dung mật, `nv.mkt` GET `/documents/:id` được 200.
+- Nhập vào BDH: job `done`, Document EXT `effective` trên drive Mật `drv-01` do `nv.mkt` tạo, dù `nv.mkt` không là thành viên (GET trả 404 với chính người tạo).
+- `templateId`: PATCH 200, hồ sơ mới trên `drv-11` có file chép từ F, chứa nội dung mật.
+
+### Cách sửa
+
+- `documents.controller.ts` `importExternal`:
+  - Người gọi phải có quyền drive `writer` trở lên trên drive của phòng đích (`requireDriveRole`). Không có thì trả 403.
+  - Khi có `fileId`, đọc siêu dữ liệu file, tra `driveId` về một phòng của công ty (`deptByDrive`), rồi yêu cầu người gọi xem được drive đó (`canViewDrive`, gồm drive Nội bộ). File không thuộc drive phòng nào, hoặc thuộc drive người gọi không xem được, trả cùng lỗi 400 `fileId not_found` như file không tồn tại. Cách này không lộ việc file có tồn tại trên drive Mật hay không.
+- `record-types.controller.ts` `checkRefs` (dùng cho cả tạo và sửa): `templateId` khác rỗng phải là `current.fileId` của một Document `type: BM` đang `effective` hoặc `revising`, trên drive người gọi xem được. Sai thì trả 400 `templateId not_found`. Điều kiện này khớp hợp đồng mục 8: "files.copy từ fileId của BM", "BM phải đang hiệu lực".
+- Không đổi hợp đồng. POST `/external-documents` đã khai báo 400 và 403, POST/PATCH `/record-types` đã khai báo 400.
+
+### Giả định (chọn cách an toàn)
+
+- "File Google đã có" nghĩa là file đã nằm trên một drive dùng chung của công ty mà người nhập xem được. File ở My Drive hoặc được chia sẻ thẳng cho service account không còn nhập bằng `fileId` được. Người dùng tải file lên drive phòng mình trước, hoặc dùng `url`.
+- Nhập tài liệu ngoài cần quyền Đóng góp (writer) trên drive phòng đích, kể cả với R1–R3. Đây là quyền tối thiểu để tự tạo file ở đó trên Google Drive.
+- `templateId` chỉ nhận BM đã đăng ký. Biểu mẫu dán từ một link Drive bất kỳ (FE `danh-muc-ho-so` cho phép) sẽ bị 400. BM trên drive Mật mà trưởng phòng là thành viên vẫn được chọn. Khi đó người lập hồ sơ trong phòng sẽ thấy bản sao, cùng mức rủi ro như trưởng phòng tự chép tay.
+- Chưa kiểm lại tại lúc chạy job `record.create`. Loại hồ sơ đã lưu `templateId` tuỳ ý trước bản sửa vẫn được chép. Chủ dự án cần rà `RecordType.templateId` hiện có trong dữ liệu thật, tìm giá trị không phải `current.fileId` của BM đã đăng ký.
+- Nhánh `url` (SSRF theo redirect) là đầu mối riêng, không sửa ở đây.
+
+### Sau khi sửa
+
+- `test/external-import-source.e2e-spec.ts`: `Tests: 5 passed, 5 total`.
+- Test sẵn có `m04-m05-documents`, `m06-m07-records` cùng file mới: `Tests: 51 passed, 51 total`.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 190 passed, 199 total`, độ phủ hợp đồng 145/145.
+- Chưa chạy `pnpm ai:check:full`, chưa thử với Google thật.
+
+---
+
 ## 2026-10-25 · Đầu mối 2/12 — Hộp thư suy từ local-part, không gắn danh tính duy nhất
 
 - **Fingerprint:** `mail-basic/mailbox-owner-local-part`.

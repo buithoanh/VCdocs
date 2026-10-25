@@ -118,6 +118,11 @@ export class RecordTypesController {
       const f = await this.db.m.Folder.findOne({ companyId: new Types.ObjectId(ctx.companyId), _id: new Types.ObjectId(body.folderId) }).lean<any>();
       if (!f || f.driveId !== dept?.driveId) throw Errors.validation('Thư mục lưu phải thuộc drive của phòng', [{ field: 'folderId', issue: 'not_in_department_drive' }]);
     }
+    if (body.templateId) {
+      // Lập hồ sơ chép biểu mẫu bằng service account → chỉ nhận bản hiệu lực của BM đã đăng ký trên drive người gọi được xem
+      const bm = await this.db.m.Document.findOne({ companyId: new Types.ObjectId(ctx.companyId), type: 'BM', status: { $in: ['effective', 'revising'] }, 'current.fileId': body.templateId }).lean<any>();
+      if (!bm || !this.access.canViewDrive(ctx, bm.driveId)) throw Errors.validation('Biểu mẫu phải là bản hiệu lực của một BM bạn được xem', [{ field: 'templateId', issue: 'not_found' }]);
+    }
   }
 
   @Post()
