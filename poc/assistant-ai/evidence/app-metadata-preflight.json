@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-10-25T13:41:42.949Z",
+  "source": "https://apps.nextcloud.com/api/v1/platform/33.0.10/apps.json",
+  "platform": "33.0.10",
+  "checkedAt": "2026-10-25",
+  "apps": [
+    {
+      "id": "assistant",
+      "listed": true,
+      "stableVersion": "3.5.1",
+      "platformSpec": ">=33 <=34",
+      "phpSpec": "*",
+      "released": "2026-10-23",
+      "download": "https://github.com/nextcloud-releases/assistant/releases/download/v3.5.1/assistant-v3.5.1.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true,
+      "isExApp": false,
+      "externalApp": null,
+      "otherStableForPlatform": [
+        "3.5.0",
+        "3.4.3",
+        "3.4.2"
+      ]
+    },
+    {
+      "id": "integration_openai",
+      "listed": true,
+      "stableVersion": "4.5.2",
+      "platformSpec": ">=33 <=34",
+      "phpSpec": "*",
+      "released": "2026-07-27",
+      "download": "https://github.com/nextcloud-releases/integration_openai/releases/download/v4.5.2/integration_openai-v4.5.2.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true,
+      "isExApp": false,
+      "externalApp": null,
+      "otherStableForPlatform": [
+        "4.5.1",
+        "4.5.0",
+        "4.4.0"
+      ]
+    },
+    {
+      "id": "context_chat",
+      "listed": true,
+      "stableVersion": "5.5.0",
+      "platformSpec": ">=32 <=36",
+      "phpSpec": "*",
+      "released": "2026-10-15",
+      "download": "https://github.com/nextcloud-releases/context_chat/releases/download/v5.5.0/context_chat-v5.5.0.tar.gz",
+      "licenses": [
+        "agpl"
+      ],
+      "signed": true,
+      "isExApp": false,
+      "externalApp": null,
+      "otherStableForPlatform": [
+        "5.4.0",
+        "5.3.1",
+        "5.2.1"
+      ]
+    },
+    {
+      "id": "context_chat_backend",
+      "listed": false
+    },
+    {
+      "id": "context_agent",
+      "listed": false
+    },
+    {
+      "id": "llm2",
+      "listed": false
+    },
+    {
+      "id": "app_api",
+      "listed": false
+    }
+  ],
+  "install": [
+    "assistant",
+    "integration_openai"
+  ],
+  "secretsIncluded": false
+}

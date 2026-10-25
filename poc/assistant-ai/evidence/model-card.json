@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-10-25T13:42:46.915Z",
+  "recordedBeforePull": true,
+  "name": "qwen3:4b-instruct-2507-q4_K_M",
+  "aliasSameDigest": "qwen3:4b-instruct",
+  "source": {
+    "ollamaLibrary": "https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M",
+    "registryManifest": "https://registry.ollama.ai/v2/library/qwen3/manifests/4b-instruct-2507-q4_K_M",
+    "manifestSha256": "sha256:0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+    "upstream": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507 (Qwen team, Alibaba Cloud), GGUF Q4_K_M quantisation by Ollama"
+  },
+  "config": {
+    "model_format": "gguf",
+    "model_family": "qwen3",
+    "model_families": [
+      "qwen3"
+    ],
+    "model_type": "4.0B",
+    "file_type": "Q4_K_M",
+    "architecture": "amd64",
+    "os": "linux",
+    "rootfs": {
+      "type": "layers",
+      "diff_ids": [
+        "sha256:85e4a5b7b8ef0e48af0e8658f5aaab9c2324c76c1641493f4d1e25fce54b18b9",
+        "sha256:636353bf6b2f3a81788e1e2d83a31e934123695d53aa0406273298c9b1b6a3d5",
+        "sha256:d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+        "sha256:0914c7781e001948488d937994217538375b4fd8c1466c5e7a625221abd3ea7a"
+      ]
+    }
+  },
+  "weights": {
+    "digest": "sha256:85e4a5b7b8ef0e48af0e8658f5aaab9c2324c76c1641493f4d1e25fce54b18b9",
+    "bytes": 2497280480,
+    "gib": 2.33
+  },
+  "downloadTotalBytes": 2497293803,
+  "license": {
+    "spdx": "Apache-2.0",
+    "blobDigest": "sha256:d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+    "firstLine": "Apache License",
+    "isApache2": true,
+    "note": "Permissive; commercial use allowed; keep NOTICE/licence text when redistributing. Not Qwen Research License (that applies to Qwen2.5-3B, not chosen)."
+  },
+  "defaultParams": {
+    "repeat_penalty": 1,
+    "stop": [
+      "<|im_start|>",
+      "<|im_end|>"
+    ],
+    "temperature": 0.7,
+    "top_k": 20,
+    "top_p": 0.8
+  },
+  "why": [
+    "4.0B parameters, Q4_K_M ≈ 2.3 GiB weights: fits CPU RAM of a small server; non-thinking instruct variant (no <think> blocks through the OpenAI-compatible API)",
+    "Qwen3 is trained on 119 languages incl. Vietnamese; 256K native context (we cap num_ctx at 8192 for CPU)",
+    "Apache-2.0 licence (permissive), unlike gemma3 (Gemma Terms of Use, plus 0.85 GB vision projector) or qwen2.5:3b (Qwen Research License)"
+  ],
+  "rejected": {
+    "gemma3:4b": "Gemma Terms of Use (custom, use restrictions); 3.35 GB incl. vision projector",
+    "qwen2.5:3b": "Qwen Research License (non-commercial) for the 3B size",
+    "llama3.2:3b": "Llama 3.2 Community License (custom, acceptable-use policy); weaker Vietnamese",
+    "qwen3:4b": "hybrid thinking model: emits reasoning by default, slower on CPU",
+    "qwen3.5:4b": "newer but ships a 0.68 GB vision projector; not needed for text-only read tasks"
+  },
+  "embeddingModel": "none pulled: Context Chat backend not feasible offline (see handoff); retrieval uses Nextcloud search as the asker",
+  "secretsIncluded": false,
+  "verifiedAfterPull": {
+    "ollamaList": [
+      "NAME                             ID              SIZE      MODIFIED               ",
+      "qwen3:4b-instruct-2507-q4_K_M    0edcdef34593    2.5 GB    Less than a second ago"
+    ],
+    "show": [
+      "Model",
+      "architecture        qwen3",
+      "parameters          4.0B",
+      "context length      262144",
+      "embedding length    2560",
+      "quantization        Q4_K_M",
+      "template source     gguf_chat_template",
+      "Capabilities",
+      "tools",
+      "thinking",
+      "completion",
+      "Parameters",
+      "repeat_penalty    1",
+      "stop              \"<|im_start|>\"",
+      "stop              \"<|im_end|>\"",
+      "temperature       0.7",
+      "top_k             20",
+      "top_p             0.8",
+      "License",
+      "Apache License",
+      "Version 2.0, January 2004",
+      "..."
+    ],
+    "localWeightsDigestMatchesManifest": true,
+    "localLicenseIsApache2": true
+  }
+}

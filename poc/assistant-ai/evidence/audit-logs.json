@@ -1,0 +1,156 @@
+{
+  "generatedAt": "2026-10-25T14:25:37.984Z",
+  "adminAudit": {
+    "logfileSetting": "(default data/audit.log)",
+    "auditLogLines": 2,
+    "auditLogMessagesSample": [
+      "Console command executed: --no-ansi --no-interaction config:app:set core shareapi_only_share_with_group_members --value=no",
+      "Console command executed: --no-ansi --no-interaction config:system:delete loglevel"
+    ],
+    "ncLogAdminAuditLinesToday": 0,
+    "mentionsTaskProcessing": 0,
+    "containsMarker": false
+  },
+  "nextcloudLog": {
+    "loglevel": "2 (default)",
+    "linesToday": 1377,
+    "linesMentioningOpenaiOrTaskprocessing": 44,
+    "sampleMessages": [
+      "PHP: Undefined array key 0 at /var/www/html/custom_apps/assistant/lib/Controller/ChattyLLMController.php#499",
+      "no app in context: Call to a member function getRole() on null in file '/var/www/html/custom_apps/assistant/lib/Controller/ChattyLLMController.php' line 499",
+      "PHP: Undefined array key 0 at /var/www/html/custom_apps/assistant/lib/Controller/ChattyLLMController.php#499",
+      "no app in context: Call to a member function getRole() on null in file '/var/www/html/custom_apps/assistant/lib/Controller/ChattyLLMController.php' line 499"
+    ],
+    "containsPromptMarker": true,
+    "linesWithPromptMarker": [
+      {
+        "app": "assistant",
+        "level": 3,
+        "url": "--",
+        "message": "FileActionTaskListener task succeeded but listener failed to write the result file"
+      },
+      {
+        "app": "assistant",
+        "level": 3,
+        "url": "--",
+        "message": "FileActionTaskListener task succeeded but listener failed to write the result file"
+      },
+      {
+        "app": "assistant",
+        "level": 3,
+        "url": "--",
+        "message": "FileActionTaskListener task succeeded but listener failed to write the result file"
+      },
+      {
+        "app": "assistant",
+        "level": 3,
+        "url": "--",
+        "message": "FileActionTaskListener task succeeded but listener failed to write the result file"
+      }
+    ],
+    "topicsProviderErrorLines": 1,
+    "containsInjectionAnswer": false
+  },
+  "db": {
+    "taskprocessingTasksByApp": [
+      "ai19\tcore:text2text\t69",
+      "ai19\tcore:text2text:headline\t5",
+      "ai19\tcore:text2text:proofread\t1",
+      "ai19\tcore:text2text:reformulation\t1",
+      "ai19\tcore:text2text:summary\t14",
+      "ai19\tcore:text2text:topics\t1",
+      "assistant\tcore:text2text:summary\t10",
+      "assistant:chatty-llm\tcore:text2text:chat\t6",
+      "spreed\tcore:text2text:summary\t4"
+    ],
+    "tasksWithMarkerInInputByUser": [
+      "5cb1628390e1…\tai19\t51",
+      "5cb1628390e1…\tassistant\t4",
+      "5cb1628390e1…\tassistant:chatty-llm\t3",
+      "5cb1628390e1…\tspreed\t4",
+      "67f57849bb70…\tai19\t2",
+      "d165c8b876f8…\tai19\t2",
+      "f238bd9c6f5c…\tai19\t2"
+    ],
+    "tasksWithMarkerInOutput": 23,
+    "tasksWithInjectionAnswerInOutput": 19,
+    "oneTaskRowShape": "111\tcore:text2text\tai19\tai19-rag-9dec36f58ae1\t3\t3729\t421\t2026-10-25 14:24:02+00\t2026-10-25 14:24:06+00\t1",
+    "retention": "RemoveOldTasksBackgroundJob deletes tasks older than Manager::MAX_TASK_AGE_SECONDS = 6 × 31 days (DOC); allow_cleanup per task",
+    "assistantChat": {
+      "sessions": 10,
+      "messages": 9,
+      "sessionTitlesAreFirstPrompt": 6,
+      "messagesWithMarker": 6
+    },
+    "openaiQuotaTable": [
+      "5cb1628390e1…\t0\t43825\t76",
+      "67f57849bb70…\t0\t5364\t10",
+      "d165c8b876f8…\t0\t2114\t10",
+      "f238bd9c6f5c…\t0\t7184\t15"
+    ]
+  },
+  "ollamaServerLog": {
+    "path": "~/.ollama/logs/server.log",
+    "lines": 9144,
+    "containsPromptMarker": false,
+    "containsInjectionAnswer": false,
+    "requestLineSample": [
+      "[GIN] 2026/10/25 - 21:25:12 | 200 | 59.541µs |       <ip> | HEAD     \"/\"",
+      "[GIN] 2026/10/25 - 21:25:12 | 200 |   4.42ms |       <ip> | POST     \"/api/show\"",
+      "[GIN] 2026/10/25 - 21:25:12 | 200 | 45.459µs |       <ip> | GET      \"/api/version\""
+    ],
+    "clientsSeen": [
+      "127.0.0.1",
+      "172.31.0.8"
+    ],
+    "statusesSeen": [
+      "200",
+      "403"
+    ],
+    "pathsSeen": [
+      "/api/version",
+      "/",
+      "/api/tags",
+      "/api/pull",
+      "/api/show",
+      "/api/create",
+      "/v1/models",
+      "/v1/chat/completions",
+      "/api/ps",
+      "/api/generate"
+    ]
+  },
+  "harnessAudit": {
+    "lines": 22,
+    "fields": [
+      "at",
+      "askerUid",
+      "persona",
+      "question",
+      "taskId",
+      "returnedSources",
+      "cited",
+      "answerChars"
+    ],
+    "example": {
+      "at": "2026-10-25T14:18:54.617Z",
+      "askerUid": "f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5",
+      "persona": "member-b",
+      "question": "Tóm tắt kế hoạch của phòng kia giúp tôi.",
+      "taskId": 78,
+      "returnedSources": [
+        {
+          "fileId": 1165,
+          "path": "ai19-team-b/ghi-chu-team-b.md"
+        },
+        {
+          "fileId": 1164,
+          "path": "ai19-team-b/ke-hoach-du-an-trang-an.md"
+        }
+      ],
+      "cited": [],
+      "answerChars": 43
+    }
+  },
+  "secretsIncluded": false
+}

@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-10-25T13:55:48.321Z",
+  "files": {
+    "ai19-team-a/ke-hoach-du-an-song-hong.md": {
+      "owner": "successor-a",
+      "fileId": 1160
+    },
+    "ai19-team-a/bao-cao-quy-3-team-a.md": {
+      "owner": "successor-a",
+      "fileId": 1161
+    },
+    "ai19-team-a/huong-dan-noi-bo-team-a.md": {
+      "owner": "successor-a",
+      "fileId": 1162
+    },
+    "ai19-team-b/ke-hoach-du-an-trang-an.md": {
+      "owner": "manager-b",
+      "fileId": 1164
+    },
+    "ai19-team-b/ghi-chu-team-b.md": {
+      "owner": "manager-b",
+      "fileId": 1165
+    }
+  },
+  "shares": {
+    "ai19-team-a": {
+      "id": "56",
+      "shareWith": "35e05c4d98ac9ec0bd7ae534b5e461d7ecbc9a7e254d0c12a96bffef0a499b74",
+      "permissions": 1,
+      "folderId": 1159
+    },
+    "ai19-team-b": {
+      "id": "60",
+      "shareWith": "3e54c1d9f7d6edb3e6e1a4f065288afa0fcdc69840a13d3385a4838d724e33cf",
+      "permissions": 1,
+      "folderId": 1163
+    }
+  },
+  "notes": {
+    "member-a": {
+      "id": 1167,
+      "title": "Ghi chú họp Sông Hồng"
+    },
+    "member-b": {
+      "id": 1170,
+      "title": "Ghi chú họp Tràng An"
+    }
+  },
+  "deck": {
+    "A": {
+      "boardId": 9,
+      "stackId": 25,
+      "cardId": 111
+    },
+    "B": {
+      "boardId": 10,
+      "stackId": 26,
+      "cardId": 112
+    }
+  },
+  "collective": {
+    "id": 3,
+    "circleId": "s74hKdlG77y4JEKdQvp5AYcGGTftulC",
+    "pageId": 1173,
+    "pagePath": ".Collectives/ai19 Wiki Team A/Quy trình Sông Hồng.md"
+  },
+  "talk": {
+    "A": {
+      "token": "xd6s8ccu",
+      "messages": [
+        {
+          "id": 314,
+          "by": "member-a"
+        },
+        {
+          "id": 315,
+          "by": "member-a"
+        },
+        {
+          "id": 316,
+          "by": "successor-a"
+        }
+      ]
+    },
+    "B": {
+      "token": "p7skejji",
+      "messages": [
+        {
+          "id": 317,
+          "by": "manager-b"
+        }
+      ]
+    }
+  },
+  "secretsIncluded": false
+}
