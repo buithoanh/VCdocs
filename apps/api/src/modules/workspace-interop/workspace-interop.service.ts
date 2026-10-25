@@ -48,8 +48,8 @@ export class WorkspaceInteropService {
   }
   private async assertRecipientsCanRead(ctx: Ctx, spaceId: string, recipients: string[]) {
     for (const address of recipients) {
-      const local = String(address).toLowerCase().replace(/@vcworkspace\.test$/, '');
-      const user = await this.db.m.User.findOne({ companyId:this.cid(ctx), email: new RegExp(`^${local.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}@`, 'i') }).lean<any>();
+      const email = await this.mail.userEmailOf(ctx, address);
+      const user = email ? await this.db.m.User.findOne({ companyId:this.cid(ctx), email }).lean<any>() : null;
       if (!user || !await this.db.m.WorkspaceSpaceMember.exists({ companyId:this.cid(ctx), spaceId:new Types.ObjectId(spaceId), userId:user._id })) throw Errors.forbidden('Người nhận chưa có quyền đọc tệp Drive; gửi link không tự cấp quyền');
     }
   }
@@ -73,8 +73,8 @@ export class WorkspaceInteropService {
   async downloadLink(ctx: Ctx, token: string) {
     const tokenHash=createHash('sha256').update(String(token)).digest('hex'), row=await this.db.m.WorkspaceDriveShareLink.findOne({ companyId:this.cid(ctx), tokenHash, expiresAt:{$gt:new Date()}, revokedAt:{$exists:false} }).lean<any>();
     if (!row) throw Errors.notFound('Liên kết không tồn tại hoặc đã bị thu hồi');
-    const address=`${ctx.user.email.split('@')[0]}@vcworkspace.test`.toLowerCase();
-    if (!row.recipients.includes(address)) throw Errors.forbidden('Liên kết không dành cho tài khoản này');
+    const address=await this.mail.mailboxOf(ctx, ctx.user.email);
+    if (!address || !row.recipients.includes(address)) throw Errors.forbidden('Liên kết không dành cho tài khoản này');
     const selected=await this.drive.versionContent(ctx,String(row.fileId),String(row.versionId));
     if (selected.version.contentSha256!==row.contentSha256) throw Errors.storageIntegrity();
     return { bytes:selected.bytes, name:selected.meta.name, mimeType:selected.version.mimeType, sha256:row.contentSha256 };

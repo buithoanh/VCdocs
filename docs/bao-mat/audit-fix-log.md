@@ -5,6 +5,43 @@ Mỗi mục: fingerprint, lỗi có tái hiện trước khi sửa không (tên 
 
 ---
 
+## 2026-10-25 · Đầu mối 2/12 — Hộp thư suy từ local-part, không gắn danh tính duy nhất
+
+- **Fingerprint:** `mail-basic/mailbox-owner-local-part`.
+- **Nhánh:** `claude/audit-fix-02-mailbox-owner-f16a35` (cắt từ `claude/audit-fix-01-oidc-domain-36359f`, commit c005415).
+- **Kết luận:** lỗi **có thật**, đã tái hiện bằng harness Jest với Google giả và Mongo in-memory.
+
+### Tái hiện trước khi sửa
+
+Thêm file `apps/api/test/mailbox-owner.e2e-spec.ts`. User trùng `nv.mkt@other.example` được chèn thẳng vào DB, cùng công ty và cùng thuộc tính với user mẫu `nv.mkt@vcprosperous.com`, phiên tạo bằng `SessionService.create` (OIDC đã chặn email ngoài tên miền từ 1/12, nên đây là dữ liệu cũ hoặc nhập tay).
+
+1. `user khác tên miền cùng local-part không đọc được hộp thư của user gốc`: `tp.mkt` gửi thư cho `nv.mkt@vcworkspace.test`, phiên user trùng gọi `GET /mail/messages?folder=inbox`.
+   Trước khi sửa: **FAIL**, nhận 200 thay vì 403. Bản copy tạm bỏ assertion status (xoá ngay sau khi chạy) xác nhận body chứa thư `Thư riêng nv.mkt` với `mailboxOwner: nv.mkt@vcworkspace.test`.
+2. `link Drive gửi cho user gốc không tải được bằng phiên user khác tên miền`: user trùng được thêm làm reader của space phòng ban để chỉ còn kiểm người nhận link quyết định. Link gửi cho `nv.mkt@vcworkspace.test`.
+   Trước khi sửa: **FAIL**, phiên user trùng tải được (200 thay vì 403).
+3. `kiểm ACL người nhận link khớp chính xác email công ty, không lấy user ngoài tên miền cùng local-part`: chỉ có `ghost.audit02@other.example` (reader của space). Gửi link cho `ghost.audit02@vcworkspace.test`.
+   Trước khi sửa: **FAIL**, nhận 201 thay vì 403. Regex `^local@` mọi tên miền đã lấy user ngoài tên miền làm người nhận hợp lệ.
+
+Kết quả chạy trước khi sửa (`ALLOW_PARTIAL_COVERAGE=1 pnpm --filter @vcdocs/api run test --runInBand test/mailbox-owner.e2e-spec.ts`): `Tests: 3 failed, 3 total`. Đã chạy bằng cách tạm gỡ bản sửa khỏi `src` (lưu patch), rồi áp lại.
+
+### Cách sửa
+
+- `mail-basic.service.ts`: thêm hàm `mailboxAddress(email, companyDomain)`. Hàm chỉ trả `local@vcworkspace.test` khi email (chữ thường) có tên miền đúng bằng `Company.domain` của công ty phiên, ngược lại trả null. Vì `User.email` là chữ thường và unique theo `(companyId, email)`, local-part trong cùng một tên miền là duy nhất, nên mỗi user có đúng một hộp thư và không trùng. Tên miền công ty đọc từ DB một lần và nhớ theo `companyId`.
+- `owner()` dùng hàm trên. User ngoài tên miền nhận 403 ở mọi endpoint mail (danh sách, nháp, gửi, nhãn, bộ lọc, alias, hộp thư nhóm). Credential engine và quyền thành viên hộp thư nhóm khoá theo địa chỉ này nên cũng được bảo vệ.
+- `assertAddressFree`: kiểm khớp chính xác `local@<tên miền công ty>`, không quét local-part của mọi user.
+- `offboardUser`: user không có hộp thư nội bộ trả 404. Trước đây offboard user ngoài tên miền sẽ khoá nhầm hộp thư, alias và quyền nhóm của user gốc cùng local-part.
+- `workspace-interop.service.ts`: `assertRecipientsCanRead` đổi địa chỉ hộp thư sang đúng email công ty rồi tra khớp chính xác, bỏ regex. `downloadLink` dùng cùng hàm, user không có hộp thư bị 403.
+- Hợp đồng: GET `/mail/messages` và vài endpoint mail chưa khai báo 403. Mã đã trả 403 cho hộp thư nhóm không có quyền từ trước. Đã ghi đề nghị R4 vào `apps/api/DE_NGHI_SUA_HOP_DONG.md`, không sửa `contract/openapi.yaml`.
+
+### Sau khi sửa
+
+- `test/mailbox-owner.e2e-spec.ts`: `Tests: 3 passed, 3 total`.
+- Test mail và liên thông sẵn có (`mail-basic`, `mail-management`, `mail-durability`, `workspace-interop`, cùng file mới): `Tests: 20 passed, 20 total`.
+- `pnpm ai:check`: **PASS** (exit 0). Toàn bộ test BE `Tests: 9 skipped, 185 passed, 194 total`, độ phủ hợp đồng 145/145.
+- Chưa chạy `pnpm ai:check:full`, chưa thử Stalwart thật. Chủ dự án cần liệt kê user hiện có ngoài tên miền công ty, vì sau bản sửa họ mất quyền dùng hộp thư.
+
+---
+
 ## 2026-10-25 · Đầu mối 1/12 — OIDC callback không kiểm tên miền email
 
 - **Fingerprint:** `m01-auth/oidc-callback/email-domain-not-bound-to-company-domain` (mục 7 trong file needs-validation).

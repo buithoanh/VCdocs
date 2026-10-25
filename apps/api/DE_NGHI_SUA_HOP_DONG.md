@@ -16,6 +16,7 @@ BE đã làm theo cách an toàn; chỉ là thay đổi mô tả, không đổi 
 | R1 | GET /auth/google, GET /auth/google/callback | `AUTH_MODE=oidc` thì 302 `/dang-nhap?loi=provider` | Thêm `provider` vào danh sách `loi` của luồng Google; nêu rõ Google tắt khi bật OIDC |
 | R2 | POST /drive/files/{fileId}/versions/{versionId}/restore | Tạo phiên bản mới số max+1 trỏ đúng blob của bản cũ | Mô tả: khôi phục tạo phiên bản mới, `versionNumber` luôn tăng |
 | R3 | PATCH /drive/items/{itemId} | Gửi lại đúng tên/thư mục hiện tại trả 200 (no-op) | Mô tả: 409 chỉ khi trùng với mục khác |
+| R4 | GET /mail/messages, GET /mail/threads/{id}, POST /mail/drafts, GET /mail/aliases và các endpoint mail khác dùng hộp thư cá nhân | 403 khi email người gọi không thuộc tên miền công ty (không có hộp thư nội bộ) hoặc không có quyền với hộp thư nhóm `mailbox` (audit 2/12) | Thêm `403 Forbidden` cho các endpoint mail chưa khai báo; mô tả hộp thư cá nhân = local-part của email đúng tên miền công ty |
 
 ## Đề nghị Drive cơ bản VCworkspace (2026-10-23) – chờ duyệt hợp đồng
 

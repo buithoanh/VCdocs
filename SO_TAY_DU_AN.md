@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 2/12 — hộp thư gắn email đúng tên miền công ty
+
+- Nhánh `claude/audit-fix-02-mailbox-owner-f16a35` (cắt từ nhánh 1/12). Fingerprint `mail-basic/mailbox-owner-local-part` **tái hiện được**: user `nv.mkt@other.example` chèn vào DB đọc được hộp thư `nv.mkt@vcworkspace.test`, tải được link Drive gửi cho nv.mkt; regex người nhận lấy nhầm user ngoài tên miền.
+- Sửa `mail-basic.service.ts` (`mailboxAddress`, `owner`, `assertAddressFree`, `offboardUser`) và `workspace-interop.service.ts` (tra người nhận khớp chính xác, `downloadLink`). Test mới `test/mailbox-owner.e2e-spec.ts` (3 ca: trước sửa 3 fail, sau sửa 3 pass). `pnpm ai:check` PASS (BE 185 pass, 9 skip). Đề nghị hợp đồng R4 (thêm 403 cho mail). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 10 đầu mối audit còn lại (phiên 3/12 cắt từ nhánh này); chưa chạy `ai:check:full`; chủ dự án cần rà user hiện có ngoài tên miền công ty (sẽ mất hộp thư).
+
 ### 2026-10-25 · Sửa audit 1/12 — OIDC kiểm tên miền email
 
 - Nhánh `claude/audit-fix-01-oidc-domain-36359f` (cắt từ `vcworkspace/chat01-12b`). Fingerprint `m01-auth/oidc-callback/email-domain-not-bound-to-company-domain` **tái hiện được**: trước khi sửa, email verified `nv.mkt@other.example` tạo được User và nhận phiên, binding sẵn có bị ghi đè email ngoài tên miền.
