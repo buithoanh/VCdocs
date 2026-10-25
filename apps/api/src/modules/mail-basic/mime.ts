@@ -20,8 +20,15 @@ export function buildMime(input: { from: string; to: string[]; cc?: string[]; su
   if (input.inReplyTo) headers.push(`In-Reply-To: <${cleanHeader(input.inReplyTo.replace(/[<>]/g, ''))}>`);
   if (input.references?.length) headers.push(`References: ${input.references.map((x) => `<${cleanHeader(x.replace(/[<>]/g, ''))}>`).join(' ')}`);
   headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`, '');
-  const parts = [`--${boundary}`, 'Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', Buffer.from(input.text).toString('base64')];
-  if (input.html) parts.push(`--${boundary}`, 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: base64', '', Buffer.from(sanitizeHtml(input.html)).toString('base64'));
+  const textPart = ['Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', Buffer.from(input.text).toString('base64')];
+  // text và html là hai cách hiển thị cùng một nội dung: phải nằm trong multipart/alternative,
+  // nếu đặt ngang hàng trong multipart/mixed thì client mail hiện cả hai (nội dung bị lặp).
+  const alternative = `${boundary}-alt`;
+  const parts = input.html
+    ? [`--${boundary}`, `Content-Type: multipart/alternative; boundary="${alternative}"`, '', `--${alternative}`, ...textPart,
+      `--${alternative}`, 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: base64', '', Buffer.from(sanitizeHtml(input.html)).toString('base64'),
+      `--${alternative}--`]
+    : [`--${boundary}`, ...textPart];
   for (const a of input.attachments ?? []) {
     const name = b64Header(cleanHeader(a.filename));
     parts.push(`--${boundary}`, `Content-Type: ${cleanHeader(a.contentType)}; name="${name}"`, `Content-Disposition: attachment; filename="${name}"`, 'Content-Transfer-Encoding: base64', '', a.bytes.toString('base64'));
