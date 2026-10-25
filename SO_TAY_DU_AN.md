@@ -227,6 +227,12 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-25 · Sửa audit 1/12 — OIDC kiểm tên miền email
+
+- Nhánh `claude/audit-fix-01-oidc-domain-36359f` (cắt từ `vcworkspace/chat01-12b`). Fingerprint `m01-auth/oidc-callback/email-domain-not-bound-to-company-domain` **tái hiện được**: trước khi sửa, email verified `nv.mkt@other.example` tạo được User và nhận phiên, binding sẵn có bị ghi đè email ngoài tên miền.
+- Sửa `auth.controller.ts`: callback OIDC từ chối email không thuộc `@cfg.oidc.companyDomain` (`loi=identity`) trước cả hai nhánh. Thêm 2 test hồi quy trong `oidc-auth.e2e-spec.ts`. `pnpm ai:check` PASS (BE 182 pass, 9 skip). Chi tiết ở `docs/bao-mat/audit-fix-log.md`.
+- Còn dở: 11 đầu mối audit còn lại (phiên kế tiếp cắt từ nhánh này); chưa chạy `ai:check:full`; chính sách Authentik chờ chủ dự án kiểm.
+
 ### 2026-10-25 · Audit bảo mật theo Cloudflare security-audit skill
 
 - Skill chưa cài: đọc `SKILL.md` từ github.com/cloudflare/security-audit-skill (commit c1c8a8c), tải các file hướng dẫn + 2 validator (đã rà: chỉ dùng fs/path/util) vào `~/security-audit-skill/skill/` theo đồng ý của chủ dự án. Chạy full audit profile quick: 4 trinh sát, 4 hunter, 1 critic, 4 verifier (13 agent).

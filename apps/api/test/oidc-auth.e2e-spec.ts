@@ -100,6 +100,42 @@ describe('OIDC ứng dụng thật', () => {
     expect((await agent.get('/api/v1/me')).status).toBe(401);
   });
 
+  it('lần đầu đăng nhập với email verified ngoài tên miền công ty bị chặn, không tạo user hay binding', async () => {
+    const agent = require('supertest').agent(t.app.getHttpServer());
+    const location = await begin(agent);
+    const now = Math.floor(Date.now() / 1000);
+    const usersBefore = await t.db.m.User.countDocuments({ companyId: t.ids.companyId });
+    tokenClaims = { iss: issuer, sub: 'outsider', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'nv.mkt@other.example', email_verified: true, name: 'Outsider', groups: [] };
+    const callback = await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=outsider`);
+    expect(callback.headers.location).toBe('http://localhost:3000/dang-nhap?loi=identity');
+    expect(callback.headers['set-cookie']?.join(';') ?? '').not.toMatch(/vcdocs_sid=[^;]/);
+    expect(await t.db.m.User.exists({ companyId: t.ids.companyId, email: 'nv.mkt@other.example' })).toBeNull();
+    expect(await t.db.m.User.countDocuments({ companyId: t.ids.companyId })).toBe(usersBefore);
+    expect(await t.db.m.OidcIdentity.findOne({ issuer, subject: 'outsider' }, undefined, { skipTenant: true }).lean()).toBeNull();
+    expect((await agent.get('/api/v1/me')).status).toBe(401);
+  });
+
+  it('binding đã có nhưng token mang email ngoài tên miền công ty bị chặn, không ghi đè email', async () => {
+    const agent = require('supertest').agent(t.app.getHttpServer());
+    let location = await begin(agent);
+    let now = Math.floor(Date.now() / 1000);
+    tokenClaims = { iss: issuer, sub: 'subject-domain-bound', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'oidc.domain@vcprosperous.com', email_verified: true, groups: [] };
+    let callback = await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=bound`);
+    expect(callback.headers.location).toBe('http://localhost:3000/bo-nho');
+    const binding = await t.db.m.OidcIdentity.findOne({ companyId: t.ids.companyId, issuer, subject: 'subject-domain-bound' }).lean<any>();
+
+    const other = require('supertest').agent(t.app.getHttpServer());
+    location = await begin(other); now = Math.floor(Date.now() / 1000);
+    tokenClaims = { iss: issuer, sub: 'subject-domain-bound', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'tp.mkt@other.example', email_verified: true, groups: ['vcw-admin'] };
+    callback = await other.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=foreign`);
+    expect(callback.headers.location).toBe('http://localhost:3000/dang-nhap?loi=identity');
+    const user = await t.db.m.User.findOne({ _id: binding.userId, companyId: t.ids.companyId }).lean<any>();
+    expect(user.email).toBe('oidc.domain@vcprosperous.com');
+    expect(user.systemRoles).toEqual([]);
+    expect((await t.db.m.OidcIdentity.findOne({ _id: binding._id, companyId: t.ids.companyId }).lean<any>()).email).toBe('oidc.domain@vcprosperous.com');
+    expect((await other.get('/api/v1/me')).status).toBe(401);
+  });
+
   it('provider outage fail-closed, không tạo state hoặc session', async () => {
     (global.fetch as jest.Mock).mockImplementationOnce(async () => { throw new Error('offline'); });
     const agent = require('supertest').agent(t.app.getHttpServer());

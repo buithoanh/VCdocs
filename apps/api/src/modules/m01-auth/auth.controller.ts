@@ -99,6 +99,10 @@ export class AuthController {
     const companyId = String(company._id);
     const cid = new Types.ObjectId(companyId);
     const email = claims.email.toLowerCase();
+    // Như luồng Google: email phải thuộc tên miền công ty, vì mailbox và link chia sẻ định danh theo local-part.
+    // Kiểm trước cả nhánh tạo mới lẫn nhánh binding sẵn có để không tạo hay ghi đè User bằng email ngoài.
+    const domain = (this.cfg.oidc.companyDomain || '').toLowerCase();
+    if (!domain || !email.endsWith(`@${domain}`)) return this.fail(res, 'identity');
     let binding = await this.db.m.OidcIdentity.findOne({ issuer: claims.iss, subject: claims.sub }, undefined, { skipTenant: true }).lean<any>();
     let user: any;
     if (binding) {
