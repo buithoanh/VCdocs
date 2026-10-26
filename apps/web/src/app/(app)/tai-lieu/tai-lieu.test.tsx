@@ -1,10 +1,11 @@
-import { screen, within } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { doc, ids } from '@/test/fixtures';
 import { renderApp } from '@/test/render';
 import { API, server } from '@/test/server';
+import { chooseOption, findOption, selectedText } from '@/test/antd';
 import { DocumentView } from './[id]/DocumentView';
 import RegisterDocumentPage from './dang-ky/page';
 import { validateDocumentRegistration } from './dang-ky/validate';
@@ -29,10 +30,10 @@ describe('đăng ký tài liệu', () => {
 
   it('chọn Quy định thì tự chuyển cấp công ty và khoá cấp phòng', async () => {
     renderApp(<RegisterDocumentPage />, { roles: ['R4'] });
-    await userEvent.selectOptions(screen.getByLabelText(/Loại tài liệu/), 'QD');
-    const level = screen.getByLabelText(/^Cấp/) as HTMLSelectElement;
-    expect(level.value).toBe('VCPV');
-    expect(within(level).getByRole('option', { name: 'Cấp phòng' })).toBeDisabled();
+    await chooseOption(screen.getByLabelText(/Loại tài liệu/), 'Quy định');
+    const level = screen.getByLabelText(/^Cấp/);
+    expect(selectedText(level)).toBe('Cấp công ty (VCPV)');
+    expect(await findOption(level, 'Cấp phòng')).toHaveAttribute('aria-disabled', 'true');
   });
 });
 
