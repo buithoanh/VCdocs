@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-25T14:25:12.156Z",
+  "nextcloud": "33.0.10",
+  "php": "8.4.27",
+  "apps": {
+    "assistant": "3.5.1",
+    "integration_openai": "4.5.2",
+    "spreed": "23.0.12",
+    "deck": "1.17.8",
+    "notes": "6.1.0",
+    "collectives": "4.7.1",
+    "admin_audit": "1.23.0",
+    "app_api": "33.0.0"
+  },
+  "systemConfig": {
+    "has_internet_connection": "false",
+    "allow_local_remote_servers": "true",
+    "loglevel": "(unset)",
+    "overwrite.cli.url": "http://nc13.localtest.me:18130"
+  },
+  "taskProcessingWorker": "occ taskprocessing:worker -t 300 (taskprocessing-worker.mjs loop, docker exec)",
+  "ollama": {
+    "version": "0.40.11",
+    "listen": "127.0.0.1:11434 (host, unchanged)",
+    "models": [
+      "vcws-qwen3-4b-cpu:latest 0ad1a53e799b 2.5",
+      "qwen3:4b-instruct-2507-q4_K_M 0edcdef34593 2.5"
+    ],
+    "cpuAliasParameters": [
+      "FROM ~/.ollama/models/blobs/sha256-85e4a5b7b8ef0e48af0e8658f5aaab9c2324c76c1641493f4d1e25fce54b18b9",
+      "PARAMETER top_p 0.8",
+      "PARAMETER num_ctx 8192",
+      "PARAMETER num_gpu 0",
+      "PARAMETER repeat_penalty 1",
+      "PARAMETER stop <|im_start|>",
+      "PARAMETER stop <|im_end|>",
+      "PARAMETER temperature 0.2",
+      "PARAMETER top_k 20"
+    ]
+  },
+  "proxy": {
+    "container": "vcworkspace-ai19-ollama-proxy-1",
+    "image": "vcworkspace-sync15/nextcloud-smb:33.0.10-1 sha256:50377d5fe6232bb856176565903ce4be436a4e17af2b9c9cbcb7f967668a041b",
+    "config": "ollama-proxy/httpd.conf"
+  },
+  "host": {
+    "os": "26.6.2",
+    "cpu": "Apple M4 Pro",
+    "cores": "12",
+    "perfCores": "8",
+    "ramGiB": 24
+  },
+  "secretsIncluded": false
+}

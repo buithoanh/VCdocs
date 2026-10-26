@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-10-25T14:20:40.590Z",
+  "routes": {
+    "legacy": {
+      "sessionId": 9,
+      "ownerMessagesBefore": {
+        "status": 200,
+        "count": 2
+      },
+      "foreignRename": 200,
+      "foreignDelete": 200,
+      "ownerMessagesAfter": {
+        "status": 500,
+        "count": null,
+        "body": "{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":996,\"message\":\"Internal Server Error\\n\"},\"data\":[]}}"
+      },
+      "ownerSessionStillListed": true,
+      "titleBefore": "ai19 idor legacy",
+      "titleAfter": "ai19 idor legacy",
+      "messagesWipedByOtherUser": true
+    },
+    "restful": {
+      "sessionId": 10,
+      "ownerMessagesBefore": {
+        "status": 200,
+        "count": 2
+      },
+      "foreignRename": 404,
+      "foreignDelete": 200,
+      "ownerMessagesAfter": {
+        "status": 500,
+        "count": null,
+        "body": "{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":996,\"message\":\"Internal Server Error\\n\"},\"data\":[]}}"
+      },
+      "ownerSessionStillListed": true,
+      "titleBefore": "ai19 idor restful",
+      "titleAfter": "ai19 idor restful",
+      "messagesWipedByOtherUser": true
+    }
+  },
+  "finding": "FINDING: another user can delete the messages of a session they do not own (session row survives, title unchanged)",
+  "secretsIncluded": false
+}

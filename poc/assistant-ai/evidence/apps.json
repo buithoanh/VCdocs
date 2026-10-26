@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-10-25T13:46:12.936Z",
+  "apps": {
+    "assistant": "3.5.1",
+    "integration_openai": "4.5.2",
+    "context_chat": "NOT_INSTALLED",
+    "context_agent": "NOT_INSTALLED",
+    "app_api": "33.0.0",
+    "admin_audit": "1.23.0",
+    "spreed": "23.0.12",
+    "notes": "6.1.0",
+    "deck": "1.17.8",
+    "collectives": "4.7.1",
+    "text": "7.0.1",
+    "mail": "NOT_INSTALLED"
+  },
+  "pinnedFromPreflight": {
+    "assistant": "3.5.1",
+    "integration_openai": "4.5.2"
+  },
+  "installedVersions": {
+    "assistant": "3.5.1",
+    "integration_openai": "4.5.2"
+  },
+  "integrity": {
+    "assistant": "PASS",
+    "integration_openai": "PASS"
+  },
+  "egressAttachedMs": 9836,
+  "hasInternetConnectionAfter": "false",
+  "nextcloudNetworksAfterInstall": [
+    "vcworkspace-work13_work13"
+  ],
+  "secretsIncluded": false
+}
