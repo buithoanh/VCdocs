@@ -1,4 +1,5 @@
 import type { SystemRole } from '@/api/types';
+import { workspaceModuleEnabled, type WorkspaceModule } from './workspace-modules';
 
 /**
  * Quyền phía giao diện chỉ để ẩn/hiện. Máy chủ luôn kiểm tra lại.
@@ -67,6 +68,8 @@ export type NavItem = {
   /** Không có = mọi người đã đăng nhập. */
   roles?: readonly SystemRole[];
   group: 'chinh' | 'danh-muc' | 'quan-tri';
+  /** Mục thuộc phân hệ VCworkspace có thể tắt theo môi trường. */
+  module?: WorkspaceModule;
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -77,8 +80,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/tai-lieu', label: 'Tài liệu', group: 'chinh' },
   { href: '/chia-se', label: 'Chia sẻ ra ngoài', roles: ROLE_RULES.viewShareRegister, group: 'chinh' },
   { href: '/thu-muc', label: 'Cây thư mục', group: 'danh-muc' },
-  { href: '/bo-nho', label: 'Bộ nhớ VCworkspace', group: 'chinh' },
-  { href: '/email', label: 'Email', group: 'chinh' },
+  { href: '/bo-nho', label: 'Bộ nhớ VCworkspace', group: 'chinh', module: 'drive' },
+  { href: '/email', label: 'Email', group: 'chinh', module: 'mail' },
   { href: '/danh-muc-ho-so', label: 'Danh mục hồ sơ', group: 'danh-muc' },
   { href: '/bang-ma', label: 'Bảng mã', group: 'danh-muc' },
   { href: '/danh-muc', label: 'Khối, phòng, division', group: 'danh-muc' },
@@ -95,5 +98,5 @@ export const NAV_GROUP_LABEL: Record<NavItem['group'], string> = {
 };
 
 export function navFor(roles: readonly SystemRole[] | undefined): NavItem[] {
-  return NAV_ITEMS.filter((i) => !i.roles || hasAnyRole(roles, i.roles));
+  return NAV_ITEMS.filter((i) => (!i.roles || hasAnyRole(roles, i.roles)) && (!i.module || workspaceModuleEnabled(i.module)));
 }

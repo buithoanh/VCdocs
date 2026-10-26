@@ -268,3 +268,16 @@ Nguồn: chủ dự án giao trực tiếp chat09 và cho phép sửa hợp đ�
 authorize cả mailbox nguồn và folder Drive đích, giữ provenance/hash và
 idempotency. Gửi attachment cố định version/hash lúc compose; gửi link không tự
 cấp ACL, yêu cầu đăng nhập và người nhận có quyền đọc sẵn.
+
+# Đề nghị: phân hệ VCworkspace tắt theo môi trường — CHỜ chủ dự án duyệt (2026-10-26)
+
+Nguồn: phiên chuẩn bị production (`docs/ke-hoach/vcworkspace-20-production-phuong-an.md`).
+BE đã có `WORKSPACE_STORAGE_MODE=disabled` / `MAIL_ENGINE_MODE=disabled` (mặc định production);
+khi tắt, route trả 503 `STORAGE_UNAVAILABLE`. Chưa sửa `contract/openapi.yaml`:
+
+1. Khai báo `'503': StorageUnavailable` cho `/spaces`, mọi `/drive/*` (gồm editor content/callback,
+   shared-links) và mọi `/mail/*` (gồm save-to-drive, send-drive-file). Hiện nhiều route chưa có
+   503 nên test ghi nhận là mã "undeclared".
+2. (Tuỳ chọn) thêm vào `Me` trường `workspaceModules: { drive: boolean, mail: boolean }` để FE ẩn/hiện
+   theo cấu hình API lúc chạy, thay cho cờ build `NEXT_PUBLIC_WORKSPACE_MODULES` (hiện phải giữ
+   khớp hai nơi bằng tay).

@@ -60,6 +60,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Push + PR `claude/prod-cau-hinh-vcworkspace-2fe0b0` vào `dev` (chủ dự án tự chạy), rồi chọn phương án production A/B (2026-10-26):** chế độ `disabled` cho Drive/Email (mặc định production), `api.env.example`/`.env.example`/README deploy đủ biến VCworkspace, FE ẩn menu Bộ nhớ/Email theo `NEXT_PUBLIC_WORKSPACE_MODULES`. So sánh phương án: `docs/ke-hoach/vcworkspace-20-production-phuong-an.md`. Đề nghị hợp đồng (503 khi tắt, `Me.workspaceModules`) ở `apps/api|web/DE_NGHI_SUA_HOP_DONG.md`, chưa sửa `openapi.yaml`.
+
 - [ ] **Giao diện Ant Design – bước 1 xong, chờ chủ dự án xem (2026-10-25), nhánh `vcworkspace/giao-dien-antd` cắt từ `vcworkspace/chat01-12b`:** đã cài `antd@6.6.7`, `@ant-design/icons`, `@ant-design/nextjs-registry`; `UiProvider` (ConfigProvider locale vi + token HD-VCPV-02) + `AntdRegistry` ở root layout; font Be Vietnam Pro qua `next/font/google` (build cần mạng tới Google Fonts một lần). Lớp nền đã đổi ruột sang antd, giữ nguyên API: `ui.tsx` (Button/LinkButton/Card/Badge→Tag/ErrorBox+Notice→Alert/Loading→Spin/Empty/Field+TextField→Form.Item+Input/SelectField→Select/Modal/Tabs/DefList→Descriptions), `AppShell` (Layout+Menu+Badge, Drawer trên điện thoại), `ToastProvider` (notification góc dưới phải), `DataTable` (Table sọc, header navy, thẻ trên điện thoại qua `data-label`) + `Pagination`, `ActionDialog`, `pickers` (DeptSelect/UserPicker/MultiUserPicker → Select showSearch). Test: `src/test/antd.ts` (chooseOption/findOption/selectedText), setup thêm matchMedia/ResizeObserver/getComputedStyle; 3 file test đổi thao tác select. Gate: typecheck đạt, FE 76/76, `next build` (`.next-antd`) đạt, `pnpm ai:check` đạt (BE 180, 9 skip; FE 76); xem bằng mắt trên QA giả (qa-api 14100 + qa-web 13100) các trang chủ, hồ sơ, lập hồ sơ, nhân sự, danh mục, cây thư mục, điện thoại. **Chưa làm:** các trang còn dùng `.btn`/`.field`/select gốc (trang đăng nhập, bộ lọc, email), DatePicker thay input date/month, bỏ emoji ở trang; chuyển từng module theo thứ tự đã chốt. Brand hiển thị đổi "VCdocs" → "VCworkspace" ở thanh trên và title; chữ "sổ VCdocs" trong trang để lại cho lúc chuyển module. First-load JS tăng lên ~400 kB/trang vì antd.
 
 - [ ] **Push + PR `claude/mail-compose-cc-bcc-richtext` vào `dev` (chủ dự án tự chạy):** Cc/Bcc + soạn thư định dạng (2.5.0-gd2) và đọc nội dung thư an toàn trong khung đọc (`GET /mail/messages/{id}/body`, 2.6.0-gd2), full gate PASS local 2026-10-26; commit đọc nội dung nằm trên nhánh tạm `tmp-reader` (trên 29a0ef4), cần đẩy vào cùng nhánh PR #8. Còn cần xem UI trên trình duyệt và thử Stalwart thật (thư HTML từ client ngoài).
@@ -221,6 +223,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 4. Câu hỏi mở (chờ người dùng trả lời)
 
+- (Production, 2026-10-26) Chọn phương án A (lên production với Drive/Office/Email/SSO tắt), B (dựng Nextcloud/ONLYOFFICE/Stalwart/Authentik production trước) hay A rồi B theo từng phân hệ? Có bản sao CSDL/staging để kiểm hồi quy trước deploy không? Xem `docs/ke-hoach/vcworkspace-20-production-phuong-an.md`.
 - (VCworkspace, 2026-10-22) "AI Jev" trong yêu cầu là gì: tên một dự án, "AI Dev", hay trợ lý kiểu Jarvis/Jeeves?
 - (VCworkspace) "Đập tính năng cũ" tới mức nào: bỏ hẳn quản lý hồ sơ – tài liệu (BA 15 phân hệ, giai đoạn 1–2 đã code ~22.000 dòng TS), hay giữ thành một ứng dụng chạy trên VCworkspace? Nhánh `giai-doan-2` (M10, M15, chưa gộp vào `dev`) gộp tiếp hay dừng?
 - (VCworkspace) Mốc thời gian muốn thay Google Workspace và ngân sách hạ tầng/tháng chấp nhận được?
@@ -276,6 +279,13 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-26 · Chuẩn bị cấu hình production cho VCworkspace
+
+- Nhánh `claude/prod-cau-hinh-vcworkspace-2fe0b0` cắt từ `dev` 6656766. Không chạm máy chủ, IAM, DNS hay công cụ đám mây; không đọc `.env`.
+- Phát hiện: `dev` **không khởi động được ở production** với `api.env` cũ — `WORKSPACE_STORAGE_MODE`/`MAIL_ENGINE_MODE` mặc định `fake` và production chặn `fake`; bật bản thật cũng không được vì adapter Nextcloud và Stalwart chỉ nhận loopback. AUTH_MODE=google, lifecycle/Flow/editor đã mặc định tắt ở production.
+- Sửa: thêm `disabled` cho hai chế độ (mặc định khi `NODE_ENV=production`); `common/workspace-modules.ts` guard trả 503 `STORAGE_UNAVAILABLE` cho `/spaces`, `/drive/*`, `/mail/*`, liên thông; cổng thay thế `disabledPort` để không rơi về bản giả. Chặn `DOCUMENT_EDITOR_ENABLED` khi Drive tắt. FE: `lib/workspace-modules.ts` + `WorkspaceModuleGate` (layout `/bo-nho`, `/email`), production không khai báo thì ẩn. Deploy: `api.env.example` khối "Phân hệ VCworkspace", `.env.example` 3 biến build web, compose truyền build args, web.Dockerfile thêm ARG.
+- Test: BE mới `test/prod-workspace-disabled.e2e-spec.ts` 8 ca; sửa `review-fixes.e2e-spec.ts` (không khai báo → `disabled` thay vì lỗi `fake`; `fake` tường minh vẫn bị chặn). FE `workspace-modules.test.ts` 3 ca. Chưa chạy: build Docker, máy ảo thật.
 
 ### 2026-10-26 · Email: Trả lời và Trả lời tất cả
 

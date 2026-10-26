@@ -97,9 +97,11 @@ describe('Review chat01–12B: cấu hình production', () => {
   const base = { NODE_ENV: 'production', GOOGLE_MODE: 'real', WORKSPACE_STORAGE_MODE: 'nextcloud', MAIL_ENGINE_MODE: 'stalwart',
     DOCUMENT_EDITOR_ENABLED: 'true', DOCUMENT_EDITOR_JWT_SECRET: 'x'.repeat(40) };
 
-  it('chặn kho tệp và mail giả', () => {
-    expect(() => loadConfig({ ...base, WORKSPACE_STORAGE_MODE: undefined } as any)).toThrow('WORKSPACE_STORAGE_MODE=fake');
-    expect(() => loadConfig({ ...base, MAIL_ENGINE_MODE: undefined } as any)).toThrow('MAIL_ENGINE_MODE=fake');
+  it('chặn kho tệp và mail giả; không khai báo thì tắt chứ không rơi về bản giả', () => {
+    expect(() => loadConfig({ ...base, WORKSPACE_STORAGE_MODE: 'fake' } as any)).toThrow('WORKSPACE_STORAGE_MODE=fake');
+    expect(() => loadConfig({ ...base, MAIL_ENGINE_MODE: 'fake' } as any)).toThrow('MAIL_ENGINE_MODE=fake');
+    expect(loadConfig({ ...base, MAIL_ENGINE_MODE: undefined } as any).mailEngine.mode).toBe('disabled');
+    expect(loadConfig({ ...base, WORKSPACE_STORAGE_MODE: undefined, DOCUMENT_EDITOR_ENABLED: undefined } as any).workspaceStorage.mode).toBe('disabled');
   });
 
   it('chặn khoá editor mặc định hoặc quá ngắn', () => {

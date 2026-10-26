@@ -26,3 +26,9 @@ gộp `giai-doan-1` và sửa theo. Mục mới ở cuối bảng.
 | 13 | 2026-10-19 | Phiếu `disposal`, `delegation` | Chưa có màn hình M11. | Không cần sửa; giai đoạn 2. |
 | 14 | 2026-10-20 | `GET /blocks`, `GET /departments` | Không có `people`, nên không hiện được tên giám đốc khối, trưởng phòng. | **Đã xử lý (D19, v1.2).** Tên lấy từ `people` của `/blocks`, `/departments`, `/divisions`, `/delegations`; đã thử với BE thật. |
 | 15 | 2026-10-20 | Loại thư mục ở gốc drive | Không rõ loại nào được tạo ở gốc. | **Đã xử lý (D20, v1.2).** Gốc drive chỉ cho docs, plan_report, operations, area, project, closed, archive; năm, tháng, đối tượng chỉ hiện khi đã chọn thư mục cha. |
+
+# Đề nghị: ẩn/hiện phân hệ theo `/me` — CHỜ chủ dự án duyệt (2026-10-26)
+
+FE đang ẩn menu và trang Bộ nhớ/Email theo cờ build `NEXT_PUBLIC_WORKSPACE_MODULES`
+(`src/lib/workspace-modules.ts`). Đề nghị `Me.workspaceModules` như ở
+`apps/api/DE_NGHI_SUA_HOP_DONG.md` để bỏ cờ build và tránh lệch cấu hình FE/API.

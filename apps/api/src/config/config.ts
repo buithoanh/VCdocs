@@ -49,13 +49,15 @@ export interface AppConfig {
     fakeStateFile?: string;
   };
   workspaceStorage: {
-    mode: 'fake' | 'nextcloud';
+    /** disabled: route Drive/Office trả 503 (mặc định production khi chưa có Nextcloud thật). */
+    mode: 'fake' | 'nextcloud' | 'disabled';
     baseUrl?: string;
     credentials: Record<string, { username: string; password: string }>;
     timeoutMs: number;
   };
   mailEngine: {
-    mode: 'fake' | 'stalwart'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
+    /** disabled: route Email trả 503 (mặc định production khi chưa có Stalwart thật). */
+    mode: 'fake' | 'stalwart' | 'disabled'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
     credentials: Record<string, { username: string; password: string }>;
     management?: { baseUrl: string; username: string; password: string };
   };
@@ -282,13 +284,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
           : env.FAKE_GOOGLE_STATE_FILE || (googleMode === 'fake' && nodeEnv !== 'test' ? path.resolve(process.cwd(), '.vcdocs-dev', 'fake-google.json') : undefined),
     },
     workspaceStorage: {
-      mode: (env.WORKSPACE_STORAGE_MODE || 'fake') as 'fake' | 'nextcloud',
+      mode: (env.WORKSPACE_STORAGE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'nextcloud' | 'disabled',
       baseUrl: env.WORKSPACE_STORAGE_BASE_URL,
       credentials: storageCredentials(env.WORKSPACE_STORAGE_CREDENTIALS_JSON),
       timeoutMs: num(env.WORKSPACE_STORAGE_TIMEOUT_MS, 15_000),
     },
     mailEngine: {
-      mode: (env.MAIL_ENGINE_MODE || 'fake') as 'fake' | 'stalwart',
+      mode: (env.MAIL_ENGINE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'stalwart' | 'disabled',
       host: env.MAIL_ENGINE_HOST || '127.0.0.1', smtpPort: num(env.MAIL_ENGINE_SMTP_PORT, 18465), imapPort: num(env.MAIL_ENGINE_IMAP_PORT, 18993), sievePort: num(env.MAIL_ENGINE_SIEVE_PORT, 14190), controlPort: num(env.MAIL_ENGINE_CONTROL_PORT, 19090), controlToken: env.MAIL_ENGINE_CONTROL_TOKEN || '',
       credentials: storageCredentials(env.MAIL_ENGINE_CREDENTIALS_JSON),
       management: env.MAIL_ENGINE_MANAGEMENT_URL && env.MAIL_ENGINE_MANAGEMENT_USER && env.MAIL_ENGINE_MANAGEMENT_PASSWORD ? {
@@ -368,10 +370,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       throw new Error('Identity lifecycle chat12B chỉ được phép gọi local test endpoints');
     }
   }
-  if (!['fake', 'nextcloud'].includes(cfg.workspaceStorage.mode)) {
-    throw new Error('WORKSPACE_STORAGE_MODE phải là fake hoặc nextcloud');
+  if (!['fake', 'nextcloud', 'disabled'].includes(cfg.workspaceStorage.mode)) {
+    throw new Error('WORKSPACE_STORAGE_MODE phải là fake, nextcloud hoặc disabled');
   }
-  if (!['fake', 'stalwart'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake hoặc stalwart');
+  if (!['fake', 'stalwart', 'disabled'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake, stalwart hoặc disabled');
+  // Trình soạn thảo đọc/ghi tệp qua kho Drive; kho tắt thì editor không có gì để mở.
+  if (cfg.documentEditor.enabled && cfg.workspaceStorage.mode === 'disabled') throw new Error('DOCUMENT_EDITOR_ENABLED cần WORKSPACE_STORAGE_MODE khác disabled');
   validateFlowConfig(cfg.flow, cfg.nodeEnv);
   if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
   if (cfg.nodeEnv === 'production') {
