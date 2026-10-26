@@ -32,17 +32,24 @@ type PickerProps = {
   status?: 'error' | 'warning';
   /** Không cho chọn sau hôm nay / tháng này. */
   disabledFuture?: boolean;
+  /** Không cho chọn trước hôm nay / tháng này. */
+  disabledPast?: boolean;
 };
 
+function disabledDateFor(unit: 'day' | 'month', future?: boolean, past?: boolean) {
+  if (!future && !past) return undefined;
+  return (d: Dayjs) => (!!future && d.isAfter(dayjs(), unit)) || (!!past && d.isBefore(dayjs(), unit));
+}
+
 /** Chọn tháng, giá trị YYYY-MM. */
-export function MonthPicker({ value, onChange, disabledFuture, ...rest }: PickerProps) {
+export function MonthPicker({ value, onChange, disabledFuture, disabledPast, ...rest }: PickerProps) {
   return (
     <DatePicker
       picker="month"
       format="MM/YYYY"
       value={toDayjs(value)}
       onChange={(d) => onChange(toISOMonth(d))}
-      disabledDate={disabledFuture ? (d) => d.isAfter(dayjs(), 'month') : undefined}
+      disabledDate={disabledDateFor('month', disabledFuture, disabledPast)}
       style={{ width: '100%' }}
       {...rest}
     />
@@ -50,13 +57,13 @@ export function MonthPicker({ value, onChange, disabledFuture, ...rest }: Picker
 }
 
 /** Chọn ngày, giá trị YYYY-MM-DD. */
-export function DayPicker({ value, onChange, disabledFuture, ...rest }: PickerProps) {
+export function DayPicker({ value, onChange, disabledFuture, disabledPast, ...rest }: PickerProps) {
   return (
     <DatePicker
       format="DD/MM/YYYY"
       value={toDayjs(value)}
       onChange={(d) => onChange(toISODate(d))}
-      disabledDate={disabledFuture ? (d) => d.isAfter(dayjs(), 'day') : undefined}
+      disabledDate={disabledDateFor('day', disabledFuture, disabledPast)}
       style={{ width: '100%' }}
       {...rest}
     />
@@ -73,6 +80,7 @@ type FieldProps = {
   allowClear?: boolean;
   disabled?: boolean;
   disabledFuture?: boolean;
+  disabledPast?: boolean;
   placeholder?: string;
 };
 

@@ -1,37 +1,44 @@
 'use client';
 
+import { Col, DatePicker, Form, Input, Row } from 'antd';
+import type { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { api, idem, unwrap } from '@/api/client';
 import { useAction } from '@/api/queries';
+import { toISODate } from '@/components/dates';
 import { JobProgress } from '@/components/jobs';
-import { DeptSelect } from '@/components/pickers';
+import { DeptSelectInput } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Button, Card, ErrorBox, PageHeader, TextField } from '@/components/ui';
+import { Button, Card, ErrorBox, PageHeader } from '@/components/ui';
 import { parseDriveFileId } from '@/lib/drive';
+
+type FormValues = { source: string; number: string; issuedAt: Dayjs | null; title: string; departmentId?: string; link: string };
+
+const isUrl = (s: string) => /^https?:\/\//.test(s.trim());
 
 export default function ExternalDocumentPage() {
   const { me } = useAuth();
-  const [f, setF] = useState({ source: '', number: '', issuedAt: '', title: '', departmentId: me.departmentId ?? '', link: '' });
-  const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
+  const [form] = Form.useForm<FormValues>();
+  const link = Form.useWatch('link', form) ?? '';
+  const fileId = parseDriveFileId(link);
   const [jobId, setJobId] = useState<string | null>(null);
-  const fileId = parseDriveFileId(f.link);
-  const isUrl = /^https?:\/\//.test(f.link.trim());
-  const valid = f.source.trim() && f.number.trim() && f.issuedAt && f.title.trim() && f.departmentId && (fileId || isUrl);
   const save = useAction(
-    (_: void, key: string) =>
-      unwrap(
+    (v: FormValues, key: string) => {
+      const id = parseDriveFileId(v.link);
+      return unwrap(
         api.POST('/external-documents', {
           body: {
-            source: f.source.trim(),
-            number: f.number.trim(),
-            issuedAt: f.issuedAt,
-            title: f.title.trim(),
-            departmentId: f.departmentId,
-            ...(fileId ? { fileId } : { url: f.link.trim() }),
+            source: v.source.trim(),
+            number: v.number.trim(),
+            issuedAt: toISODate(v.issuedAt),
+            title: v.title.trim(),
+            departmentId: v.departmentId ?? '',
+            ...(id ? { fileId: id } : { url: v.link.trim() }),
           },
           ...idem(key),
         }),
-      ),
+      );
+    },
     { onSuccess: (r) => setJobId(r.jobId) },
   );
   return (
@@ -45,34 +52,53 @@ export default function ExternalDocumentPage() {
         {jobId ? (
           <JobProgress jobId={jobId} />
         ) : (
-          <form
-            className="form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (valid) save.mutate();
-            }}
+          <Form<FormValues>
+            form={form}
+            layout="vertical"
+            style={{ maxWidth: 640 }}
+            initialValues={{ source: '', number: '', issuedAt: null, title: '', departmentId: me.departmentId || undefined, link: '' }}
+            onFinish={(v) => save.mutate(v)}
           >
-            <TextField label="Cơ quan ban hành" value={f.source} onChange={set('source')} required placeholder="Quốc hội, Bộ Tài chính, Toyota…" />
-            <div className="form-row">
-              <TextField label="Số hiệu văn bản" value={f.number} onChange={set('number')} required placeholder="91/2025/QH15" />
-              <TextField label="Ngày ban hành" type="date" value={f.issuedAt} onChange={set('issuedAt')} required />
-            </div>
-            <TextField label="Tên văn bản" value={f.title} onChange={set('title')} required />
-            <DeptSelect label="Phòng áp dụng" value={f.departmentId} onChange={set('departmentId')} required />
-            <TextField
+            <Form.Item name="source" label="Cơ quan ban hành" rules={[{ required: true, whitespace: true, message: 'Nhập cơ quan ban hành.' }]}>
+              <Input placeholder="Quốc hội, Bộ Tài chính, Toyota…" />
+            </Form.Item>
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item name="number" label="Số hiệu văn bản" rules={[{ required: true, whitespace: true, message: 'Nhập số hiệu văn bản.' }]}>
+                  <Input placeholder="91/2025/QH15" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="issuedAt" label="Ngày ban hành" rules={[{ required: true, message: 'Chọn ngày ban hành.' }]}>
+                  <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="title" label="Tên văn bản" rules={[{ required: true, whitespace: true, message: 'Nhập tên văn bản.' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="departmentId" label="Phòng áp dụng" rules={[{ required: true, message: 'Chọn phòng áp dụng.' }]}>
+              <DeptSelectInput required />
+            </Form.Item>
+            <Form.Item
+              name="link"
               label="File trên Drive hoặc đường dẫn gốc"
-              value={f.link}
-              onChange={set('link')}
               required
-              hint={fileId ? 'Đã nhận ra file trên Google Drive.' : 'Dán link file Google Drive, hoặc link trang web của văn bản.'}
-            />
+              extra={fileId ? 'Đã nhận ra file trên Google Drive.' : 'Dán link file Google Drive, hoặc link trang web của văn bản.'}
+              rules={[
+                {
+                  validator: (_, v: string) =>
+                    parseDriveFileId(v ?? '') || isUrl(v ?? '') ? Promise.resolve() : Promise.reject(new Error('Dán link file Google Drive hoặc link trang web của văn bản.')),
+                },
+              ]}
+            >
+              <Input placeholder="https://drive.google.com/… hoặc https://…" />
+            </Form.Item>
             <ErrorBox error={save.error} />
-            <div className="form-actions">
-              <Button type="submit" variant="primary" disabled={!valid} loading={save.isPending}>
-                Nhập tài liệu
-              </Button>
-            </div>
-          </form>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              Nhập tài liệu
+            </Button>
+          </Form>
         )}
       </Card>
     </>

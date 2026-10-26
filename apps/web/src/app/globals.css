@@ -441,3 +441,4 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
 /* ── Bộ lọc danh sách (antd Form, Row/Col) ── */
 .vc-filters { margin-bottom: 12px; }
 .vc-filters .ant-form-item { margin-bottom: 8px; }
+.vc-check-list { display: flex; flex-direction: column; gap: 4px; }
