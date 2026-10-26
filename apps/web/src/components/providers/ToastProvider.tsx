@@ -1,9 +1,9 @@
 'use client';
 
+import { notification } from 'antd';
 import Link from 'next/link';
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
-type Toast = { id: number; kind: 'success' | 'error' | 'info'; text: string; href?: string; linkText?: string };
 type ToastApi = {
   success: (text: string, link?: { href: string; text: string }) => void;
   error: (text: string) => void;
@@ -13,43 +13,33 @@ type ToastApi = {
 const ToastContext = createContext<ToastApi | null>(null);
 let seq = 0;
 
+/** Thông báo nổi góc dưới phải (antd notification). Lỗi giữ lâu hơn để kịp đọc. */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<Toast[]>([]);
-  const remove = useCallback((id: number) => setItems((xs) => xs.filter((x) => x.id !== id)), []);
-  const push = useCallback(
-    (t: Omit<Toast, 'id'>) => {
-      const id = ++seq;
-      setItems((xs) => [...xs.slice(-3), { ...t, id }]);
-      setTimeout(() => remove(id), t.kind === 'error' ? 10_000 : 6_000);
-    },
-    [remove],
-  );
-  const api = useMemo<ToastApi>(
+  const [api, holder] = notification.useNotification({ placement: 'bottomRight', maxCount: 4, showProgress: true, pauseOnHover: true });
+  const value = useMemo<ToastApi>(
     () => ({
-      success: (text, link) => push({ kind: 'success', text, href: link?.href, linkText: link?.text }),
-      error: (text) => push({ kind: 'error', text }),
-      info: (text) => push({ kind: 'info', text }),
+      success: (text, link) => {
+        const key = `toast-${++seq}`;
+        api.success({
+          key,
+          title: text,
+          duration: 6,
+          description: link ? (
+            <Link href={link.href} onClick={() => api.destroy(key)}>
+              {link.text}
+            </Link>
+          ) : undefined,
+        });
+      },
+      error: (text) => api.error({ title: text, duration: 10 }),
+      info: (text) => api.info({ title: text, duration: 6 }),
     }),
-    [push],
+    [api],
   );
   return (
-    <ToastContext.Provider value={api}>
+    <ToastContext.Provider value={value}>
       {children}
-      <div className="toasts" role="status" aria-live="polite">
-        {items.map((t) => (
-          <div key={t.id} className={`toast toast-${t.kind}`}>
-            <span>{t.text}</span>
-            {t.href && (
-              <Link href={t.href} className="toast-link" onClick={() => remove(t.id)}>
-                {t.linkText ?? 'Mở'}
-              </Link>
-            )}
-            <button className="toast-close" aria-label="Đóng" onClick={() => remove(t.id)}>
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
+      {holder}
     </ToastContext.Provider>
   );
 }

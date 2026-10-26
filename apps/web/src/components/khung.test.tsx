@@ -9,6 +9,7 @@ import { makeJob, people } from '@/test/fixtures';
 import { rememberPeople } from '@/api/client';
 import { http, HttpResponse } from 'msw';
 import { API, server } from '@/test/server';
+import { chooseOption } from '@/test/antd';
 import { DataTable } from './DataTable';
 
 describe('ActionBar', () => {
@@ -78,10 +79,9 @@ describe('chọn người', () => {
     );
     const onChange = vi.fn();
     renderApp(<UserPicker label="Người soạn" value="" onChange={onChange} />, { roles: ['R6'] });
-    await userEvent.type(screen.getByRole('searchbox'), 'Lê');
-    const opt = await screen.findByRole('option', { name: /Lê Văn C/ });
+    await userEvent.type(screen.getByRole('combobox'), 'Lê');
+    await chooseOption(screen.getByRole('combobox'), /Lê Văn C/);
     expect(q).toBe('Lê');
-    await userEvent.selectOptions(screen.getByRole('combobox'), opt);
     expect(onChange).toHaveBeenCalledWith('6712f0c2a1b2c3d4e5f60799');
   });
 });

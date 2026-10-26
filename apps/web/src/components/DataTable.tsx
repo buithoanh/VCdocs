@@ -1,8 +1,10 @@
 'use client';
 
+import { Pagination as AntPagination, Table, type TableColumnsType } from 'antd';
 import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import type { ReactNode, TdHTMLAttributes } from 'react';
 import { formatNumber } from '@/lib/format';
+import { Empty } from './ui';
 
 export type Column<T> = {
   key: string;
@@ -13,9 +15,12 @@ export type Column<T> = {
   className?: string;
 };
 
+/** Bấm vào phần tử tương tác trong dòng thì không mở dòng. */
+const INTERACTIVE = 'a,button,input,select,textarea,label,[role="combobox"]';
+
 /**
- * Bảng theo HD-VCPV-02: dòng tiêu đề nền #13233A chữ trắng, dòng xen kẽ #FFFFFF / #E8EDF3.
- * Trên điện thoại mỗi dòng thành một thẻ (nhãn cột hiện bên trái).
+ * Bảng theo HD-VCPV-02 trên antd Table: dòng tiêu đề nền #13233A chữ trắng, dòng xen kẽ #FFFFFF / #E8EDF3.
+ * Trên điện thoại mỗi dòng thành một thẻ (nhãn cột hiện bên trái, lấy từ data-label).
  */
 export function DataTable<T>({
   columns,
@@ -33,64 +38,50 @@ export function DataTable<T>({
   caption?: string;
 }) {
   const router = useRouter();
-  if (!rows.length) return <p className="empty">{empty}</p>;
+  if (!rows.length) return <Empty>{empty}</Empty>;
+  const cols: TableColumnsType<T> = columns.map((c) => ({
+    key: c.key,
+    title: c.header,
+    className: [c.hideOnMobile ? 'hide-mobile' : '', c.className ?? ''].filter(Boolean).join(' ') || undefined,
+    render: (_: unknown, row: T) => c.render(row),
+    onCell: () => ({ 'data-label': c.header }) as TdHTMLAttributes<HTMLTableCellElement>,
+  }));
   return (
-    <div className="table-wrap">
-      <table className="vc-table">
-        {caption && <caption className="sr-only">{caption}</caption>}
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c.key} scope="col" className={`${c.hideOnMobile ? 'hide-mobile' : ''} ${c.className ?? ''}`}>
-                {c.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const href = rowHref?.(r);
-            return (
-              <tr
-                key={rowKey(r)}
-                className={href ? 'is-link' : undefined}
-                onClick={
-                  href
-                    ? (e) => {
-                        if ((e.target as HTMLElement).closest('a,button,input,select,textarea,label')) return;
-                        router.push(href);
-                      }
-                    : undefined
-                }
-              >
-                {columns.map((c) => (
-                  <td key={c.key} data-label={c.header} className={`${c.hideOnMobile ? 'hide-mobile' : ''} ${c.className ?? ''}`}>
-                    {c.render(r)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table<T>
+      className="vc-table"
+      size="small"
+      columns={cols}
+      dataSource={rows}
+      rowKey={rowKey}
+      pagination={false}
+      caption={caption ? <span className="sr-only">{caption}</span> : undefined}
+      rowClassName={(_, i) => (i % 2 ? 'vc-row-even' : 'vc-row-odd')}
+      onRow={(row) => {
+        const href = rowHref?.(row);
+        if (!href) return {};
+        return {
+          className: 'is-link',
+          onClick: (e) => {
+            if ((e.target as HTMLElement).closest(INTERACTIVE)) return;
+            router.push(href);
+          },
+        };
+      }}
+    />
   );
 }
 
 export function Pagination({ page, limit, total, onPage }: { page: number; limit: number; total: number; onPage: (p: number) => void }) {
-  const pages = Math.max(1, Math.ceil(total / limit));
   if (total <= limit) return total > 0 ? <p className="muted small">{formatNumber(total)} dòng</p> : null;
   return (
-    <nav className="pagination" aria-label="Phân trang">
-      <button className="btn btn-ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        ← Trước
-      </button>
-      <span>
-        Trang {page}/{pages} · {formatNumber(total)} dòng
-      </span>
-      <button className="btn btn-ghost" disabled={page >= pages} onClick={() => onPage(page + 1)}>
-        Sau →
-      </button>
-    </nav>
+    <AntPagination
+      className="pagination"
+      current={page}
+      pageSize={limit}
+      total={total}
+      onChange={onPage}
+      showSizeChanger={false}
+      showTotal={(t) => `${formatNumber(t)} dòng`}
+    />
   );
 }

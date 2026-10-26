@@ -7,21 +7,20 @@ import { RecordView } from './[id]/RecordView';
 import { renderApp } from '@/test/render';
 import { API, server } from '@/test/server';
 import { navigation } from '@/test/setup';
+import { chooseOption, findOption } from '@/test/antd';
 import { NewRecordForm } from './moi/NewRecordForm';
 
 async function fillBasics() {
-  await screen.findByRole('option', { name: /Báo cáo tuần SEO/ });
-  await userEvent.selectOptions(screen.getByLabelText(/^Loại hồ sơ/), ids.rtApproved);
-  await waitFor(() => expect(screen.getByRole('option', { name: /SEO-PTDA/ })).toBeInTheDocument());
-  await userEvent.selectOptions(screen.getByLabelText(/^Mã chức năng/), 'SEO-PTDA');
+  await chooseOption(await screen.findByLabelText(/^Loại hồ sơ/), /Báo cáo tuần SEO/);
+  await chooseOption(screen.getByLabelText(/^Mã chức năng/), /SEO-PTDA/);
   await userEvent.type(screen.getByLabelText(/^Nội dung ngắn/), 'Báo cáo tuần 42');
 }
 
 describe('lập hồ sơ', () => {
   it('loại hồ sơ chưa duyệt thời hạn không chọn được', async () => {
     renderApp(<NewRecordForm />);
-    const opt = await screen.findByRole('option', { name: /chưa duyệt thời hạn/ });
-    expect(opt).toBeDisabled();
+    const opt = await findOption(await screen.findByLabelText(/^Loại hồ sơ/), /chưa duyệt thời hạn/);
+    expect(opt).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('lập từ biểu mẫu: gửi POST /records kèm Idempotency-Key, theo dõi việc, xong thì mở hồ sơ', async () => {
@@ -100,7 +99,7 @@ describe('chi tiết hồ sơ', () => {
     const confirm = screen.getAllByRole('button', { name: 'Giữ lại' }).at(-1)!;
     await userEvent.type(screen.getByLabelText(/Diễn giải/), 'Khách khiếu nại hoá đơn');
     expect(confirm).toBeDisabled();
-    await userEvent.selectOptions(screen.getByLabelText(/^Lý do/), 'dispute');
+    await chooseOption(screen.getByLabelText(/^Lý do/), 'Tranh chấp');
     await userEvent.click(confirm);
     await waitFor(() => expect(body).toEqual({ reasonType: 'dispute', reason: 'Khách khiếu nại hoá đơn' }));
   });

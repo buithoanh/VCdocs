@@ -1,39 +1,129 @@
 'use client';
 
+import { ExportOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Button as AntButton,
+  Card as AntCard,
+  Descriptions,
+  Empty as AntEmpty,
+  Form,
+  Input,
+  Modal as AntModal,
+  Select,
+  Spin,
+  Tabs as AntTabs,
+  Tag,
+  Typography,
+  type ButtonProps as AntButtonProps,
+} from 'antd';
 import Link from 'next/link';
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useId, useRef, type MouseEvent, type MouseEventHandler, type ReactNode } from 'react';
 import { errorText } from '@/api/client';
-import { toneOf } from '@/lib/labels';
+import { toneOf, type Tone } from '@/lib/labels';
+
+/*
+ * Lớp component nền của VCworkspace, dựng trên Ant Design 6.
+ * Giữ tên export và props cũ để các trang không phải đổi cùng lúc;
+ * khi viết lại từng module thì dùng thẳng antd (Form, Table…) ở đó.
+ */
+
+/* ── Nút ── */
 
 type BtnVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
+type BtnSize = 'small' | 'middle' | 'large';
 
-export function Button({
-  variant = 'secondary',
-  loading,
-  children,
-  className = '',
-  ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; loading?: boolean }) {
+const VARIANT: Record<BtnVariant, Pick<AntButtonProps, 'type' | 'danger' | 'color' | 'variant'>> = {
+  primary: { type: 'primary' },
+  secondary: { type: 'default' },
+  danger: { type: 'primary', danger: true },
+  ghost: { type: 'link' },
+  success: { color: 'green', variant: 'solid' },
+};
+
+export type ButtonProps = {
+  variant?: BtnVariant;
+  loading?: boolean;
+  disabled?: boolean;
+  /** Mặc định `button` để không vô tình submit form. */
+  type?: 'button' | 'submit' | 'reset';
+  size?: BtnSize;
+  block?: boolean;
+  icon?: ReactNode;
+  className?: string;
+  children?: ReactNode;
+  title?: string;
+  id?: string;
+  form?: string;
+  autoFocus?: boolean;
+  onClick?: MouseEventHandler<HTMLElement>;
+  'aria-label'?: string;
+  'aria-expanded'?: boolean;
+  'aria-pressed'?: boolean;
+  'aria-controls'?: string;
+};
+
+export function Button({ variant = 'secondary', loading, className = '', type = 'button', size, block, ...rest }: ButtonProps) {
+  // Lớp cũ `btn-lg`, `btn-block` còn ở vài trang; đổi sang prop antd cho tới khi các trang được viết lại.
+  const classes = className.split(/\s+/).filter(Boolean);
+  const large = classes.includes('btn-lg');
+  const isBlock = block || classes.includes('btn-block');
+  const rest_cls = classes.filter((c) => c !== 'btn-lg' && c !== 'btn-block').join(' ');
   return (
-    <button
-      type="button"
-      {...rest}
-      disabled={rest.disabled || loading}
+    <AntButton
+      {...VARIANT[variant]}
+      htmlType={type}
+      loading={loading}
       aria-busy={loading || undefined}
-      className={`btn btn-${variant} ${className}`}
-    >
-      {loading ? 'Đang xử lý…' : children}
-    </button>
+      size={large ? 'large' : size}
+      block={isBlock}
+      className={rest_cls || undefined}
+      {...rest}
+    />
   );
 }
 
-export function LinkButton({ href, variant = 'secondary', children }: { href: string; variant?: BtnVariant; children: ReactNode }) {
+/** Nút dẫn tới trang khác; đường dẫn trong app điều hướng phía client, link ngoài mở tab mới. */
+export function LinkButton({
+  href,
+  variant = 'secondary',
+  children,
+  size,
+  className,
+  icon,
+}: {
+  href: string;
+  variant?: BtnVariant;
+  children: ReactNode;
+  size?: BtnSize;
+  className?: string;
+  icon?: ReactNode;
+}) {
+  const router = useRouter();
+  const external = /^https?:\/\//i.test(href);
+  function onClick(e: MouseEvent<HTMLElement>) {
+    if (external || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    router.push(href);
+  }
   return (
-    <Link href={href} className={`btn btn-${variant}`}>
+    <AntButton
+      {...VARIANT[variant]}
+      href={href}
+      size={size}
+      icon={icon}
+      className={className}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noreferrer' : undefined}
+      onClick={onClick}
+    >
       {children}
-    </Link>
+    </AntButton>
   );
 }
+
+/* ── Trang ── */
 
 export function PageHeader({ title, subtitle, actions, back }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
   return (
@@ -56,50 +146,61 @@ export function PageHeader({ title, subtitle, actions, back }: { title: ReactNod
 
 export function Card({ title, children, actions, className = '' }: { title?: ReactNode; children: ReactNode; actions?: ReactNode; className?: string }) {
   return (
-    <section className={`card ${className}`}>
-      {(title || actions) && (
-        <div className="card-head">
-          {title && <h2>{title}</h2>}
-          {actions && <div className="actions">{actions}</div>}
-        </div>
-      )}
+    <AntCard
+      className={`vc-card ${className}`.trim()}
+      title={title ? <h2 className="vc-card-title">{title}</h2> : undefined}
+      extra={actions ? <div className="actions">{actions}</div> : undefined}
+    >
       {children}
-    </section>
+    </AntCard>
   );
 }
 
+/* ── Trạng thái, thông báo ── */
+
+const TONE_COLOR: Record<Tone, string> = { green: 'success', amber: 'warning', red: 'error', blue: 'processing', grey: 'default' };
+
 export function Badge({ status, children }: { status?: string; children: ReactNode }) {
-  return <span className={`badge badge-${toneOf(status)}`}>{children}</span>;
+  return (
+    <Tag variant="filled" color={TONE_COLOR[toneOf(status)]} className="vc-badge">
+      {children}
+    </Tag>
+  );
 }
 
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   if (!error) return null;
   return (
-    <div className="alert alert-error" role="alert">
-      <span>{errorText(error)}</span>
-      {onRetry && (
-        <button className="btn btn-ghost" onClick={onRetry}>
-          Thử lại
-        </button>
-      )}
-    </div>
+    <Alert
+      type="error"
+      showIcon
+      className="vc-notice"
+      title={errorText(error)}
+      action={
+        onRetry && (
+          <AntButton size="small" onClick={onRetry}>
+            Thử lại
+          </AntButton>
+        )
+      }
+    />
   );
 }
 
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'success'; children: ReactNode }) {
-  return <div className={`alert alert-${tone}`}>{children}</div>;
+  return <Alert type={tone === 'warn' ? 'warning' : tone} showIcon className="vc-notice" title={children} />;
 }
 
 export function Loading({ text = 'Đang tải…' }: { text?: string }) {
   return (
-    <p className="loading" role="status">
-      <span className="spinner" aria-hidden /> {text}
-    </p>
+    <div className="loading" role="status">
+      <Spin size="small" /> <span>{text}</span>
+    </div>
   );
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="empty">{children}</p>;
+  return <AntEmpty className="vc-empty" image={AntEmpty.PRESENTED_IMAGE_SIMPLE} description={children} />;
 }
 
 /** Hiện trạng thái tải / lỗi / rỗng cho một truy vấn. */
@@ -110,17 +211,39 @@ export function QueryState({ q, empty, children }: { q: { isLoading: boolean; er
   return <>{children}</>;
 }
 
-export function Field({ label, hint, error, required, children, htmlFor }: { label: ReactNode; hint?: ReactNode; error?: string; required?: boolean; children: ReactNode; htmlFor?: string }) {
+/* ── Form ── */
+
+/** Ô nhập có nhãn, gợi ý và lỗi; dùng được với ô nhập thường (file, radio) hoặc antd. */
+export function Field({
+  label,
+  hint,
+  error,
+  required,
+  children,
+  htmlFor,
+  className = '',
+}: {
+  label: ReactNode;
+  hint?: ReactNode;
+  error?: string;
+  required?: boolean;
+  children: ReactNode;
+  htmlFor?: string;
+  className?: string;
+}) {
   return (
-    <div className={`field ${error ? 'has-error' : ''}`}>
-      <label htmlFor={htmlFor}>
-        {label}
-        {required && <span className="req"> *</span>}
-      </label>
+    <Form.Item
+      className={`vc-field ${className}`.trim()}
+      label={label}
+      htmlFor={htmlFor}
+      required={required}
+      layout="vertical"
+      validateStatus={error ? 'error' : undefined}
+      help={error}
+      extra={error ? undefined : hint}
+    >
       {children}
-      {hint && !error && <p className="hint">{hint}</p>}
-      {error && <p className="field-error">{error}</p>}
-    </div>
+    </Form.Item>
   );
 }
 
@@ -134,6 +257,8 @@ export function TextField({
   error,
   type = 'text',
   multiline,
+  min,
+  max,
   ...rest
 }: {
   label: ReactNode;
@@ -152,12 +277,13 @@ export function TextField({
   inputMode?: 'text' | 'numeric' | 'email';
 }) {
   const id = useId();
+  const status = error ? 'error' : undefined;
   return (
     <Field label={label} hint={hint} error={error} required={required} htmlFor={id}>
       {multiline ? (
-        <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required} rows={3} {...rest} />
+        <Input.TextArea id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required} rows={3} status={status} {...rest} />
       ) : (
-        <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...rest} />
+        <Input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} status={status} min={min} max={max} {...rest} />
       )}
     </Field>
   );
@@ -187,78 +313,84 @@ export function SelectField<T extends string>({
   const id = useId();
   return (
     <Field label={label} hint={hint} error={error} required={required} htmlFor={id}>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value as T | '')} required={required} disabled={disabled}>
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value} disabled={o.disabled}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <Select<T | ''>
+        id={id}
+        value={value || undefined}
+        onChange={(v) => onChange((v ?? '') as T | '')}
+        options={options}
+        placeholder={placeholder}
+        allowClear={!required}
+        disabled={disabled}
+        showSearch={options.length > 8}
+        optionFilterProp="label"
+        status={error ? 'error' : undefined}
+        style={{ width: '100%' }}
+      />
     </Field>
   );
 }
 
-export function Modal({ title, open, onClose, children, footer }: { title: ReactNode; open: boolean; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-  // Chỉ đặt con trỏ khi vừa mở; không chạy lại mỗi lần vẽ (sẽ cướp con trỏ khi đang gõ).
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
-    document.addEventListener('keydown', onKey);
-    const body = ref.current?.querySelector('.modal-body');
-    (body?.querySelector<HTMLElement>('input, textarea, select') ?? ref.current?.querySelector<HTMLElement>('.modal-foot button:last-child'))?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open]);
-  if (!open) return null;
+/* ── Hộp thoại ── */
+
+export function Modal({
+  title,
+  open,
+  onClose,
+  children,
+  footer,
+  width = 560,
+}: {
+  title: ReactNode;
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  width?: number;
+}) {
+  const bodyRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeRef.current()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} ref={ref}>
-        <div className="modal-head">
-          <h2>{title}</h2>
-          <button className="toast-close" aria-label="Đóng" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-foot">{footer}</div>}
+    <AntModal
+      title={title}
+      open={open}
+      onCancel={onClose}
+      footer={footer ?? null}
+      width={width}
+      destroyOnHidden
+      afterOpenChange={(opened) => {
+        // Đặt con trỏ vào ô nhập đầu tiên khi vừa mở; không chạy lại mỗi lần vẽ.
+        if (opened) bodyRef.current?.querySelector<HTMLElement>('input, textarea, select, [role="combobox"]')?.focus();
+      }}
+    >
+      <div ref={bodyRef} className="vc-modal-body">
+        {children}
       </div>
-    </div>
+    </AntModal>
   );
 }
 
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: { value: T; label: ReactNode }[] }) {
-  return (
-    <div className="tabs" role="tablist">
-      {tabs.map((t) => (
-        <button key={t.value} role="tab" aria-selected={t.value === value} className={`tab ${t.value === value ? 'is-active' : ''}`} onClick={() => onChange(t.value)}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
+  return <AntTabs className="vc-tabs" activeKey={value} onChange={(k) => onChange(k as T)} items={tabs.map((t) => ({ key: t.value, label: t.label }))} />;
 }
 
 export function DefList({ items }: { items: [ReactNode, ReactNode][] }) {
   return (
-    <dl className="deflist">
-      {items.map(([k, v], i) => (
-        <div key={i}>
-          <dt>{k}</dt>
-          <dd>{v ?? '—'}</dd>
-        </div>
-      ))}
-    </dl>
+    <Descriptions
+      className="vc-deflist"
+      size="small"
+      layout="vertical"
+      column={{ xs: 1, sm: 2, lg: 3 }}
+      items={items.map(([k, v], i) => ({ key: i, label: k, children: v ?? '—' }))}
+    />
   );
 }
 
 export function DriveLink({ fileId, children = 'Mở trên Drive' }: { fileId?: string; children?: ReactNode }) {
   if (!fileId) return null;
   return (
-    <a className="btn btn-secondary" href={`https://drive.google.com/open?id=${encodeURIComponent(fileId)}`} target="_blank" rel="noreferrer">
+    <AntButton href={`https://drive.google.com/open?id=${encodeURIComponent(fileId)}`} target="_blank" rel="noreferrer" icon={<ExportOutlined />}>
       {children}
-    </a>
+    </AntButton>
   );
 }
+
+export const Text = Typography.Text;
