@@ -37,6 +37,25 @@ export function todayISO(now = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** Hôm nay theo giờ Việt Nam (YYYY-MM-DD) – các mốc ngày làm việc cuối (BR-25) tính theo giờ này. */
+export function todayVN(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+/** 1536 → "1,5 KB" */
+export function formatBytes(n?: number | null): string {
+  if (n === undefined || n === null) return '—';
+  if (n < 1024) return `${formatNumber(n)} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(1).replace('.', ',')} ${units[i]}`;
+}
+
 export function currentMonth(now = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
 }

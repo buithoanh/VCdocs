@@ -13,6 +13,7 @@ import { ApproverPreview } from '@/components/ApproverPreview';
 import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, UserName } from '@/components/pickers';
 import { useToast } from '@/components/providers/ToastProvider';
+import { AuditTools } from '@/components/AuditTools';
 import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Field, LinkButton, Modal, Notice, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, formatMonth } from '@/lib/format';
 import { holdReasonLabel, recordKindLabel, recordStatusLabel, type HoldReasonType } from '@/lib/labels';
@@ -86,6 +87,7 @@ export function RecordView({ id }: { id: string }) {
               <DriveLink fileId={r.finalized?.pdfFileId}>Mở bản PDF đã chốt</DriveLink>
               {r.approvalId && <LinkButton href={`/phe-duyet/${r.approvalId}`}>Phiếu duyệt</LinkButton>}
               {r.fileId && hasAction(r, 'share') && <LinkButton href={`/chia-se/moi?fileId=${encodeURIComponent(r.fileId)}&ten=${encodeURIComponent(r.fileName ?? r.subject)}`}>Chia sẻ ra ngoài</LinkButton>}
+              <AuditTools target={{ recordId: r.id }} departmentId={r.departmentId} />
             </div>
           </Card>
           {r.finalized && <FinalizedCard r={r} />}
