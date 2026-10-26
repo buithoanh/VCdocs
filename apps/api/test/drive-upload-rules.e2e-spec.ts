@@ -115,4 +115,21 @@ describe('Drive: luật tải tệp và phiên bản', () => {
     expect((await client.patch(`/drive/items/${fresh.body.id}`, { name: 'o10-ten-moi.txt' })).status).toBe(200);
     expect((await client.post(`/drive/items/${old.body.id}/restore`, {})).status).toBe(200);
   });
+
+  it('O14: tải tệp và tạo thư mục chỉ vào thư mục cha cùng không gian, chưa bỏ thùng rác', async () => {
+    const { client, spaceId } = await manager();
+    const personal = (await client.get('/spaces')).body.items.find((item: any) => item.kind === 'personal');
+    const elsewhere = await client.post('/drive/folders', { spaceId: personal.id, name: 'o14-ca-nhan' });
+    const trashed = await client.post('/drive/folders', { spaceId, name: 'o14-da-bo' });
+    expect((await client.post(`/drive/items/${trashed.body.id}/trash`, {})).status).toBe(200);
+    const target = await client.post('/drive/folders', { spaceId, name: 'o14-dich' });
+    const file = { name: 'o14.txt', type: 'text/plain', content: Buffer.from('o14') };
+    for (const parentId of [elsewhere.body.id, trashed.body.id]) {
+      expect((await client.upload('/drive/files', { spaceId, parentId }, file)).status).toBe(404);
+      expect((await client.post('/drive/folders', { spaceId, parentId, name: 'o14-con' })).status).toBe(404);
+    }
+    expect(await t.db.m.WorkspaceDriveItem.countDocuments({ companyId: t.ids.companyId, name: { $in: ['o14.txt', 'o14-con'] } })).toBe(0);
+    expect((await client.upload('/drive/files', { spaceId, parentId: target.body.id }, file)).status).toBe(201);
+    expect((await client.post('/drive/folders', { spaceId, parentId: target.body.id, name: 'o14-con' })).status).toBe(201);
+  });
 });

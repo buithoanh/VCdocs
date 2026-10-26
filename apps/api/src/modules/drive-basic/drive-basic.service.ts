@@ -133,10 +133,15 @@ export class DriveBasicService {
     const space = await this.db.m.WorkspaceSpace.findOne({ _id: spaceId, companyId: this.cid(ctx) }).lean<any>();
     if (!space) throw Errors.notFound('Không tìm thấy không gian');
     if (!parentId) return space.rootStorageKey + '/' + leaf;
-    const parent = await this.db.m.WorkspaceDriveItem.findOne({ _id: parentId, companyId: this.cid(ctx),
-      spaceId: new Types.ObjectId(spaceId), kind: 'folder' }).lean<any>();
-    if (!parent) throw Errors.notFound('Không tìm thấy thư mục cha');
+    const parent = await this.activeParent(ctx, spaceId, parentId);
     return parent.storageKey + '/' + leaf;
+  }
+  /** Thư mục cha phải cùng không gian, là thư mục và chưa bỏ thùng rác. */
+  private async activeParent(ctx: Ctx, spaceId: string, parentId: string) {
+    const parent = Types.ObjectId.isValid(parentId) && await this.db.m.WorkspaceDriveItem.findOne({ _id: parentId, companyId: this.cid(ctx),
+      spaceId: new Types.ObjectId(spaceId), kind: 'folder', trashedAt: { $exists: false } }).lean<any>();
+    if (!parent) throw Errors.notFound('Không tìm thấy thư mục cha');
+    return parent;
   }
   private async assertNameAvailable(ctx: Ctx, spaceId: string, parentId: string | undefined, name: string, excludeId?: Types.ObjectId) {
     const exists = await this.db.m.WorkspaceDriveItem.exists({ companyId: this.cid(ctx),
@@ -171,6 +176,7 @@ export class DriveBasicService {
     if (!UPLOAD_MIME.includes(file.mimetype)) throw Errors.unsupportedMedia();
     const fingerprint = sha256([input.spaceId, input.parentId || '', file.originalname, file.mimetype,
       String(file.size), sha256(file.buffer), canonical(input.provenance ?? {})].join('|'));
+    if (input.parentId) await this.activeParent(ctx, input.spaceId, input.parentId);
     const attempt = await this.claimUpload(ctx, input.spaceId, key, fingerprint);
     if (attempt.done) return this.file(ctx, String(attempt.done));
     const { existing, leaseToken } = attempt;
