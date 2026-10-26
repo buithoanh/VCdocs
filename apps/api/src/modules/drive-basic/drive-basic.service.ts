@@ -17,6 +17,7 @@ import { canonical } from '../../audit/audit.service';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const UPLOAD_MIME = ['text/plain', 'application/octet-stream', DOCX, XLSX, PPTX, 'application/pdf'];
 type EditorTicket = { fileId: string; companyId: string; userId: string; email: string; exp: number; mode: 'edit' | 'view';
   purpose: 'content' | 'callback' };
 // Token API tự ký (cấu hình trình duyệt, converter) mang iss này; callback từ chối mọi token có iss này.
@@ -165,7 +166,7 @@ export class DriveBasicService {
     await this.assertManager(ctx, input.spaceId);
     if (!file) throw Errors.validation('Thiếu tệp');
     if (file.size > 10 * 1024 * 1024) throw Errors.tooLarge('Tệp Drive cơ bản tối đa 10 MiB');
-    if (!['text/plain', 'application/octet-stream', DOCX, XLSX, PPTX, 'application/pdf'].includes(file.mimetype)) throw Errors.unsupportedMedia();
+    if (!UPLOAD_MIME.includes(file.mimetype)) throw Errors.unsupportedMedia();
     const fingerprint = sha256([input.spaceId, input.parentId || '', file.originalname, file.mimetype,
       String(file.size), sha256(file.buffer), canonical(input.provenance ?? {})].join('|'));
     const existing = await this.db.m.UploadAttempt.findOne({ companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key }).lean<any>();
@@ -299,7 +300,10 @@ export class DriveBasicService {
     if (member.role !== 'manager') throw Errors.forbidden('Không gian này chỉ cho phép đọc');
     if (!file) throw Errors.validation('Thiếu tệp');
     if (file.size > 10 * 1024 * 1024) throw Errors.tooLarge('Tệp Drive tối đa 10 MiB');
-    if (!['text/plain', 'application/octet-stream', DOCX, 'application/pdf'].includes(file.mimetype)) throw Errors.unsupportedMedia();
+    // Phiên bản mới giữ đúng loại tệp: không đổi DOCX thành PDF, và gói Office phải hợp lệ như bản do editor lưu.
+    if (!UPLOAD_MIME.includes(file.mimetype) || file.mimetype !== row.mimeType) throw Errors.unsupportedMedia();
+    const kind = officeKind(file.mimetype, row.name);
+    if (kind && !validOfficePackage(file.buffer, kind)) throw Errors.validation('Gói Office không hợp lệ');
     const number = Number(row.versionNumber || 1) + 1;
     const key = await this.itemStorageKey(ctx, String(row.spaceId), undefined,
       `version-${fileId}-v${number}-${new Types.ObjectId().toHexString()}`);
