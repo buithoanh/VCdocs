@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Checkbox } from 'antd';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { api, unwrap } from '@/api/client';
@@ -24,10 +25,9 @@ export default function DriveMembersPage() {
   return (
     <>
       <PageHeader title={`Thành viên ${driveName(drives.data, id)}`} back={{ href: '/drive', label: 'Bộ nhớ dùng chung' }} />
-      <label className="checkbox">
-        <input type="checkbox" checked={onlyAnomalies} onChange={(e) => setOnly(e.target.checked)} />
+      <Checkbox checked={onlyAnomalies} onChange={(e) => setOnly(e.target.checked)} style={{ marginBottom: 12 }}>
         Chỉ hiện thành viên bất thường (lẻ, ngoài công ty)
-      </label>
+      </Checkbox>
       <QueryState q={q}>
         <DataTable
           rows={q.data ?? []}

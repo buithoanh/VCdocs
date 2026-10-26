@@ -204,15 +204,8 @@ p { margin: .4rem 0; }
 .list-item-head { display: flex; justify-content: space-between; gap: .5rem; align-items: flex-start; flex-wrap: wrap; }
 .list-item .actions { margin-top: .6rem; }
 
-/* ── Cây thư mục ── */
-.tree { list-style: none; margin: 0; padding-left: 0; }
-.tree .tree { padding-left: 1.1rem; border-left: 1px dashed var(--border); margin-left: .55rem; }
-.tree-row { display: flex; align-items: center; gap: .35rem; padding: .25rem .35rem; border-radius: 6px; }
-.tree-row.is-selected { background: var(--accent-soft); }
-.tree-toggle { width: 24px; height: 24px; border: 0; background: none; cursor: pointer; color: var(--muted); flex-shrink: 0; }
-.tree-name { background: none; border: 0; padding: 0; font: inherit; text-align: left; cursor: pointer; color: var(--text); }
-.layout-split { display: grid; grid-template-columns: minmax(260px, 1fr) 1.3fr; gap: 1rem; align-items: start; }
-@media (max-width: 900px) { .layout-split { grid-template-columns: 1fr; } }
+/* ── Cây thư mục (antd Tree) ── */
+.vc-tree .ant-tree-node-content-wrapper { white-space: normal; }
 
 /* ── Duyệt nhanh trên điện thoại ── */
 .sticky-decide { position: sticky; bottom: 0; background: var(--bg); padding: .75rem 0; display: flex; gap: .5rem; border-top: 1px solid var(--border); }
