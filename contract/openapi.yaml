@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 2.4.0-gd2
+  version: 2.6.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT), phạm vi giai đoạn 1:
@@ -1873,12 +1873,13 @@ paths:
     post:
       tags: [Email cơ bản]
       summary: Gửi thư nội bộ và chỉ trả thành công sau mail server ACK
+      description: SMTP envelope gồm To ∪ Cc ∪ Bcc; MIME có header To và Cc, không bao giờ có Bcc. Idempotency-Key bind cả Cc/Bcc; cùng key khác người nhận trả 409. Thành công trả bản "Đã gửi" của người gửi (có bcc).
       parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/Idempotency' }]
       requestBody:
         required: true
         content:
           application/json: { schema: { $ref: '#/components/schemas/MailCompose' } }
-          multipart/form-data: { schema: { type: object, required: [to, subject, text], properties: { to: { type: string, description: 'JSON array địa chỉ nội bộ' }, subject: { type: string }, text: { type: string }, html: { type: string }, draftId: { type: string }, inReplyTo: { type: string }, references: { type: string, description: 'JSON array Message-ID' }, attachments: { type: array, maxItems: 8, items: { type: string, format: binary } } } } }
+          multipart/form-data: { schema: { type: object, required: [to, subject, text], properties: { to: { type: string, description: 'JSON array địa chỉ nội bộ' }, cc: { type: string, description: 'JSON array địa chỉ nội bộ (Cc)' }, bcc: { type: string, description: 'JSON array địa chỉ nội bộ (Bcc, chỉ ở SMTP envelope)' }, subject: { type: string }, text: { type: string }, html: { type: string }, draftId: { type: string }, inReplyTo: { type: string }, references: { type: string, description: 'JSON array Message-ID' }, attachments: { type: array, maxItems: 8, items: { type: string, format: binary } } } } }
       responses:
         '201': { description: Mail server đã nhận, headers: { X-Audit-Id: { $ref: '#/components/headers/AuditId' } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessage' } } } }
         '400': { $ref: '#/components/responses/BadRequest' }
@@ -1891,6 +1892,24 @@ paths:
       parameters: [{ $ref: '#/components/parameters/IdPath' }, { name: mailbox, in: query, schema: { type: string, format: email }, description: 'Bắt buộc khi đọc shared mailbox' }]
       responses:
         '200': { description: MIME nguyên bản, content: { message/rfc822: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /mail/messages/{id}/body:
+    get:
+      tags: [Email cơ bản]
+      summary: Nội dung thư đã lọc an toàn để hiển thị trong khung đọc
+      description: |
+        Cùng quyền với `/raw`: thư không thuộc mailbox được đọc trả 404; `mailbox` là shared mailbox
+        thì cần quyền `read`. Server phân tích MIME gốc và **luôn lọc lại `html` bằng allowlist**
+        (kể cả thư đến không soạn trong app): bỏ script/style/iframe/svg/thuộc tính sự kiện, chỉ giữ
+        link http/https/mailto, không có ảnh (cả `cid:` lẫn ảnh từ xa). `hasRemoteContent` = thư gốc
+        có tài nguyên từ xa đã bị chặn. Không có `html` khi thư chỉ có chữ thuần hoặc HTML lọc xong rỗng.
+        Giới hạn: HTML gốc 2 MiB, HTML sau lọc 256 KiB, `text` 256 Ki ký tự, 100 tệp; vượt thì `truncated`.
+        `attachments[].part` là chỉ số dùng cho `/mail/messages/{messageId}/attachments/{part}/save-to-drive`.
+        Client phải hiển thị `html` trong iframe sandbox không có allow-scripts/allow-same-origin.
+      parameters: [{ $ref: '#/components/parameters/IdPath' }, { name: mailbox, in: query, schema: { type: string, format: email }, description: 'Bắt buộc khi đọc shared mailbox' }]
+      responses:
+        '200': { description: OK, headers: { Cache-Control: { schema: { type: string, const: 'private, no-store' } } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessageBody' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
   /mail/messages/{id}/labels:
     patch:
@@ -2089,11 +2108,14 @@ components:
   schemas:
     MailCompose:
       type: object
+      description: 'To/Cc/Bcc cùng luật địa chỉ nội bộ @vcworkspace.test; server bỏ trùng trong và giữa ba danh sách (ưu tiên To → Cc → Bcc); tổng sau bỏ trùng tối đa 50 (400). Gửi thư bắt buộc có ít nhất một địa chỉ To.'
       properties:
         to: { type: array, items: { type: string, format: email }, maxItems: 50 }
+        cc: { type: array, items: { type: string, format: email }, maxItems: 50, description: 'Hiện trong header Cc của mọi bản giao' }
+        bcc: { type: array, items: { type: string, format: email }, maxItems: 50, description: 'Chỉ nằm trong SMTP envelope; không bản giao nào có header Bcc' }
         subject: { type: string, maxLength: 300 }
-        text: { type: string }
-        html: { type: string }
+        text: { type: string, description: 'Bản văn bản thuần, luôn gửi kèm làm phương án dự phòng của html' }
+        html: { type: string, maxLength: 524288, description: 'Server lọc allowlist trước khi lưu/gửi: chỉ p, br, div, strong, b, em, i, u, s, ul, ol, li, blockquote, h2, h3, code, pre, a; bỏ nội dung script/style/iframe/object/svg/math/template; bỏ mọi thuộc tính trừ href của a (chỉ http, https, mailto) và tự thêm rel="noopener noreferrer" target="_blank"' }
         draftId: { $ref: '#/components/schemas/Id' }
         inReplyTo: { type: string }
         references: { type: array, items: { type: string } }
@@ -2113,6 +2135,8 @@ components:
         threadId: { type: string }
         from: { type: string, format: email }
         to: { type: array, items: { type: string, format: email } }
+        cc: { type: array, items: { type: string, format: email } }
+        bcc: { type: array, items: { type: string, format: email }, description: 'Chỉ có ở bản "Đã gửi" của mailbox người gửi; bản của người nhận không bao giờ có trường này' }
         subject: { type: string }
         sentAt: { $ref: '#/components/schemas/DateTime' }
         folder: { type: string }
@@ -2121,6 +2145,25 @@ components:
         inReplyTo: { type: string }
         preview: { type: string }
         attachmentCount: { type: integer, minimum: 0 }
+    MailMessageBody:
+      type: object
+      required: [text, hasRemoteContent, truncated, attachments]
+      properties:
+        text: { type: string, maxLength: 262144, description: 'Chữ thuần (dòng phân cách bằng \n); hiển thị như văn bản, không như HTML' }
+        html: { type: string, maxLength: 262144, description: 'HTML đã lọc allowlist phía server; chỉ hiển thị trong iframe sandbox' }
+        hasRemoteContent: { type: boolean, description: 'Thư gốc có ảnh/CSS/tài nguyên từ xa (đã bị loại)' }
+        truncated: { type: boolean, description: 'Có phần nội dung hoặc danh sách tệp bị cắt do vượt giới hạn' }
+        attachments:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            required: [part, filename, contentType, size]
+            properties:
+              part: { type: integer, minimum: 0 }
+              filename: { type: string, maxLength: 255 }
+              contentType: { type: string, maxLength: 255 }
+              size: { type: integer, minimum: 0 }
     MailLabel:
       type: object
       required: [id, ownerEmail, name, color, createdAt, updatedAt]

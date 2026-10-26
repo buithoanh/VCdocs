@@ -59,6 +59,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Push + PR `claude/mail-compose-cc-bcc-richtext` vào `dev` (chủ dự án tự chạy):** Cc/Bcc + soạn thư định dạng (2.5.0-gd2) và đọc nội dung thư an toàn trong khung đọc (`GET /mail/messages/{id}/body`, 2.6.0-gd2), full gate PASS local 2026-10-26; commit đọc nội dung nằm trên nhánh tạm `tmp-reader` (trên 29a0ef4), cần đẩy vào cùng nhánh PR #8. Còn cần xem UI trên trình duyệt và thử Stalwart thật (thư HTML từ client ngoài).
+
 - [ ] **Push và mở PR `vcworkspace/chat01-12b` vào `dev` (chủ dự án tự chạy):** đã commit đủ WIP chat01–12B; nội dung PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-chat01-12b.md`. PR gồm cả commit nghiên cứu b8c8b80.
 
 - [ ] **Audit bảo mật Cloudflare skill (quick, 2026-10-25): 12 đầu mối `needs_validation`, 0 confirmed** (không chạy mã vì máy không cưỡng chế được giới hạn bộ nhớ/tiến trình/đĩa). Báo cáo `docs/bao-mat/audit-cloudflare-2026-10-25.md`, chi tiết `...-needs-validation.md`, bản ghi `...-findings.json`; bản đầy đủ (ledger, prompt) ở `~/security-audit-skill/VCdocs/run-1/`. Ưu tiên: OIDC không kiểm tên miền email + hộp thư theo local-part; nhập tài liệu ngoài (service account copy fileId bất kỳ, SSRF theo redirect); quyền không gian Drive không thu hồi; callback ONLYOFFICE tin JWT trình duyệt; ai cũng tạo alias/hộp nhóm; production chấp nhận lifecycle giả. 7 vùng `deferred` chưa săn. Ngoài phạm vi: `.claude/settings.json` chưa chặn đọc `poc/*/secrets/**`.
@@ -261,6 +263,23 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-26 · Email: hiển thị an toàn nội dung thư trong khung đọc (OpenAPI 2.6.0-gd2)
+
+- Nhánh `tmp-reader` cắt từ `origin/claude/mail-compose-cc-bcc-richtext` (29a0ef4, PR #8), worktree `.claude/worktrees/agent-aa3522b43b9f25d02`; `pnpm install --offline --frozen-lockfile`. Chủ dự án giao thay đổi hợp đồng: thêm `GET /mail/messages/{id}/body` + schema `MailMessageBody`, ghi `contract/NGUON.md`, sinh lại `schema.d.ts`.
+- BE: `MailBasicService.body` dùng lại `raw` (cùng ACL/404, `?mailbox=` cần quyền `read`, 403 như raw), phân tích bằng `simpleParser`; `html` luôn lọc lại bằng allowlist `sanitizeHtml` (cả thư đến), không ảnh; `hasRemoteResources` (mới, htmlparser2) báo ảnh/CSS/media từ xa; giới hạn HTML gốc 2 MiB, text 256 Ki, 100 tệp → `truncated`; `attachments[].part` khớp save-to-drive. `Cache-Control: private, no-store`; không log nội dung.
+- FE `/email`: `MessageBody.tsx` thay khối "Thư đã được lưu an toàn"; HTML trong `<iframe sandbox="allow-popups allow-popups-to-escape-sandbox">` (không allow-scripts/allow-same-origin), `srcDoc` có CSP `default-src 'none'; style-src 'unsafe-inline'`, `<base target="_blank">`, style đọc, lọc lại bằng `cleanHtml`; chiều cao ước lượng theo độ dài chữ (260–900px, cuộn trong). Không có html → chữ thuần `white-space: pre-wrap` (React text). Danh sách tệp (tên/kích thước/loại) với nút "Lưu vào Drive" theo `part`, bỏ ô nhập số thứ tự/SHA-256 thủ công. Có trạng thái đang tải/lỗi + Thử lại; báo chặn nội dung từ xa/cắt bớt.
+- Test mới: `apps/api/test/mail-body.e2e-spec.ts` (4 ca: chủ thư/người khác 404, HTML độc hại script/onerror/javascript:/style/iframe/svg/form, chữ thuần không html, hộp nhóm read/manage-only/người ngoài), 1 ca `hasRemoteResources` trong `mail-html-sanitizer.spec.ts`, 3 ca FE (iframe sandbox + CSP + lưu Drive theo part, chữ thuần, lỗi + thử lại).
+- `pnpm ai:check:full` PASS: guard 44/44, OpenAPI hợp lệ (194 warning), API 367 pass/10 skip + độ phủ hợp đồng 149/149, FE 96/96, typecheck/build đạt. Chưa chạy: trình duyệt thật, Stalwart thật, thư HTML từ client mail ngoài. Không đọc `.env`, không gửi thư thật, không deploy/push.
+
+### 2026-10-25 · Soạn thư Email: Cc/Bcc + định dạng nội dung (OpenAPI 2.5.0-gd2)
+
+- Nhánh `claude/mail-compose-cc-bcc-richtext` (cắt từ `origin/main` a959120), worktree riêng `.claude/worktrees/agent-af0c92f95586cd73b`; `pnpm install --offline --frozen-lockfile`; thêm `htmlparser2@10.1.0` cho `@vcdocs/api` bằng `pnpm add --offline` (lockfile do pnpm sinh).
+- Hợp đồng (chủ dự án giao): `MailCompose` + form multipart thêm `cc`/`bcc`; `MailMessage` thêm `cc`, `bcc` (bcc chỉ ở bản "Đã gửi" của mailbox người gửi); mô tả allowlist `html` ≤ 512 KiB; ghi `contract/NGUON.md`, sinh lại `schema.d.ts`. Tương thích (chỉ thêm trường tuỳ chọn).
+- BE: To/Cc/Bcc cùng luật địa chỉ nội bộ, bỏ trùng giữa danh sách (To → Cc → Bcc), tổng ≤ 50, gửi vẫn bắt buộc có To; SMTP envelope = To ∪ Cc ∪ Bcc, MIME có `To`/`Cc`, **không bao giờ có `Bcc`** (kể cả bản Đã gửi; Bcc của người gửi chỉ lưu ở metadata Mongo); vân tay Idempotency có Cc/Bcc (chỉ thêm khoá khi có nên journal cũ giữ nguyên). Thay `sanitizeHtml` regex bằng allowlist dựng lại từ token htmlparser2 (`html-sanitizer.ts`; đóng phần sanitizer của O14). Nháp lưu/bỏ trùng Cc/Bcc. Hộp thư nhóm: người đọc hộp nhóm thấy bcc của thư hộp nhóm đã gửi (đó là bản Đã gửi của hộp nhóm).
+- FE `/email`: nút Cc/Bcc mở hai ô (phân cách phẩy/chấm phẩy, cả ô Đến); trình soạn `contentEditable` với thanh công cụ (đậm, nghiêng, gạch dưới, gạch ngang, danh sách chấm/số, trích dẫn, link chỉ http/https/mailto, xoá định dạng), Ctrl/Cmd+B/I/U, dán chỉ giữ allowlist; gửi `html` (đã lọc) + `text` thuần cùng nội dung; khung đọc hiện Cc (và Bcc trên bản Đã gửi), vẫn không render HTML thư. Không thêm dependency FE.
+- Kiểm: `pnpm ai:check:full` **PASS** — guard 44/44, contract lint OK, BE 362 pass/10 skip (50 suite, 40 chạy), độ phủ hợp đồng 148/148, FE 93/93 (16 file), typecheck + build đạt. Test mới: `apps/api/test/mail-cc-bcc.e2e-spec.ts` (6), `apps/api/test/mail-html-sanitizer.spec.ts` (34), FE `email.test.tsx` +5. Không sửa assertion cũ.
+- Chưa kiểm: giao diện trên trình duyệt thật (preview dùng `launch.json` của checkout chính nên không tự dựng được), Stalwart thật với Cc/Bcc (chỉ chạy fake port; code Stalwart không đổi, RCPT TO vốn lặp theo envelope). Chưa push, chưa PR.
 
 ### 2026-10-25 · Chat17 Talk nhỏ — LOCAL PASS (container + Chrome headless)
 

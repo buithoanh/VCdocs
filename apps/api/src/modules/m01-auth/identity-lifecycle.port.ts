@@ -16,11 +16,13 @@ export class FakeIdentityLifecyclePort implements IdentityLifecyclePort {
   nextcloud = new Map<string, any>();
   failNext?: 'authentik' | 'nextcloud';
   holdNextMs?: number;
+  /** Test gọi khi bước Authentik bắt đầu bị giữ, để xếp thứ tự request không phụ thuộc giờ máy. */
+  onHold?: () => void;
   private apply(target: 'authentik' | 'nextcloud', desired: IdentityProjection) {
     if (this.failNext === target) { this.failNext = undefined; throw new Error(`${target.toUpperCase()}_UNAVAILABLE`); }
     this[target].set(desired.subject, { subject: desired.subject, email: desired.email, groups: [...desired.groups].sort(), active: desired.active });
   }
-  async applyAuthentik(desired: IdentityProjection) { if (this.holdNextMs) { const ms = this.holdNextMs; this.holdNextMs = undefined; await new Promise((resolve) => setTimeout(resolve, ms)); } this.apply('authentik', desired); }
+  async applyAuthentik(desired: IdentityProjection) { if (this.holdNextMs) { const ms = this.holdNextMs; this.holdNextMs = undefined; this.onHold?.(); this.onHold = undefined; await new Promise((resolve) => setTimeout(resolve, ms)); } this.apply('authentik', desired); }
   async readAuthentik(subject: string) { const row = this.authentik.get(subject); if (!row) throw new Error('AUTHENTIK_READBACK_MISSING'); return row; }
   async applyNextcloud(desired: IdentityProjection) { this.apply('nextcloud', desired); }
   async readNextcloud(subject: string) { const row = this.nextcloud.get(subject); if (!row) throw new Error('NEXTCLOUD_READBACK_MISSING'); return row; }
