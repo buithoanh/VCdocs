@@ -1,0 +1,7 @@
+# Chat19: local CPU-only alias of the single approved model (no new download;
+# `ollama create` reuses the pulled blob). num_gpu 0 = no Metal/GPU offload, so
+# every Nextcloud request through the OpenAI-compatible /v1 API runs on CPU.
+FROM qwen3:4b-instruct-2507-q4_K_M
+PARAMETER num_gpu 0
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.2

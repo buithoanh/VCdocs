@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-10-25T14:17:55.829Z",
+  "/index.php/apps/assistant/": {
+    "status": 200,
+    "imgSrc": "'self' data: blob: https://*.tile.openstreetmap.org",
+    "connectSrc": "'self' blob:",
+    "thirdPartyImageOrigins": [
+      "https://*.tile.openstreetmap.org"
+    ],
+    "arbitraryExternalImagesBlocked": true
+  },
+  "/index.php/apps/spreed/": {
+    "status": 200,
+    "imgSrc": "'self' data: blob: https://*.tile.openstreetmap.org",
+    "connectSrc": "'self' blob:",
+    "thirdPartyImageOrigins": [
+      "https://*.tile.openstreetmap.org"
+    ],
+    "arbitraryExternalImagesBlocked": true
+  },
+  "/index.php/apps/files/": {
+    "status": 200,
+    "imgSrc": "'self' data: blob: https://*.tile.openstreetmap.org",
+    "connectSrc": "'self' blob:",
+    "thirdPartyImageOrigins": [
+      "https://*.tile.openstreetmap.org"
+    ],
+    "arbitraryExternalImagesBlocked": true
+  },
+  "secretsIncluded": false
+}

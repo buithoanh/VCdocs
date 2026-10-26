@@ -33,9 +33,10 @@ export function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
 }
 
-export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageId: string; mailbox: string; onSaveAttachment: (attachment: MailBodyAttachment) => void }) {
+/** Truy vấn nội dung đã lọc; dùng chung cho khung đọc và khi soạn trả lời (cùng cache). */
+export function mailBodyQuery(messageId: string, mailbox: string) {
   const query = mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : '';
-  const body = useQuery({
+  return {
     queryKey: ['mail-body', messageId, mailbox],
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/mail/messages/${messageId}/body${query}`, { credentials: 'same-origin' });
@@ -43,7 +44,11 @@ export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageI
       return response.json() as Promise<MailBody>;
     },
     retry: false,
-  });
+  } as const;
+}
+
+export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageId: string; mailbox: string; onSaveAttachment: (attachment: MailBodyAttachment) => void }) {
+  const body = useQuery(mailBodyQuery(messageId, mailbox));
   if (body.isLoading) return <div className="mail-state mail-body-state"><span className="spinner"/>Đang tải nội dung thư…</div>;
   if (body.error || !body.data) return <div className="mail-state mail-body-state is-error" role="alert"><p>Không tải được nội dung thư.</p><button className="btn btn-secondary" type="button" onClick={() => void body.refetch()}>Thử lại</button></div>;
   const { html, text, hasRemoteContent, truncated, attachments } = body.data;
