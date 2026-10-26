@@ -7,6 +7,7 @@ import { renderApp } from '@/test/render';
 import { API, server } from '@/test/server';
 import { chooseOption, findOption, selectedText } from '@/test/antd';
 import { DocumentView } from './[id]/DocumentView';
+import { drivePreviewUrl } from './[id]/FilePreview';
 import RegisterDocumentPage from './dang-ky/page';
 import { validateDocumentRegistration } from './dang-ky/validate';
 import { parseDriveFileId } from '@/lib/drive';
@@ -51,6 +52,28 @@ describe('chi tiết tài liệu', () => {
     renderApp(<DocumentView id={ids.doc} />, { roles: ['R3'] });
     expect(await screen.findByRole('button', { name: 'Ban hành' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Trình duyệt' })).toBeNull();
+  });
+});
+
+describe('xem file trong VCworkspace', () => {
+  it('nhúng khung xem file gốc ngay trong trang chi tiết', async () => {
+    renderApp(<DocumentView id={ids.doc} />, { roles: ['R4'] });
+    const frame = await screen.findByTitle('Xem file gốc');
+    expect(frame).toHaveAttribute('src', 'https://drive.google.com/file/d/file-abc/preview');
+    expect(frame).toHaveAttribute('referrerpolicy', 'no-referrer');
+  });
+
+  it('có bản PDF thì xem PDF trước, chuyển được sang file gốc', async () => {
+    server.use(http.get(`${API}/documents/:id`, () => HttpResponse.json({ ...doc, current: { number: 1, fileId: 'file-v1', pdfFileId: 'pdf-v1' } })));
+    renderApp(<DocumentView id={ids.doc} />, { roles: ['R4'] });
+    expect(await screen.findByTitle('Xem bản pdf')).toHaveAttribute('src', 'https://drive.google.com/file/d/pdf-v1/preview');
+    await userEvent.click(screen.getByText('File gốc'));
+    expect(await screen.findByTitle('Xem file gốc')).toHaveAttribute('src', 'https://drive.google.com/file/d/file-v1/preview');
+  });
+
+  it('mã file lạ không được ghép vào URL nhúng', () => {
+    expect(drivePreviewUrl('abc/../../x?y=1')).toBeUndefined();
+    expect(drivePreviewUrl('1AbC_d-E')).toBe('https://drive.google.com/file/d/1AbC_d-E/preview');
   });
 });
 

@@ -18,6 +18,7 @@ import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Notice, PageHeader, 
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
 import { hasAction } from '@/lib/permissions';
+import { FilePreview } from './FilePreview';
 
 type Dialog = 'feedback' | 'submit' | 'issue' | 'revise' | 'withdraw' | 'review' | null;
 
@@ -110,6 +111,7 @@ export function DocumentView({ id }: { id: string }) {
               )}
             </div>
           </Card>
+          <FilePreview fileId={d.current?.fileId ?? d.fileId} pdfFileId={d.current?.pdfFileId} />
           {d.type === 'EXT' && <ExternalCard doc={d} />}
           {showFeedback && hasAction(d, 'feedback') && <OpenCommentsCard id={id} />}
           {hasAction(d, 'integrity') && <IntegrityCard id={id} lockedAt={d.lock?.lockedAt} />}
