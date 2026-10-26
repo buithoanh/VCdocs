@@ -1,16 +1,15 @@
 import { AppConfig } from '../../config/config';
 import { Errors } from '../../common/errors';
 import { sha256 } from '../../common/util';
+import { checkServiceUrl } from '../../common/service-url';
 import { StorageActor, StoredObject, WorkspaceStoragePort } from './storage.port';
 
 const encodePath = (path: string) => path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
 export class NextcloudWorkspaceStorage implements WorkspaceStoragePort {
-  constructor(private readonly cfg: AppConfig['workspaceStorage']) {
-    const url = new URL(cfg.baseUrl || '');
-    if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '::1'].includes(url.hostname)) {
-      throw new Error('Nextcloud thử chỉ được dùng HTTP loopback');
-    }
+  /** Production bắt buộc https; ngoài production còn nhận http loopback (PoC/test). Basic auth không đi qua http mạng. */
+  constructor(private readonly cfg: AppConfig['workspaceStorage'], opts: { production: boolean }) {
+    checkServiceUrl('WORKSPACE_STORAGE_BASE_URL', cfg.baseUrl, { production: opts.production });
   }
   private credential(actor: StorageActor) {
     const credential = this.cfg.credentials[actor.email.toLowerCase()];

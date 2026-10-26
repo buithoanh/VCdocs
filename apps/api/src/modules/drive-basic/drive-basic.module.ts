@@ -11,7 +11,7 @@ import { disabledPort } from '../../common/workspace-modules';
   providers: [DriveBasicService, FakeWorkspaceStorage,
     { provide: WORKSPACE_STORAGE, inject: [APP_CONFIG, FakeWorkspaceStorage],
       useFactory: (cfg: AppConfig, fake: FakeWorkspaceStorage) => cfg.workspaceStorage.mode === 'nextcloud'
-        ? new NextcloudWorkspaceStorage(cfg.workspaceStorage)
+        ? new NextcloudWorkspaceStorage(cfg.workspaceStorage, { production: cfg.nodeEnv === 'production' })
         : cfg.workspaceStorage.mode === 'disabled' ? disabledPort<WorkspaceStoragePort>('drive') : fake }],
   exports: [DriveBasicService],
 })

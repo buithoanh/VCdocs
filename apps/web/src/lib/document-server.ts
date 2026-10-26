@@ -7,11 +7,36 @@
  * next.config.ts đọc cùng biến để dựng Content-Security-Policy.
  */
 const DEV_ORIGINS = ['http://127.0.0.1:18082', 'http://localhost:18082'];
+const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
 
-export function documentServerOrigins(): string[] {
-  const raw = process.env.NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS;
-  if (raw === undefined) return process.env.NODE_ENV === 'production' ? [] : DEV_ORIGINS;
-  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+function declaredOrigins(): string[] {
+  return (process.env.NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+/** Bản build production chỉ nhận https (trang chạy https; http lộ JWT cấu hình), trừ http loopback cho QA local. */
+function secureForProduction(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.protocol === 'https:' || (url.protocol === 'http:' && LOOPBACK.includes(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
+const isProduction = () => process.env.NODE_ENV === 'production';
+
+/**
+ * Origin khai báo nhưng bị bỏ ở production; next.config.ts dừng build nếu danh sách không rỗng.
+ * next.config.ts truyền `production` theo phase vì lúc nạp config NODE_ENV có thể chưa được đặt.
+ */
+export function insecureDocumentServerOrigins(production = isProduction()): string[] {
+  return production ? declaredOrigins().filter((o) => !secureForProduction(o)) : [];
+}
+
+export function documentServerOrigins(production = isProduction()): string[] {
+  if (process.env.NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS === undefined) return production ? [] : DEV_ORIGINS;
+  const insecure = insecureDocumentServerOrigins(production);
+  return declaredOrigins().filter((o) => !insecure.includes(o));
 }
 
 /** Trả base URL đã chuẩn hoá (bỏ `/` cuối) nếu origin nằm trong danh sách, ngược lại `null`. */

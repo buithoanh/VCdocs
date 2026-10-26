@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { checkServiceUrl } from '../common/service-url';
 
 /** Cấu hình đọc từ biến môi trường (.env). Không ghi khoá thật vào mã nguồn. */
 export interface AppConfig {
@@ -236,6 +237,20 @@ export function loadDotEnv(): void {
 
 const DEFAULT_EDITOR_SECRET = 'vcworkspace-test-editor-secret';
 
+/**
+ * ONLYOFFICE production: trình duyệt nạp api.js từ origin công khai nên bắt buộc https (trang web
+ * chạy https, http bị chặn mixed content và lộ JWT cấu hình). Hai origin còn lại đi trong mạng nội bộ
+ * nên nhận thêm http tới tên dịch vụ Docker một nhãn; không được rơi về giá trị PoC mặc định.
+ */
+function validateEditorOrigins(e: AppConfig['documentEditor'], env: NodeJS.ProcessEnv) {
+  if (!env.DOCUMENT_EDITOR_PUBLIC_ORIGIN || !env.DOCUMENT_EDITOR_INTERNAL_ORIGIN) {
+    throw new Error('DOCUMENT_EDITOR_PUBLIC_ORIGIN và DOCUMENT_EDITOR_INTERNAL_ORIGIN bắt buộc khi bật trình soạn thảo ở production');
+  }
+  checkServiceUrl('DOCUMENT_EDITOR_PUBLIC_ORIGIN', e.publicOrigin, { production: true });
+  checkServiceUrl('DOCUMENT_EDITOR_INTERNAL_ORIGIN', e.internalOrigin, { production: true, internalHttp: true });
+  checkServiceUrl('DOCUMENT_EDITOR_API_ORIGIN', e.apiOriginForEditor, { production: true, internalHttp: true });
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AppConfig> = {}): AppConfig {
   const nodeEnv = env.NODE_ENV || 'development';
   const googleMode = (env.GOOGLE_MODE || 'fake') as 'fake' | 'real';
@@ -376,6 +391,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
   if (!['fake', 'stalwart', 'disabled'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake, stalwart hoặc disabled');
   // Trình soạn thảo đọc/ghi tệp qua kho Drive; kho tắt thì editor không có gì để mở.
   if (cfg.documentEditor.enabled && cfg.workspaceStorage.mode === 'disabled') throw new Error('DOCUMENT_EDITOR_ENABLED cần WORKSPACE_STORAGE_MODE khác disabled');
+  if (cfg.workspaceStorage.mode === 'nextcloud') {
+    checkServiceUrl('WORKSPACE_STORAGE_BASE_URL', cfg.workspaceStorage.baseUrl, { production: cfg.nodeEnv === 'production' });
+  }
   validateFlowConfig(cfg.flow, cfg.nodeEnv);
   if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
   if (cfg.nodeEnv === 'production') {
@@ -387,6 +405,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     if (cfg.documentEditor.enabled && (cfg.documentEditor.jwtSecret === DEFAULT_EDITOR_SECRET || Buffer.byteLength(cfg.documentEditor.jwtSecret) < 32)) {
       throw new Error('DOCUMENT_EDITOR_JWT_SECRET phải đặt riêng, tối thiểu 32 byte ở production');
     }
+    if (cfg.documentEditor.enabled) validateEditorOrigins(cfg.documentEditor, env);
   }
   return cfg;
 }
