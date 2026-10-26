@@ -140,6 +140,12 @@ export class AuthController {
         return this.fail(res, 'locked');
       }
     }
+    // Review O15: email mới đã thuộc user khác thì không tự gộp hay ghi đè (unique index từng trả 500); admin xử lý tường minh.
+    if (trustedEmail !== user.email && await this.db.m.User.exists({ companyId: cid, email: trustedEmail, _id: { $ne: user._id } })) {
+      this.log.warn(`OIDC login bị chặn: email mới của subject ${claims.sub} đã thuộc user khác`);
+      await this.audit.write({ companyId, userId: String(user._id), email: user.email, requestId: ctx.requestId, ip: ctx.ip, device: ctx.device }, { action: 'auth.oidc.email_conflict', objectType: 'user', objectId: String(user._id), after: { subject: claims.sub } });
+      return this.fail(res, 'identity');
+    }
     await this.db.m.User.updateOne({ _id: user._id, companyId: cid }, { $set: { email: trustedEmail, name: claims.name || user.name, systemRoles: roles, lastLoginAt: new Date(), isSuspended: false } });
     await this.db.m.OidcIdentity.updateOne({ _id: binding._id, companyId: cid }, { $set: { email: trustedEmail, groups: Array.isArray(claims.groups) ? claims.groups : [], lastSeenAt: new Date() } });
     // Audit 7/12: user mới hoặc email vừa đổi lấy lại địa chỉ mail đang bị alias/hộp thư nhóm giữ.
