@@ -1,7 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Alert, Button, Spin } from 'antd';
 import { API_BASE } from '@/api/client';
+import { ErrorBox } from '@/components/ui';
 import { cleanHtml } from './rich-text';
 
 export type MailBodyAttachment = { part: number; filename: string; contentType: string; size: number };
@@ -44,12 +46,12 @@ export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageI
     },
     retry: false,
   });
-  if (body.isLoading) return <div className="mail-state mail-body-state"><span className="spinner"/>Đang tải nội dung thư…</div>;
-  if (body.error || !body.data) return <div className="mail-state mail-body-state is-error" role="alert"><p>Không tải được nội dung thư.</p><button className="btn btn-secondary" type="button" onClick={() => void body.refetch()}>Thử lại</button></div>;
+  if (body.isLoading) return <div className="mail-state mail-body-state"><Spin size="small" /> Đang tải nội dung thư…</div>;
+  if (body.error || !body.data) return <div className="mail-body-state"><ErrorBox error={new Error('Không tải được nội dung thư.')} onRetry={() => void body.refetch()} /></div>;
   const { html, text, hasRemoteContent, truncated, attachments } = body.data;
   return <div className="mail-body">
-    {hasRemoteContent && <p className="mail-body-note">Đã chặn hình ảnh và nội dung tải từ bên ngoài để bảo vệ bạn.</p>}
-    {truncated && <p className="mail-body-note">Thư quá dài nên chỉ hiển thị một phần. Tải MIME để xem đầy đủ.</p>}
+    {hasRemoteContent && <Alert type="warning" showIcon title="Đã chặn hình ảnh và nội dung tải từ bên ngoài để bảo vệ bạn." />}
+    {truncated && <Alert type="warning" showIcon title="Thư quá dài nên chỉ hiển thị một phần. Tải MIME để xem đầy đủ." />}
     {html
       ? <iframe className="mail-body-frame" title="Nội dung thư" sandbox={READER_SANDBOX} referrerPolicy="no-referrer" srcDoc={readerDocument(html)} style={{ height: readerHeight(text) }}/>
       : text.trim() ? <div className="mail-body-text">{text}</div> : <p className="mail-body-empty">(Thư không có nội dung chữ)</p>}
@@ -57,7 +59,7 @@ export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageI
       <h3>{attachments.length} tệp đính kèm</h3>
       <ul>{attachments.map((item) => <li key={item.part}>
         <span className="mail-body-file"><strong>{item.filename}</strong><small>{formatSize(item.size)} · {item.contentType}</small></span>
-        <button type="button" onClick={() => onSaveAttachment(item)} aria-label={`Lưu ${item.filename} vào Drive`}>Lưu vào Drive</button>
+        <Button size="small" onClick={() => onSaveAttachment(item)} aria-label={`Lưu ${item.filename} vào Drive`}>Lưu vào Drive</Button>
       </li>)}</ul>
     </section>}
   </div>;

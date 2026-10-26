@@ -1,5 +1,7 @@
 'use client';
 
+import { BoldOutlined, ClearOutlined, ItalicOutlined, LinkOutlined, OrderedListOutlined, StrikethroughOutlined, UnderlineOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { cleanHtml, safeLinkUrl, textToHtml } from './rich-text';
 
@@ -134,15 +136,15 @@ export function RichTextEditor({ value, onChange, onError, label, placeholder }:
   }
 
   const tools: Tool[] = [
-    { key: 'bold', label: 'Đậm', shortcut: 'Ctrl+B', icon: <strong>B</strong>, run: () => applyMark('bold') },
-    { key: 'italic', label: 'Nghiêng', shortcut: 'Ctrl+I', icon: <em>I</em>, run: () => applyMark('italic') },
-    { key: 'underline', label: 'Gạch dưới', shortcut: 'Ctrl+U', icon: <u>U</u>, run: () => applyMark('underline') },
-    { key: 'strike', label: 'Gạch ngang', icon: <s>S</s>, run: () => applyMark('strike') },
-    { key: 'ul', label: 'Danh sách dấu đầu dòng', icon: <svg className="mail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>, run: () => applyBlock('ul') },
-    { key: 'ol', label: 'Danh sách đánh số', icon: <svg className="mail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5h1.5v4M3.5 9h3M3.5 14.5a1.5 1.5 0 0 1 3 .5L3.5 19h3"/></svg>, run: () => applyBlock('ol') },
+    { key: 'bold', label: 'Đậm', shortcut: 'Ctrl+B', icon: <BoldOutlined aria-hidden />, run: () => applyMark('bold') },
+    { key: 'italic', label: 'Nghiêng', shortcut: 'Ctrl+I', icon: <ItalicOutlined aria-hidden />, run: () => applyMark('italic') },
+    { key: 'underline', label: 'Gạch dưới', shortcut: 'Ctrl+U', icon: <UnderlineOutlined aria-hidden />, run: () => applyMark('underline') },
+    { key: 'strike', label: 'Gạch ngang', icon: <StrikethroughOutlined aria-hidden />, run: () => applyMark('strike') },
+    { key: 'ul', label: 'Danh sách dấu đầu dòng', icon: <UnorderedListOutlined aria-hidden />, run: () => applyBlock('ul') },
+    { key: 'ol', label: 'Danh sách đánh số', icon: <OrderedListOutlined aria-hidden />, run: () => applyBlock('ol') },
     { key: 'quote', label: 'Trích dẫn', icon: <svg className="mail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h3l2-4V7H5v6h3zM14 17h3l2-4V7h-6v6h3z"/></svg>, run: () => applyBlock('blockquote') },
-    { key: 'link', label: 'Chèn liên kết', icon: <svg className="mail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>, run: insertLink },
-    { key: 'clear', label: 'Xoá định dạng', icon: <svg className="mail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4l-3 16"/><path d="m15 15 6 6M21 15l-6 6"/></svg>, run: clearFormatting },
+    { key: 'link', label: 'Chèn liên kết', icon: <LinkOutlined aria-hidden />, run: insertLink },
+    { key: 'clear', label: 'Xoá định dạng', icon: <ClearOutlined aria-hidden />, run: clearFormatting },
   ];
 
   function onEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -174,9 +176,20 @@ export function RichTextEditor({ value, onChange, onError, label, placeholder }:
 
   return <div className="mail-editor-wrap">
     <div className="mail-editor-toolbar" role="toolbar" aria-label="Định dạng nội dung" onKeyDown={onToolbarKeyDown}>
-      {tools.map((tool, index) => <button key={tool.key} type="button" className="mail-editor-tool" aria-label={tool.label}
-        title={tool.shortcut ? `${tool.label} (${tool.shortcut})` : tool.label} tabIndex={index === focusIndex ? 0 : -1}
-        onMouseDown={(event) => event.preventDefault()} onFocus={() => setFocusIndex(index)} onClick={tool.run}>{tool.icon}</button>)}
+      {tools.map((tool, index) => (
+        <Button
+          key={tool.key}
+          type="text"
+          size="small"
+          icon={tool.icon}
+          aria-label={tool.label}
+          title={tool.shortcut ? `${tool.label} (${tool.shortcut})` : tool.label}
+          tabIndex={index === focusIndex ? 0 : -1}
+          onMouseDown={(event) => event.preventDefault()}
+          onFocus={() => setFocusIndex(index)}
+          onClick={tool.run}
+        />
+      ))}
     </div>
     <div ref={root} className="mail-editor" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label={label}
       data-placeholder={placeholder} tabIndex={0} onInput={() => { remember(); emit(); }} onKeyDown={onEditorKeyDown}
