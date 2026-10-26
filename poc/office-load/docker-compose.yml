@@ -1,0 +1,47 @@
+# Đo tải engine soạn thảo: ONLYOFFICE Docs CE 9.4 và Nextcloud Office (Euro-Office) 9.3.7.
+# Chạy từng engine một (profile), cùng giới hạn CPU/RAM, cùng nền amd64 qua giả lập
+# để so sánh công bằng. Chỉ publish loopback. Khoá JWT thử nằm ngoài repo:
+#   OFFICE_LOAD_SECRETS_DIR=<thư mục chứa onlyoffice.env, eurooffice.env>
+name: vcworkspace-office-load
+
+x-limits: &limits
+  platform: linux/amd64
+  cpus: ${OFFICE_LOAD_CPUS:-4}
+  mem_limit: ${OFFICE_LOAD_MEM:-4g}
+  shm_size: 1gb
+  restart: "no"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  onlyoffice:
+    <<: *limits
+    profiles: ["onlyoffice"]
+    image: onlyoffice/documentserver:9.4.0.1
+    container_name: vcworkspace-office-load-onlyoffice
+    ports:
+      - "127.0.0.1:18083:80"
+    env_file:
+      - ${OFFICE_LOAD_SECRETS_DIR:?đặt thư mục khoá thử}/onlyoffice.env
+    environment:
+      JWT_ENABLED: "true"
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"
+
+  eurooffice:
+    <<: *limits
+    profiles: ["eurooffice"]
+    image: ghcr.io/nextcloud-releases/office-documentserver:v9.3.7
+    container_name: vcworkspace-office-load-eurooffice
+    ports:
+      - "127.0.0.1:18084:80"
+    env_file:
+      - ${OFFICE_LOAD_SECRETS_DIR:?đặt thư mục khoá thử}/eurooffice.env
+    environment:
+      JWT_ENABLED: "true"
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"

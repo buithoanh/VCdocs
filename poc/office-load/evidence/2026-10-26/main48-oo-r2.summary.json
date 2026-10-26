@@ -1,0 +1,95 @@
+{
+  "runId": "onlyoffice-mvp0rd2h",
+  "engine": "onlyoffice",
+  "container": "vcworkspace-office-load-onlyoffice",
+  "startedAt": "2026-10-26T08:53:14.085Z",
+  "sessions": 48,
+  "docs": 12,
+  "usersPerDoc": 4,
+  "typeSeconds": 180,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 25,
+  "sharedContext": true,
+  "leanClient": true,
+  "processLimit": 12,
+  "abortReason": null,
+  "hostFreeMinGiB": 4,
+  "ready": 48,
+  "editMode": 48,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 0,
+  "openMs": {
+    "p50": 575,
+    "p95": 1192,
+    "max": 1654
+  },
+  "typeBurstMs": {
+    "p50": 408,
+    "p95": 1123,
+    "max": 3670
+  },
+  "markersTyped": 1724,
+  "markersMissing": 0,
+  "markersMissingClientSide": 0,
+  "viewsCaptured": 48,
+  "docsConverged": 12,
+  "docsSaved": 12,
+  "saveAfterCloseMs": {
+    "p50": 13686,
+    "max": 19027
+  },
+  "docFetches": 12,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 0.2,
+      "dsCpuP95": 0.5,
+      "dsCpuMax": 0.5,
+      "dsMemMaxMiB": 1039,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 48,
+      "dsCpuAvg": 22.4,
+      "dsCpuP95": 63.1,
+      "dsCpuMax": 63.8,
+      "dsMemMaxMiB": 1328,
+      "dsPidsMax": 25,
+      "clientRssMaxMiB": 4366,
+      "clientCpuAvg": 112.4,
+      "samples": 97
+    },
+    "edit": {
+      "seconds": 185,
+      "dsCpuAvg": 126.7,
+      "dsCpuP95": 263.2,
+      "dsCpuMax": 359,
+      "dsMemMaxMiB": 1101,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 6530,
+      "clientCpuAvg": 573.6,
+      "samples": 369
+    },
+    "save": {
+      "seconds": 21,
+      "dsCpuAvg": 87.3,
+      "dsCpuP95": 124,
+      "dsCpuMax": 125.5,
+      "dsMemMaxMiB": 1533,
+      "dsPidsMax": 36,
+      "clientRssMaxMiB": 294,
+      "clientCpuAvg": 0.2,
+      "samples": 42
+    }
+  }
+}

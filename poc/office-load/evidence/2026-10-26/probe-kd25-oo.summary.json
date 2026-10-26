@@ -1,0 +1,95 @@
+{
+  "runId": "onlyoffice-mvp0xs33",
+  "engine": "onlyoffice",
+  "container": "vcworkspace-office-load-onlyoffice",
+  "startedAt": "2026-10-26T08:58:13.263Z",
+  "sessions": 12,
+  "docs": 3,
+  "usersPerDoc": 4,
+  "typeSeconds": 20,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 25,
+  "sharedContext": true,
+  "leanClient": true,
+  "processLimit": 6,
+  "abortReason": null,
+  "hostFreeMinGiB": 7.3,
+  "ready": 12,
+  "editMode": 12,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 0,
+  "openMs": {
+    "p50": 541,
+    "p95": 1042,
+    "max": 1042
+  },
+  "typeBurstMs": {
+    "p50": 230,
+    "p95": 268,
+    "max": 269
+  },
+  "markersTyped": 48,
+  "markersMissing": 0,
+  "markersMissingClientSide": 0,
+  "viewsCaptured": 12,
+  "docsConverged": 3,
+  "docsSaved": 3,
+  "saveAfterCloseMs": {
+    "p50": 6891,
+    "max": 7821
+  },
+  "docFetches": 3,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 0.2,
+      "dsCpuP95": 0.6,
+      "dsCpuMax": 0.6,
+      "dsMemMaxMiB": 1054,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 12,
+      "dsCpuAvg": 11.4,
+      "dsCpuP95": 45.8,
+      "dsCpuMax": 45.8,
+      "dsMemMaxMiB": 1064,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 3445,
+      "clientCpuAvg": 52.7,
+      "samples": 24
+    },
+    "edit": {
+      "seconds": 25,
+      "dsCpuAvg": 5.5,
+      "dsCpuP95": 9.2,
+      "dsCpuMax": 9.9,
+      "dsMemMaxMiB": 1070,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 4172,
+      "clientCpuAvg": 67.4,
+      "samples": 50
+    },
+    "save": {
+      "seconds": 8,
+      "dsCpuAvg": 28.2,
+      "dsCpuP95": 119.8,
+      "dsCpuMax": 119.8,
+      "dsMemMaxMiB": 1459,
+      "dsPidsMax": 36,
+      "clientRssMaxMiB": 219,
+      "clientCpuAvg": 0.7,
+      "samples": 16
+    }
+  }
+}

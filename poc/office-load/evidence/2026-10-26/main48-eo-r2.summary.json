@@ -1,0 +1,95 @@
+{
+  "runId": "eurooffice-mvozzr8h",
+  "engine": "eurooffice",
+  "container": "vcworkspace-office-load-eurooffice",
+  "startedAt": "2026-10-26T08:31:45.799Z",
+  "sessions": 48,
+  "docs": 12,
+  "usersPerDoc": 4,
+  "typeSeconds": 180,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 25,
+  "sharedContext": true,
+  "leanClient": true,
+  "processLimit": 12,
+  "abortReason": null,
+  "hostFreeMinGiB": 1.31,
+  "ready": 48,
+  "editMode": 48,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 0,
+  "openMs": {
+    "p50": 551,
+    "p95": 1131,
+    "max": 1539
+  },
+  "typeBurstMs": {
+    "p50": 469,
+    "p95": 10648,
+    "max": 66574
+  },
+  "markersTyped": 1429,
+  "markersMissing": 452,
+  "markersMissingClientSide": 12,
+  "viewsCaptured": 36,
+  "docsConverged": 0,
+  "docsSaved": 9,
+  "saveAfterCloseMs": {
+    "p50": 10296,
+    "max": 11824
+  },
+  "docFetches": 12,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 2.9,
+      "dsCpuP95": 6.8,
+      "dsCpuMax": 6.8,
+      "dsMemMaxMiB": 1774,
+      "dsPidsMax": 122,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 48,
+      "dsCpuAvg": 25.2,
+      "dsCpuP95": 81.9,
+      "dsCpuMax": 141.5,
+      "dsMemMaxMiB": 1773,
+      "dsPidsMax": 158,
+      "clientRssMaxMiB": 4882,
+      "clientCpuAvg": 75.3,
+      "samples": 97
+    },
+    "edit": {
+      "seconds": 218,
+      "dsCpuAvg": 382.7,
+      "dsCpuP95": 698.9,
+      "dsCpuMax": null,
+      "dsMemMaxMiB": 1915,
+      "dsPidsMax": 167,
+      "clientRssMaxMiB": 5882,
+      "clientCpuAvg": 488.3,
+      "samples": 423
+    },
+    "save": {
+      "seconds": 601,
+      "dsCpuAvg": 7.5,
+      "dsCpuP95": 8.9,
+      "dsCpuMax": 406.8,
+      "dsMemMaxMiB": 2691,
+      "dsPidsMax": 178,
+      "clientRssMaxMiB": 180,
+      "clientCpuAvg": 0,
+      "samples": 1203
+    }
+  }
+}
