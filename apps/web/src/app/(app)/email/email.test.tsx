@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderApp } from '@/test/render';
 import { API, server } from '@/test/server';
 import EmailPage from './page';
+import { replySubject, threadHeaders } from './reply';
 import { htmlToPlainText, parseAddressList, safeLinkUrl } from './rich-text';
 
 describe('Email workspace', () => {
@@ -218,6 +219,122 @@ describe('Email workspace', () => {
     expect(await screen.findByRole('heading', { name: 'Có Cc' })).toBeInTheDocument();
     expect(screen.getByText('Cc xem.mkt@vcworkspace.test, nv.kd@vcworkspace.test')).toBeInTheDocument();
     expect(screen.queryByText(/^Bcc/)).not.toBeInTheDocument();
+  });
+
+  /** Thư gốc có Message-ID và References gấp dòng; người dùng test là nhanvien@vcprosperous.com → nhanvien@vcworkspace.test. */
+  const RAW_ORIGINAL = 'Message-ID: <goc-1@vcworkspace.test>\r\nReferences: <dau-0@vcworkspace.test>\r\n <giua-1@vcworkspace.test>\r\nFrom: nv.mkt@vcworkspace.test\r\nSubject: x\r\n\r\nMessage-ID: <khong-phai-header@x>';
+  function replyHandlers(items: unknown[], body: Record<string, unknown>, options: { aliases?: unknown[]; shared?: unknown[] } = {}) {
+    const sent: { body?: any } = {};
+    return { sent, handlers: [
+      http.get(`${API}/mail/messages/:id/raw`, () => new HttpResponse(RAW_ORIGINAL, { headers: { 'Content-Type': 'message/rfc822' } })),
+      http.get(`${API}/mail/aliases`, () => HttpResponse.json({ items: options.aliases ?? [] })),
+      http.get(`${API}/mail/shared-mailboxes`, () => HttpResponse.json({ items: options.shared ?? [] })),
+      http.post(`${API}/mail/send`, async ({ request }) => {
+        sent.body = await request.json();
+        return HttpResponse.json({ id: 'reply-1', mailboxOwner: 'nhanvien@vcworkspace.test', threadId: 'thread-r', from: 'nhanvien@vcworkspace.test', to: sent.body.to, subject: sent.body.subject, sentAt: '2026-10-26T09:00:00.000Z', folder: 'sent', deliveryStatus: 'accepted' }, { status: 201 });
+      }),
+      ...mailboxHandlers(items, body),
+    ] };
+  }
+  const REPLY_SOURCE = { id: 'mail-r', mailboxOwner: 'nhanvien@vcworkspace.test', threadId: 'thread-r', from: 'nv.mkt@vcworkspace.test', to: ['nhanvien@vcworkspace.test', 'tp.kd@vcworkspace.test'], cc: ['xem.mkt@vcworkspace.test', 'Ban.Toi@vcworkspace.test'], subject: 'Re: RE: Kế hoạch quý', sentAt: '2026-10-26T08:00:00.000Z', deliveryStatus: 'accepted' };
+
+  it('Trả lời: Đến là người gửi, tiêu đề một "Re:", trích dẫn đã lọc, focus ở đầu, gửi inReplyTo/references', async () => {
+    const { sent, handlers } = replyHandlers([REPLY_SOURCE], { text: 'Nội dung gốc', html: '<p>Nội dung <strong>gốc</strong></p><script>alert(1)</script><img src="x" onerror="steal()"><a href="javascript:alert(2)">bấm</a>', hasRemoteContent: false, truncated: false, attachments: [] });
+    server.use(...handlers);
+    renderApp(<EmailPage />);
+    expect(await screen.findByRole('heading', { name: 'Re: RE: Kế hoạch quý' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Trả lời' }));
+    expect(await screen.findByRole('heading', { name: 'Trả lời' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Đến' })).toHaveValue('nv.mkt@vcworkspace.test');
+    expect(screen.getByRole('textbox', { name: 'Tiêu đề' })).toHaveValue('Re: Kế hoạch quý');
+    expect(screen.queryByRole('textbox', { name: 'Cc' })).not.toBeInTheDocument();
+    const editor = screen.getByRole('textbox', { name: 'Nội dung' });
+    await waitFor(() => expect(editor.querySelector('blockquote')).not.toBeNull());
+    expect(editor.firstElementChild?.outerHTML).toBe('<p><br></p>');
+    expect(editor.textContent).toContain(`Vào ${new Date(REPLY_SOURCE.sentAt).toLocaleString('vi-VN')}, nv.mkt@vcworkspace.test đã viết:`);
+    expect(editor.querySelector('blockquote')!.innerHTML).toContain('<p>Nội dung <strong>gốc</strong></p>');
+    expect(editor.innerHTML).not.toMatch(/<script|<img|onerror|javascript:/);
+    expect(document.activeElement).toBe(editor);
+    const caret = window.getSelection()!.getRangeAt(0);
+    expect(caret.collapsed).toBe(true);
+    expect(editor.firstElementChild!.contains(caret.startContainer)).toBe(true);
+    await userEvent.keyboard('Đã nhận');
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(sent.body).toBeDefined());
+    expect(sent.body).toMatchObject({ to: ['nv.mkt@vcworkspace.test'], cc: [], bcc: [], subject: 'Re: Kế hoạch quý', inReplyTo: 'goc-1@vcworkspace.test', references: ['dau-0@vcworkspace.test', 'giua-1@vcworkspace.test', 'goc-1@vcworkspace.test'] });
+    expect(sent.body.fromIdentity).toBeUndefined();
+    expect(sent.body.text).toMatch(/^Đã nhận\n/);
+    expect(sent.body.text).toContain('> Nội dung gốc');
+    expect(sent.body.html).toContain('<blockquote>');
+    expect(sent.body.html).not.toMatch(/<script|onerror|javascript:/);
+  });
+
+  it('Trả lời tất cả: thêm To gốc, giữ Cc, loại địa chỉ của mình và alias, bỏ trùng', async () => {
+    const { sent, handlers } = replyHandlers([REPLY_SOURCE], { text: 'Chữ thuần <b>không đậm</b>', hasRemoteContent: false, truncated: false, attachments: [] }, { aliases: [{ id: 'al-1', address: 'ban.toi@vcworkspace.test' }] });
+    server.use(...handlers);
+    renderApp(<EmailPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Trả lời tất cả' }));
+    expect(await screen.findByRole('textbox', { name: 'Đến' })).toHaveValue('nv.mkt@vcworkspace.test, tp.kd@vcworkspace.test');
+    expect(screen.getByRole('textbox', { name: 'Cc' })).toHaveValue('xem.mkt@vcworkspace.test');
+    expect(screen.getByRole('textbox', { name: 'Bcc' })).toHaveValue('');
+    const editor = screen.getByRole('textbox', { name: 'Nội dung' });
+    await waitFor(() => expect(editor.querySelector('blockquote')).not.toBeNull());
+    // Thư chữ thuần được escape, không thành thẻ HTML.
+    expect(editor.querySelector('blockquote b')).toBeNull();
+    expect(editor.querySelector('blockquote')!.textContent).toBe('Chữ thuần <b>không đậm</b>');
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(sent.body).toBeDefined());
+    expect(sent.body).toMatchObject({ to: ['nv.mkt@vcworkspace.test', 'tp.kd@vcworkspace.test'], cc: ['xem.mkt@vcworkspace.test'], bcc: [], inReplyTo: 'goc-1@vcworkspace.test' });
+  });
+
+  it('Trả lời tất cả trong Đã gửi: trả lời tới To gốc, giữ Cc, không chép Bcc', async () => {
+    const own = { ...REPLY_SOURCE, id: 'mail-s', from: 'nhanvien@vcworkspace.test', to: ['a@vcworkspace.test', 'b@vcworkspace.test'], cc: ['c@vcworkspace.test'], bcc: ['an@vcworkspace.test'], subject: 'Fwd: Tài liệu', folder: 'sent' };
+    const { sent, handlers } = replyHandlers([own], { text: 'x', hasRemoteContent: false, truncated: false, attachments: [] });
+    server.use(...handlers);
+    renderApp(<EmailPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Đã gửi' }));
+    expect(await screen.findByText('Bcc an@vcworkspace.test')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Trả lời' }));
+    expect(await screen.findByRole('textbox', { name: 'Đến' })).toHaveValue('a@vcworkspace.test, b@vcworkspace.test');
+    expect(screen.getByRole('textbox', { name: 'Tiêu đề' })).toHaveValue('Re: Fwd: Tài liệu');
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng soạn thư' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Trả lời tất cả' }));
+    expect(await screen.findByRole('textbox', { name: 'Cc' })).toHaveValue('c@vcworkspace.test');
+    expect(screen.getByRole('textbox', { name: 'Bcc' })).toHaveValue('');
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(sent.body).toBeDefined());
+    expect(sent.body).toMatchObject({ to: ['a@vcworkspace.test', 'b@vcworkspace.test'], cc: ['c@vcworkspace.test'], bcc: [] });
+    expect(JSON.stringify(sent.body)).not.toContain('an@vcworkspace.test');
+  });
+
+  it('Trả lời trong hộp nhóm: gửi từ hộp nhóm khi có quyền gửi, không thì từ địa chỉ cá nhân', async () => {
+    const box = (roles: string[]) => ({ id: 'box-1', address: 'mkt-team@vcworkspace.test', name: 'Nhóm MKT', currentRoles: roles, members: [] });
+    const inbound = { ...REPLY_SOURCE, mailboxOwner: 'mkt-team@vcworkspace.test', to: ['mkt-team@vcworkspace.test'], cc: [], subject: 'Hỏi nhóm' };
+    for (const [roles, expected] of [[['read'], undefined], [['read', 'send'], 'mkt-team@vcworkspace.test']] as const) {
+      const { sent, handlers } = replyHandlers([inbound], { text: 'x', hasRemoteContent: false, truncated: false, attachments: [] }, { shared: [box([...roles])] });
+      server.use(...handlers);
+      const view = renderApp(<EmailPage />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Nhóm MKT' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Trả lời tất cả' }));
+      expect(await screen.findByRole('textbox', { name: 'Đến' })).toHaveValue('nv.mkt@vcworkspace.test');
+      await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+      await waitFor(() => expect(sent.body).toBeDefined());
+      expect(sent.body.fromIdentity).toBe(expected);
+      expect(sent.body).toMatchObject({ to: ['nv.mkt@vcworkspace.test'], cc: [], mailbox: 'mkt-team@vcworkspace.test', inReplyTo: 'goc-1@vcworkspace.test' });
+      view.unmount();
+    }
+  });
+
+  it('tiện ích trả lời: không chồng "Re:", đọc Message-ID/References gấp dòng', () => {
+    expect(replySubject('Re: Re: Họp')).toBe('Re: Họp');
+    expect(replySubject('RE: re:Họp')).toBe('Re: Họp');
+    expect(replySubject('Re[2]: Re : Họp')).toBe('Re: Họp');
+    expect(replySubject('Fwd: Họp')).toBe('Re: Fwd: Họp');
+    expect(replySubject('Re: Fwd: Họp')).toBe('Re: Fwd: Họp');
+    expect(replySubject('Họp')).toBe('Re: Họp');
+    expect(threadHeaders(RAW_ORIGINAL)).toEqual({ messageId: 'goc-1@vcworkspace.test', references: ['dau-0@vcworkspace.test', 'giua-1@vcworkspace.test', 'goc-1@vcworkspace.test'] });
+    expect(threadHeaders('message-id:<a@b>\nReferences: <a@b>\n\nbody')).toEqual({ messageId: 'a@b', references: ['a@b'] });
+    expect(threadHeaders('Subject: x\r\n\r\nMessage-ID: <body@x>')).toEqual({ messageId: '', references: [] });
   });
 
   it('tiện ích soạn thư: tách địa chỉ, chữ thuần và link an toàn', () => {

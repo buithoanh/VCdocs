@@ -269,6 +269,14 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-10-26 · Email: Trả lời và Trả lời tất cả
+
+- Nhánh `claude/mail-reply` cắt từ `origin/dev` (f791dd6), worktree `.claude/worktrees/agent-a2d95a1f339efde6d`. Không đổi hợp đồng (dùng `inReplyTo`/`references`/`mailbox` đã có trong `MailCompose`).
+- FE `/email`: nút "Trả lời", "Trả lời tất cả" (icon + tên truy cập được) cạnh "Chuyển tiếp"; tiện ích thuần ở `reply.ts` (người nhận, tiêu đề một "Re:", đọc Message-ID/References từ header MIME `/raw` vì API danh sách không trả Message-ID, khối trích dẫn). Reply-all loại địa chỉ của mình (email đăng nhập, local-part@vcworkspace.test, alias, hộp nhóm đang đọc, `mailboxOwner`), bỏ trùng, không chép Bcc; thư trong "Đã gửi" trả lời tới To gốc. Nội dung: đoạn trống + "Vào …, … đã viết:" + `<blockquote>` từ html đã lọc của `/body` (lọc lại bằng `cleanHtml`) hoặc chữ thuần escape; `RichTextEditor` thêm `focusKey` đặt con trỏ ở đầu. Gửi từ hộp nhóm chỉ khi có quyền `send`; fallback cũ `fromIdentity || mailbox` đổi thành chỉ dùng hộp nhóm khi có quyền gửi. Bản nháp lưu/mở lại `inReplyTo`/`references`.
+- BE: `send` tìm thư gốc theo `inReplyTo` trong mailbox cá nhân, mailbox gửi và `mailbox` đang đọc (kiểm quyền `read`, trước khi tạo bản ghi gửi) — trước đây chỉ tìm mailbox cá nhân nên trả lời trong hộp nhóm tạo luồng mới.
+- Test: FE `email.test.tsx` +5 ca (reply, reply-all, Đã gửi/Bcc, hộp nhóm read vs send, tiện ích Re:/header); BE mới `test/mail-reply.e2e-spec.ts` 2 ca (cùng threadId cho người gửi/To/Cc; hộp nhóm send/read-only, mailbox không đọc được → 403), đã xác nhận ca hộp nhóm đỏ khi bỏ sửa BE.
+- `pnpm ai:check:full` PASS; FE 101/101, API 371 pass/10 skip, độ phủ hợp đồng 149/149, build đạt. Chưa chạy: trình duyệt thật, Stalwart thật. Chưa push (repo chặn).
+
 ### 2026-10-25 · Giao diện Ant Design bước 1 (lớp component nền)
 
 - Chủ dự án hỏi thư viện thiết kế; đề xuất và được duyệt Ant Design 6 (xem mục 2). Tạo nhánh `vcworkspace/giao-dien-antd`, cài gói bằng `pnpm add` (lockfile cập nhật theo pnpm, không sửa tay).
