@@ -51,6 +51,16 @@ export async function createApp(cfg: AppConfig, opts: { logger?: boolean } = {})
   });
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  // API chỉ trả JSON/tệp tải về: cấm trình duyệt đoán MIME, nhúng khung hay chạy nội dung như trang (review O14).
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    if (cfg.cookieSecure) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+    next();
+  });
   app.enableCors({
     origin: [cfg.webOrigin],
     credentials: true,
