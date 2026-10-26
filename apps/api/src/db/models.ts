@@ -340,8 +340,10 @@ const WorkspaceDriveShareLink = mk({
   recipients: { type: [String], required: true },
   idempotencyKey: { type: String, required: true },
   fingerprint: { type: String, required: true },
-  token: { type: String, required: true },
+  // Token rõ chỉ giữ tới khi thư chứa link gửi xong (retry cần đúng nội dung thư); sau đó chỉ còn tokenHash.
+  token: String,
   tokenHash: { type: String, required: true },
+  sentMessageId: OID,
   expiresAt: { type: Date, required: true },
   revokedAt: Date,
 });
