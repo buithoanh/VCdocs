@@ -293,7 +293,19 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-26 · Chạy nhánh `dev` ở local để chủ dự án bấm thử
 - Đã làm: worktree tách (detached) `.claude/worktrees/chay-dev-local` tại `origin/dev` f791dd6, `pnpm install`. Thêm `qa-api-dev` (QA fake server: MongoDB trong bộ nhớ, Google/Drive/Email giả, dữ liệu mẫu, giữ 4 giờ, cổng 14120) và `qa-web-dev` (next dev, cổng 13120) vào `.claude/launch.json`; chạy qua preview_start. Mở http://localhost:13120 → trang đăng nhập Google giả → đăng nhập được (Tổng giám đốc mẫu). Không đọc `.env`, không push.
 - Lưu ý: trên `dev` QA fake server chưa bật `jobsPollMs` (bản sửa nằm ở `vcworkspace/antd-ho-so`), nên việc nền như lập hồ sơ có thể không chạy xong. Dữ liệu mất khi tắt server.
-- Còn dở: tắt 2 server và xoá worktree `chay-dev-local` khi chủ dự án thử xong.
+- Bộ dữ liệu review (chủ dự án yêu cầu): file local, không commit, `apps/api/test/qa-review-data.spec.ts` trong worktree đó. File dựng server QA như trên, rồi gọi API thật bằng 12 vai mẫu để tạo dữ liệu; `qa-api-dev` trong launch.json đã trỏ sang file này. Kết quả **50/50 bước đạt**:
+  - Bảng mã: chờ duyệt / đã duyệt / bị từ chối.
+  - Thư mục: khu vực, dự án, khu vực con, năm/tháng.
+  - Danh mục hồ sơ: 3 loại (đã duyệt, chờ duyệt thời hạn, nháp).
+  - 17 hồ sơ: đang soạn, đã trình, bị yêu cầu sửa, đã duyệt chờ chốt, đã chốt, bị giữ lại, điều chỉnh, tải lên .docx/PDF; thêm 3 file chưa đăng ký.
+  - Uỷ quyền.
+  - 16 tài liệu: đã ban hành, chờ duyệt, bị yêu cầu sửa, đang lấy góp ý, đang soạn, chờ cấp mã, đã huỷ, đang trình huỷ, QĐ cấp VCPV đã ban hành, QĐ chờ kiểm tra, 2 tài liệu bên ngoài.
+  - Chia sẻ ra ngoài: đang hiệu lực / đã gia hạn / đã thu hồi, và 1 lượt ở drive Mật chờ duyệt.
+  - Drive: thư mục, tệp, phiên bản, docx/xlsx/pptx, thùng rác, không gian cá nhân.
+  - Email: thư qua lại, đính kèm, Cc/Bcc, nhãn, bộ lọc VIP, thư nháp, bí danh, hộp chung `mkt-team`.
+  - Thông báo: 28 cái cho Trưởng phòng MKT.
+  - Việc nền chỉ bật sau khi tạo xong. Lý do: bật sớm thì bộ chạy nền tranh việc với `drain()`.
+- Còn dở: tắt 2 server và xoá worktree `chay-dev-local` khi chủ dự án thử xong. Muốn giữ bộ dữ liệu này lâu dài thì đưa file seed vào một nhánh công việc → PR.
 
 ### 2026-10-26 · Soạn nội dung PR sáu module antd
 
