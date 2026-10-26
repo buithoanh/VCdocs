@@ -3,7 +3,7 @@
 import { CloseOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PaperClipOutlined, ReloadOutlined, SearchOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Avatar, Button, Card, Col, Empty, Flex, Form, Input, Row, Select, Space, Spin, Tag, Typography, Upload } from 'antd';
-import { useMemo, useState, type ReactNode } from 'react';
+import { memo, useCallback, useMemo, useState, type ReactNode } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
 import { ErrorBox } from '@/components/ui';
 import { MessageBody, type MailBodyAttachment } from './MessageBody';
@@ -22,6 +22,14 @@ async function json(path: string, init?: RequestInit) {
 }
 
 const initials = (s: string) => (s || '?').slice(0, 2).toUpperCase();
+const NO_SHARED: SharedMailbox[] = [];
+
+async function encodedAttachment(filename: string, contentType: string, source: ArrayBuffer) {
+  const bytes = new Uint8Array(source);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return { filename, contentType, contentBase64: btoa(binary) };
+}
 
 /** Nút điều hướng cột trái: chữ ẩn trên màn hình hẹp (CSS .mail-nav-text). */
 function NavButton({ active, icon, children, ...rest }: { active?: boolean; icon: ReactNode; children: ReactNode; onClick: () => void; disabled?: boolean }) {
@@ -31,6 +39,77 @@ function NavButton({ active, icon, children, ...rest }: { active?: boolean; icon
     </Button>
   );
 }
+
+/**
+ * Cột trái tách thành component memo: mỗi phím gõ trong ô soạn thư làm EmailPage render lại,
+ * nhưng các nút thư mục (antd Button + cssinjs) không cần render theo. Giảm đáng kể thời gian test jsdom.
+ */
+const FolderNav = memo(function FolderNav({
+  folder,
+  mailbox,
+  managing,
+  shared,
+  onCompose,
+  onOpenFolder,
+  onManage,
+  onMailbox,
+}: {
+  folder: Folder;
+  mailbox: string;
+  managing: boolean;
+  shared: SharedMailbox[];
+  onCompose: () => void;
+  onOpenFolder: (next: Folder) => void;
+  onManage: () => void;
+  onMailbox: (address: string) => void;
+}) {
+  return (
+    <nav className="mail-folders" aria-label="Thư mục email">
+      <Button type="primary" block className="mail-compose-btn" icon={<EditOutlined aria-hidden />} onClick={onCompose}>
+        <span className="mail-nav-text">Thư mới</span>
+      </Button>
+      <p className="mail-nav-label">Thư mục</p>
+      <NavButton active={folder === 'inbox' && !mailbox && !managing} icon={<InboxOutlined aria-hidden />} onClick={() => onOpenFolder('inbox')}>
+        Hộp thư đến
+      </NavButton>
+      <NavButton active={folder === 'sent' && !mailbox && !managing} icon={<SendOutlined aria-hidden />} onClick={() => onOpenFolder('sent')}>
+        Đã gửi
+      </NavButton>
+      <NavButton active={managing} icon={<SettingOutlined aria-hidden />} onClick={onManage}>
+        Quản lý mail
+      </NavButton>
+      {shared.map((box) => (
+        <NavButton key={box.id} active={mailbox === box.address && !managing} icon={<InboxOutlined aria-hidden />} onClick={() => onMailbox(box.address)}>
+          {box.name}
+        </NavButton>
+      ))}
+      <div className="mail-account">
+        <Avatar className="mail-avatar">VC</Avatar>
+        <div>
+          <strong>Nội bộ</strong>
+          <small>@vcworkspace.test</small>
+        </div>
+      </div>
+    </nav>
+  );
+});
+
+/** Nút đính kèm (antd Upload) tách memo vì không phụ thuộc chữ đang gõ. */
+const AttachButton = memo(function AttachButton({ onFile }: { onFile: (file: File) => void }) {
+  return (
+    <Upload
+      showUploadList={false}
+      beforeUpload={(file) => {
+        onFile(file);
+        return false;
+      }}
+    >
+      <Button type="text" icon={<PaperClipOutlined aria-hidden />}>
+        Đính kèm
+      </Button>
+    </Upload>
+  );
+});
 
 /** Thông báo kết quả thao tác hoặc lỗi trong khung đang mở. */
 function Notice({ notice, error }: { notice: string; error: string }) {
@@ -119,15 +198,9 @@ export default function EmailPage() {
     setNotice('Đã mở lại bản nháp.');
     setComposing(true);
   }
-  async function choose(file: File) {
+  const choose = useCallback(async (file: File) => {
     setAttachment(await encodedAttachment(file.name, file.type || 'application/octet-stream', await file.arrayBuffer()));
-  }
-  async function encodedAttachment(filename: string, contentType: string, source: ArrayBuffer) {
-    const bytes = new Uint8Array(source);
-    let binary = '';
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return { filename, contentType, contentBase64: btoa(binary) };
-  }
+  }, []);
   async function forwardSelected() {
     if (!selected) return;
     const response = await fetch(`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { credentials: 'same-origin' });
@@ -212,19 +285,28 @@ export default function EmailPage() {
     const row = await post(`/mail/messages/${selected.id}/attachments/${item.part}/save-to-drive${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { spaceId: target.id });
     setNotice(`Đã lưu ${row.name} vào ${target.name}; hash ${row.contentSha256.slice(0, 12)}…`);
   }
-  function openFolder(next: Folder) {
+  const openFolder = useCallback((next: Folder) => {
     setFolder(next);
     setMailbox('');
     setSelectedId('');
     setComposing(false);
     setManaging(false);
     setNotice('');
-  }
-  function openCompose() {
+  }, []);
+  const openCompose = useCallback(() => {
     setManaging(false);
     setComposing(true);
     setNotice('');
-  }
+  }, []);
+  const openManage = useCallback(() => {
+    setManaging(true);
+    setComposing(false);
+  }, []);
+  const openMailbox = useCallback((address: string) => {
+    setMailbox(address);
+    setFolder('inbox');
+    setManaging(false);
+  }, []);
   const folderTitle = folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi';
   const fromOptions = [
     { value: '', label: 'Địa chỉ cá nhân' },
@@ -243,49 +325,7 @@ export default function EmailPage() {
         <Button icon={<ReloadOutlined />} aria-label="Làm mới danh sách" onClick={() => void messages.refetch()} style={{ justifySelf: 'end' }} />
       </header>
       <div className="mail-shell">
-        <nav className="mail-folders" aria-label="Thư mục email">
-          <Button type="primary" block className="mail-compose-btn" icon={<EditOutlined aria-hidden />} onClick={openCompose}>
-            <span className="mail-nav-text">Thư mới</span>
-          </Button>
-          <p className="mail-nav-label">Thư mục</p>
-          <NavButton active={folder === 'inbox' && !mailbox && !managing} icon={<InboxOutlined aria-hidden />} onClick={() => openFolder('inbox')}>
-            Hộp thư đến
-          </NavButton>
-          <NavButton active={folder === 'sent' && !mailbox && !managing} icon={<SendOutlined aria-hidden />} onClick={() => openFolder('sent')}>
-            Đã gửi
-          </NavButton>
-          <NavButton
-            active={managing}
-            icon={<SettingOutlined aria-hidden />}
-            onClick={() => {
-              setManaging(true);
-              setComposing(false);
-            }}
-          >
-            Quản lý mail
-          </NavButton>
-          {(shared.data ?? []).map((box) => (
-            <NavButton
-              key={box.id}
-              active={mailbox === box.address && !managing}
-              icon={<InboxOutlined aria-hidden />}
-              onClick={() => {
-                setMailbox(box.address);
-                setFolder('inbox');
-                setManaging(false);
-              }}
-            >
-              {box.name}
-            </NavButton>
-          ))}
-          <div className="mail-account">
-            <Avatar className="mail-avatar">VC</Avatar>
-            <div>
-              <strong>Nội bộ</strong>
-              <small>@vcworkspace.test</small>
-            </div>
-          </div>
-        </nav>
+        <FolderNav folder={folder} mailbox={mailbox} managing={managing} shared={shared.data ?? NO_SHARED} onCompose={openCompose} onOpenFolder={openFolder} onManage={openManage} onMailbox={openMailbox} />
         <section className="mail-list-pane" aria-label={folderTitle}>
           <div className="mail-list-header">
             <div>
@@ -491,17 +531,7 @@ export default function EmailPage() {
                 <Button type="primary" icon={<SendOutlined aria-hidden />} disabled={!parseAddressList(to).length || !subject} onClick={() => void run(send)}>
                   Gửi
                 </Button>
-                <Upload
-                  showUploadList={false}
-                  beforeUpload={(file) => {
-                    void choose(file);
-                    return false;
-                  }}
-                >
-                  <Button type="text" icon={<PaperClipOutlined aria-hidden />}>
-                    Đính kèm
-                  </Button>
-                </Upload>
+                <AttachButton onFile={choose} />
                 <Button type="text" onClick={() => void run(saveDraft)}>
                   Lưu nháp
                 </Button>

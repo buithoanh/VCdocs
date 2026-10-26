@@ -2,7 +2,7 @@
 
 import { BoldOutlined, ClearOutlined, ItalicOutlined, LinkOutlined, OrderedListOutlined, StrikethroughOutlined, UnderlineOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
-import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { cleanHtml, safeLinkUrl, textToHtml } from './rich-text';
 
 type Mark = 'bold' | 'italic' | 'underline' | 'strike';
@@ -38,7 +38,10 @@ function selectContents(node: Node) {
 
 type Tool = { key: string; label: string; shortcut?: string; icon: ReactNode; run: () => void };
 
-export function RichTextEditor({ value, onChange, onError, label, placeholder }: {
+/** memo: gõ ở ô Đến/Tiêu đề không render lại thanh công cụ (9 nút antd) khi value/onChange không đổi. */
+export const RichTextEditor = memo(RichTextEditorInner);
+
+function RichTextEditorInner({ value, onChange, onError, label, placeholder }: {
   value: string; onChange: (html: string) => void; onError: (message: string) => void; label: string; placeholder?: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
