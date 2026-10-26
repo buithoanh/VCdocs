@@ -1,0 +1,259 @@
+{
+  "generatedAt": "2026-10-25T14:24:21.929Z",
+  "host": {
+    "cpu": "Apple M4 Pro",
+    "logicalCpus": 12,
+    "ramGiB": 24,
+    "ollama": "0.40.11"
+  },
+  "prompts": {
+    "summaryChars": 890,
+    "ragChars": 2018
+  },
+  "native": {
+    "cpu-default-threads": {
+      "summary": [
+        {
+          "wallMs": 8963,
+          "loadS": 3.8,
+          "promptTokens": 379,
+          "promptTokPerS": 193,
+          "genTokens": 151,
+          "genTokPerS": 47.5,
+          "totalS": 8.96,
+          "peakRunnerRssMiB": 3870
+        },
+        {
+          "wallMs": 7097,
+          "loadS": 0,
+          "promptTokens": 378,
+          "promptTokPerS": 102.2,
+          "genTokens": 146,
+          "genTokPerS": 43.1,
+          "totalS": 7.09,
+          "peakRunnerRssMiB": 3789
+        },
+        {
+          "wallMs": 5403,
+          "loadS": 0,
+          "promptTokens": 379,
+          "promptTokPerS": 151.8,
+          "genTokens": 144,
+          "genTokPerS": 49.8,
+          "totalS": 5.4,
+          "peakRunnerRssMiB": 3648
+        }
+      ],
+      "rag": [
+        {
+          "wallMs": 8311,
+          "loadS": 0,
+          "promptTokens": 797,
+          "promptTokPerS": 175.8,
+          "genTokens": 100,
+          "genTokPerS": 26.6,
+          "totalS": 8.31,
+          "peakRunnerRssMiB": 3796
+        },
+        {
+          "wallMs": 6820,
+          "loadS": 0,
+          "promptTokens": 798,
+          "promptTokPerS": 155.1,
+          "genTokens": 71,
+          "genTokPerS": 43.1,
+          "totalS": 6.81,
+          "peakRunnerRssMiB": 3932
+        },
+        {
+          "wallMs": 7084,
+          "loadS": 0,
+          "promptTokens": 800,
+          "promptTokPerS": 157.1,
+          "genTokens": 71,
+          "genTokPerS": 36.1,
+          "totalS": 7.08,
+          "peakRunnerRssMiB": 3442
+        }
+      ]
+    },
+    "cpu-4-threads": {
+      "summary": [
+        {
+          "wallMs": 10311,
+          "loadS": 3.56,
+          "promptTokens": 380,
+          "promptTokPerS": 115.8,
+          "genTokens": 146,
+          "genTokPerS": 42.1,
+          "totalS": 10.31,
+          "peakRunnerRssMiB": 3748
+        },
+        {
+          "wallMs": 6413,
+          "loadS": 0,
+          "promptTokens": 378,
+          "promptTokPerS": 115.9,
+          "genTokens": 139,
+          "genTokPerS": 44.4,
+          "totalS": 6.41,
+          "peakRunnerRssMiB": 3794
+        },
+        {
+          "wallMs": 6232,
+          "loadS": 0,
+          "promptTokens": 377,
+          "promptTokPerS": 118,
+          "genTokens": 138,
+          "genTokPerS": 45.6,
+          "totalS": 6.23,
+          "peakRunnerRssMiB": 3868
+        }
+      ],
+      "rag": [
+        {
+          "wallMs": 9841,
+          "loadS": 0,
+          "promptTokens": 799,
+          "promptTokPerS": 108,
+          "genTokens": 100,
+          "genTokPerS": 41.1,
+          "totalS": 9.84,
+          "peakRunnerRssMiB": 4008
+        },
+        {
+          "wallMs": 9201,
+          "loadS": 0,
+          "promptTokens": 798,
+          "promptTokPerS": 110.6,
+          "genTokens": 81,
+          "genTokPerS": 41.2,
+          "totalS": 9.2,
+          "peakRunnerRssMiB": 3989
+        },
+        {
+          "wallMs": 8869,
+          "loadS": 0,
+          "promptTokens": 799,
+          "promptTokPerS": 112.4,
+          "genTokens": 71,
+          "genTokPerS": 40.7,
+          "totalS": 8.86,
+          "peakRunnerRssMiB": 4015
+        }
+      ]
+    }
+  },
+  "ollamaPsDuringCpu": [
+    "NAME                        ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL              ",
+    "vcws-qwen3-4b-cpu:latest    0ad1a53e799b    4.2 GB    100% CPU     8192       llamacpp    4 minutes from now"
+  ],
+  "nextcloud": {
+    "summary": [
+      {
+        "ms": 9565,
+        "pickedUpMs": 618,
+        "status": "STATUS_SUCCESSFUL",
+        "outChars": 668
+      },
+      {
+        "ms": 9060,
+        "pickedUpMs": 1097,
+        "status": "STATUS_SUCCESSFUL",
+        "outChars": 734
+      },
+      {
+        "ms": 7853,
+        "pickedUpMs": 1090,
+        "status": "STATUS_SUCCESSFUL",
+        "outChars": 707
+      }
+    ],
+    "rag": [
+      {
+        "ms": 6879,
+        "status": "STATUS_SUCCESSFUL",
+        "promptChars": 2018,
+        "cited": [
+          1
+        ]
+      },
+      {
+        "ms": 2918,
+        "status": "STATUS_SUCCESSFUL",
+        "promptChars": 2018,
+        "cited": [
+          1
+        ]
+      },
+      {
+        "ms": 2513,
+        "status": "STATUS_SUCCESSFUL",
+        "promptChars": 2018,
+        "cited": [
+          1
+        ]
+      }
+    ],
+    "concurrentRag3": {
+      "wallMs": 6356,
+      "each": [
+        4854,
+        6290,
+        3359
+      ],
+      "note": "one taskprocessing:worker → tasks run one after another"
+    }
+  },
+  "metalReferenceNotBaseline": {
+    "summary": [
+      {
+        "wallMs": 4573,
+        "loadS": 1.53,
+        "promptTokens": 380,
+        "promptTokPerS": 656.9,
+        "genTokens": 173,
+        "genTokPerS": 70.3,
+        "totalS": 4.57,
+        "peakRunnerRssMiB": 3139
+      },
+      {
+        "wallMs": 3029,
+        "loadS": 0,
+        "promptTokens": 377,
+        "promptTokPerS": 636.3,
+        "genTokens": 165,
+        "genTokPerS": 68.1,
+        "totalS": 3.03,
+        "peakRunnerRssMiB": 3217
+      }
+    ],
+    "rag": [
+      {
+        "wallMs": 2751,
+        "loadS": 0,
+        "promptTokens": 798,
+        "promptTokPerS": 553.7,
+        "genTokens": 82,
+        "genTokPerS": 63.1,
+        "totalS": 2.75,
+        "peakRunnerRssMiB": 3302
+      },
+      {
+        "wallMs": 2786,
+        "loadS": 0,
+        "promptTokens": 797,
+        "promptTokPerS": 545.8,
+        "genTokens": 80,
+        "genTokPerS": 61.1,
+        "totalS": 2.78,
+        "peakRunnerRssMiB": 3426
+      }
+    ]
+  },
+  "ollamaPsDuringMetal": [
+    "NAME                             ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL              ",
+    "qwen3:4b-instruct-2507-q4_K_M    0edcdef34593    3.2 GB    100% GPU     4096       llamacpp    4 minutes from now"
+  ],
+  "secretsIncluded": false
+}

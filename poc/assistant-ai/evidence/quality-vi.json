@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-10-25T14:12:13.556Z",
+  "model": "vcws-qwen3-4b-cpu (qwen3:4b-instruct-2507-q4_K_M, num_gpu 0, temperature 0.2)",
+  "results": [
+    {
+      "id": "summary",
+      "type": "core:text2text:summary",
+      "input": "Từ ngày 01/01/2027, công ty áp dụng chính sách làm việc linh hoạt: nhân viên được làm việc từ xa tối đa hai ngày mỗi tuần, nhưng phải có mặt tại văn phòng vào thứ Hai để họp giao ban. Trưởng phòng chịu trách nhiệm duyệt lịch làm việc từ xa trước thứ Sáu tuần trước. Nhân viên mới trong ba tháng thử việc chưa áp dụng chính sách này. Mọi trao đổi công việc phải qua kênh chat nội bộ, không dùng ứng dụng cá nhân. Phòng Nhân sự sẽ đánh giá lại chính sách sau sáu tháng.",
+      "ms": 9828,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "Từ ngày 01/01/2027, công ty áp dụng chính sách làm việc linh hoạt: nhân viên được làm việc từ xa tối đa 2 ngày/tuần, nhưng phải có mặt tại văn phòng vào thứ Hai để tham gia họp giao ban. Trưởng phòng chịu trách nhiệm duyệt lịch làm việc từ xa trước thứ Sáu tuần trước. Nhân viên mới trong 3 tháng đầu thử việc chưa áp dụng chính sách này. Mọi trao đổi công việc phải thực hiện qua kênh chat nội bộ, không được dùng ứng dụng cá nhân. Phòng Nhân sự sẽ đánh giá lại chính sách sau 6 tháng."
+    },
+    {
+      "id": "draft-notice",
+      "type": "core:text2text",
+      "input": "Soạn nháp một thông báo ngắn (dưới 120 chữ) gửi toàn phòng về việc kiểm kê kho vào sáng thứ Bảy 14/11/2026, yêu cầu mọi người có mặt lúc 7h30 và mang theo phiếu nhập xuất tháng 10. Giọng văn lịch sự, rõ ràng. Chỉ soạn nháp, không gửi.",
+      "ms": 3401,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "Kính gửi toàn thể cá nhân phòng,  \nCập nhật thông báo: Kho sẽ tổ chức kiểm kê vào sáng thứ Bảy, ngày 14/11/2026, thời gian bắt đầu từ 7h30. Mỗi người vui lòng có mặt đúng giờ và mang theo phiếu nhập – xuất kho tháng 10.  \nXin cảm ơn sự hợp tác!  \nTrân trọng,  \n[Người soạn]"
+    },
+    {
+      "id": "proofread-no-diacritics",
+      "type": "core:text2text:proofread",
+      "input": "Kinh gui anh chi, chung toi xin thong bao lich hop giao ban se doi sang chieu thu nam luc 2 gio. Mong moi nguoi sap xep tham du day du.",
+      "ms": 8885,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "- \"Kinh gui anh chi\" → Should be \"Kính gửi anh chi\" (correction: \"Kính\" is a respectful prefix; \"gui\" is incorrect; correct spelling and usage)\n- \"chung toi\" → Should be \"chúng tôi\" (correction: \"chung toi\" is a misspelling; correct form is \"chúng tôi\")\n- \"thong bao\" → Should be \"thông báo\" (correction: \"thong\" should be \"thông\" with the proper Vietnamese character)\n- \"lich hop giao ban\" → Should be \"lịch họp giao ban\" (correction: \"lich hop\" should be \"lịch họp\"; \"giao ban\" is correct, but \"hop\" should be \"họp\" with proper diacritic)\n- \"se doi sang chieu thu nam luc 2 gio\" → Should be \"sẽ đổi sang chiều thứ Năm lúc 2 giờ\" (correction: \"se doi\" should be \"sẽ đổi\"; \"chuong\" should be \"thứ\"; \"thu nam\" should be \"thứ Năm\"; \"luc\" should be \"lúc\"; \"gio\" should be \"giờ\" — all spelling and word usage errors)\n- \"Mong moi nguoi sap xep tham du day du\" → Should be \"Mong mọi người sắp xếp tham dự đầy đủ\" (correction: \"moi\" should be \"mọi\"; \"sap xep\" should be \"sắp xếp\"; \"tham du\" is correct; \"day du\" should be \"đầy đủ\"; full sentence is awkward and needs restructuring for clarity and grammar)\n\nCorrected version:  \n\"Kính gửi anh chi, chúng tôi xin thông báo lịch họp giao ban sẽ đổi sang chiều thứ Năm lúc 2 giờ. Mong mọi người sắp xếp tham dự đầy đủ.\""
+    },
+    {
+      "id": "reformulate-formal",
+      "type": "core:text2text:reformulation",
+      "input": "mai họp nhé mọi người, ai không đến được thì báo sớm giùm, đừng để sát giờ mới nói.",
+      "ms": 2134,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "Hội họp nha mọi người, ai không tới được thì báo trước, đừng để đến sát giờ mới nói."
+    },
+    {
+      "id": "headline",
+      "type": "core:text2text:headline",
+      "input": "Phòng Kinh doanh miền Trung vượt chỉ tiêu quý 3 nhờ mở thêm hai đại lý tại Huế và Quảng Ngãi, doanh thu tăng 18% so với cùng kỳ.",
+      "ms": 1800,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "Phòng Kinh doanh miền Trung vượt chỉ tiêu quý 3 nhờ mở thêm hai đại lý tại Huế và Quảng Ngãi, doanh thu tăng 18% so với cùng kỳ"
+    },
+    {
+      "id": "qa-general",
+      "type": "core:text2text",
+      "input": "Giải thích ngắn gọn (3–4 câu) sự khác nhau giữa \"hoá đơn đỏ\" và \"phiếu thu\" trong doanh nghiệp Việt Nam.",
+      "ms": 4198,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "Trong doanh nghiệp Việt Nam, \"hoá đơn đỏ\" là hoá đơn bán hàng không được ghi nhận vào tài khoản kế toán, thường dùng cho các giao dịch không có giá trị hoặc không phải thu tiền. \"Phiếu thu\" là chứng từ phản ánh việc thu tiền, dùng để ghi nhận khoản thu trong tài khoản kế toán. Hoá đơn đỏ không phải là hóa đơn hợp pháp theo pháp luật, trong khi phiếu thu là chứng từ hợp lệ để ghi nhận thu tiền. Sự khác biệt nằm ở mục đích sử dụng và tính pháp lý."
+    },
+    {
+      "id": "topics",
+      "type": "core:text2text:topics",
+      "input": "Cuộc họp bàn về ngân sách marketing quý 1, tuyển thêm hai nhân viên kho, và thay nhà cung cấp bao bì do giao hàng trễ.",
+      "ms": 1786,
+      "status": "STATUS_SUCCESSFUL",
+      "output": "ngân sách marketing, tuyển thêm nhân viên kho, thay nhà cung cấp bao bì"
+    }
+  ],
+  "secretsIncluded": false
+}

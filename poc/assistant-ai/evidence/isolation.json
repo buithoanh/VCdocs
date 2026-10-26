@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-10-25T14:17:31.629Z",
+  "hostOllamaListen": [
+    "127.0.0.1:11434 (LISTEN)"
+  ],
+  "hostOllamaLoopbackOnly": true,
+  "ollamaHostEnvInLaunchctl": "(unset)",
+  "nextcloudNetworks": [
+    "vcworkspace-work13_work13"
+  ],
+  "work13Internal": true,
+  "nextcloudEgress": {
+    "https://1.1.1.1": "ERR:000",
+    "https://registry.ollama.ai/v2/": "ERR:000",
+    "http://host.docker.internal:11434/v1/models (direct)": "ERR:000"
+  },
+  "proxyAllow": {
+    "GET /v1/models": "200",
+    "GET /v1//models (Apache MergeSlashes → same allowed endpoint)": "200",
+    "POST /v1/chat/completions (tiny)": "200"
+  },
+  "proxyDeny": {
+    "POST /api/pull": "403",
+    "DELETE /api/delete": "403",
+    "POST /api/create": "403",
+    "POST /api/copy": "403",
+    "POST /api/push": "403",
+    "POST /api/generate": "403",
+    "GET /api/tags": "403",
+    "GET /api/version": "403",
+    "POST /v1/embeddings": "403",
+    "DELETE /v1/models": "403",
+    "GET /v1/chat/completions": "403",
+    "GET /v1/models/../../api/tags": "403",
+    "GET /V1/MODELS": "403"
+  },
+  "proxyAllowOk": true,
+  "proxyDenyOk": true,
+  "proxyPublishedPorts": [],
+  "proxyAccessLogSample": [
+    "2026-10-25T14:17:31 172.31.0.8 \"DELETE /v1/models\" 403 239 76us",
+    "2026-10-25T14:17:31 172.31.0.8 \"GET /v1/chat/completions\" 403 239 73us",
+    "2026-10-25T14:17:31 172.31.0.8 \"GET /api/tags\" 403 239 77us",
+    "2026-10-25T14:17:31 172.31.0.8 \"GET /V1/MODELS\" 403 239 94us"
+  ],
+  "proxyLogContainsPrompt": false,
+  "ollamaModelsAfter": [
+    "vcws-qwen3-4b-cpu:latest",
+    "qwen3:4b-instruct-2507-q4_K_M"
+  ],
+  "pass": true,
+  "secretsIncluded": false
+}

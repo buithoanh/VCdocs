@@ -1,0 +1,210 @@
+{
+  "generatedAt": "2026-10-25T14:27:30.518Z",
+  "loglevelDuringProbe": 1,
+  "loglevelRestoredTo": "(unset = 2)",
+  "actions": [
+    {
+      "who": "member-a",
+      "what": "file-action summary Team A plan",
+      "http": 200,
+      "taskId": 115
+    },
+    {
+      "who": "member-b",
+      "what": "file-action summary Team A plan (denied)",
+      "http": 400
+    },
+    {
+      "who": "member-a",
+      "what": "Talk summarize Team A room",
+      "http": 201,
+      "taskId": 116
+    },
+    {
+      "who": "member-b",
+      "what": "RAG ask (harness)",
+      "taskId": 117,
+      "sources": [
+        "ai19-team-b/ke-hoach-du-an-trang-an.md",
+        "ai19 Team B / Báo giá Bến Ngự (TA-4410)",
+        "ai19-team-b/ghi-chu-team-b.md"
+      ]
+    },
+    {
+      "startedAt": "2026-10-25T14:27:14.763Z"
+    }
+  ],
+  "auditLogNewLines": 210,
+  "auditLogNewLoginLines": 189,
+  "auditLogNewNonLogin": [
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "5cb1628390e1…",
+      "url": "/ocs/v2.php/apps/assistant/api/v1/file-action/1160/core:text2text:summary",
+      "message": "File with id \"1160\" accessed: \"/5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc/files/ai19-team-a/ke-hoach-du-an-song-hong.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/%E2%80%8EM%E1%BA%ABu%E2%80%8E/Product%20plan.md",
+      "message": "File with id \"339\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/‎Mẫu‎/Product plan.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/%E2%80%8EM%E1%BA%ABu%E2%80%8E/Readme.md",
+      "message": "File with id \"356\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/‎Mẫu‎/Readme.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/%E2%80%8EM%E1%BA%ABu%E2%80%8E/Meeting%20notes.md",
+      "message": "File with id \"342\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/‎Mẫu‎/Meeting notes.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Photos/Readme.md",
+      "message": "File with id \"382\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Photos/Readme.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Templates%20credits.md",
+      "message": "File with id \"386\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Templates credits.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Readme.md",
+      "message": "File with id \"388\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Readme.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Documents/Example.md",
+      "message": "File with id \"372\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Documents/Example.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Documents/Readme.md",
+      "message": "File with id \"374\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Documents/Readme.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/talk17/mvnq8icf-ho-so.txt",
+      "message": "File with id \"1141\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/talk17/mvnq8icf-ho-so.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/talk17/mvnru8vr-ho-so.txt",
+      "message": "File with id \"1155\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/talk17/mvnru8vr-ho-so.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/Ghi%20ch%C3%A9p/ai19/Ghi%20ch%C3%BA%20h%E1%BB%8Dp%20Tr%C3%A0ng%20An.md",
+      "message": "File with id \"1170\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/Ghi chép/ai19/Ghi chú họp Tràng An.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792919944854-manager-b.txt",
+      "message": "File with id \"656\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792919944854-manager-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792919944854-member-b.txt",
+      "message": "File with id \"657\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792919944854-member-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792919966081-manager-b.txt",
+      "message": "File with id \"660\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792919966081-manager-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792919966081-member-b.txt",
+      "message": "File with id \"661\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792919966081-member-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792921994045-member-b.txt",
+      "message": "File with id \"1097\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792921994045-member-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/NAS-TeamB/acl15-1792921994045-manager-b.txt",
+      "message": "File with id \"1096\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/NAS-TeamB/acl15-1792921994045-manager-b.txt\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/ai19-team-b/ke-hoach-du-an-trang-an.md",
+      "message": "File with id \"1164\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/ai19-team-b/ke-hoach-du-an-trang-an.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "f238bd9c6f5c…",
+      "url": "/remote.php/dav/files/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/ai19-team-b/ghi-chu-team-b.md",
+      "message": "File with id \"1165\" accessed: \"/f238bd9c6f5c3bc204dbf88f96851f6180618f8d9daa8fc970cfebde9bb2b7a5/files/ai19-team-b/ghi-chu-team-b.md\""
+    },
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "--…",
+      "url": "--",
+      "message": "Console command executed: --no-ansi --no-interaction config:system:delete loglevel"
+    }
+  ],
+  "auditMentionsTaskOrAssistant": 79,
+  "auditMentionsTeamAFile": [
+    {
+      "app": "admin_audit",
+      "level": 1,
+      "user": "5cb1628390e1…",
+      "url": "/ocs/v2.php/apps/assistant/api/v1/file-action/1160/core:text2text:summary",
+      "message": "File with id \"1160\" accessed: \"/5cb1628390e1d2a310f47c86ba7a5b61f1ea89bba52d6f027576181b9796fdbc/files/ai19-team-a/ke-hoach-du-an-song-hong.md\""
+    }
+  ],
+  "nextcloudLogNewLines": 65,
+  "nextcloudLogNewAiLines": [
+    {
+      "app": "assistant",
+      "level": 3,
+      "user": "--…",
+      "url": "--",
+      "message": "FileActionTaskListener task succeeded but listener failed to write the result file"
+    }
+  ],
+  "nextcloudLogNewContainsPrompt": true,
+  "secretsIncluded": false
+}

@@ -41,8 +41,10 @@ type Tool = { key: string; label: string; shortcut?: string; icon: ReactNode; ru
 /** memo: gõ ở ô Đến/Tiêu đề không render lại thanh công cụ (9 nút antd) khi value/onChange không đổi. */
 export const RichTextEditor = memo(RichTextEditorInner);
 
-function RichTextEditorInner({ value, onChange, onError, label, placeholder }: {
+function RichTextEditorInner({ value, onChange, onError, label, placeholder, focusKey }: {
   value: string; onChange: (html: string) => void; onError: (message: string) => void; label: string; placeholder?: string;
+  /** Đổi giá trị để đưa focus vào editor, con trỏ ở đầu nội dung (vd. khi mở thư trả lời). */
+  focusKey?: number;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const lastRange = useRef<Range | null>(null);
@@ -50,6 +52,14 @@ function RichTextEditorInner({ value, onChange, onError, label, placeholder }: {
 
   // Nội dung chỉ được ghi từ ngoài vào khi khác DOM hiện tại (mở nháp, chuyển tiếp, gửi xong), nên con trỏ không nhảy khi gõ.
   useEffect(() => { if (root.current && root.current.innerHTML !== value) root.current.innerHTML = value; }, [value]);
+  // Chạy sau effect ghi nội dung ở trên nên con trỏ đặt vào đoạn đầu của nội dung mới.
+  useEffect(() => {
+    const editor = root.current; if (!focusKey || !editor) return;
+    editor.focus();
+    const selection = window.getSelection(); if (!selection) return;
+    const range = document.createRange(); range.setStart(editor.firstChild ?? editor, 0); range.collapse(true);
+    selection.removeAllRanges(); selection.addRange(range); lastRange.current = range.cloneRange();
+  }, [focusKey]);
 
   const emit = () => { if (root.current) onChange(root.current.innerHTML); };
   const remember = () => {

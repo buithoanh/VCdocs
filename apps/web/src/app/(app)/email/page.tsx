@@ -1,19 +1,23 @@
 'use client';
 
-import { CloseOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PaperClipOutlined, ReloadOutlined, SearchOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
+import Icon, { CloseOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PaperClipOutlined, ReloadOutlined, SearchOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Avatar, Button, Card, Col, Empty, Flex, Form, Input, Row, Select, Space, Spin, Tag, Typography, Upload } from 'antd';
 import { memo, useCallback, useMemo, useState, type ReactNode } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { ErrorBox } from '@/components/ui';
-import { MessageBody, type MailBodyAttachment } from './MessageBody';
+import { mailBodyQuery, MessageBody, type MailBodyAttachment } from './MessageBody';
+import { quotedReplyHtml, replyRecipients, replySubject, threadHeaders } from './reply';
 import { RichTextEditor } from './RichTextEditor';
 import { cleanHtml, htmlToPlainText, parseAddressList, textToHtml } from './rich-text';
 
 type Folder = 'inbox' | 'sent';
-type Message = { id: string; threadId: string; from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string };
+type Message = { id: string; mailboxOwner?: string; threadId: string; from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string };
 type Label = { id: string; name: string; color?: string };
 type SharedMailbox = { id: string; address: string; name: string; currentRoles: string[]; members: { email: string; roles: string[] }[] };
+/** Header luồng thư khi soạn trả lời: In-Reply-To và References của thư gốc. */
+type ReplyRefs = { inReplyTo: string; references: string[] };
 
 async function json(path: string, init?: RequestInit) {
   const response = await fetch(`${API_BASE}${path}`, { credentials: 'same-origin', ...init });
@@ -22,6 +26,14 @@ async function json(path: string, init?: RequestInit) {
 }
 
 const initials = (s: string) => (s || '?').slice(0, 2).toUpperCase();
+/** antd chưa có icon Trả lời / Trả lời tất cả: vẽ bằng SVG nét, bọc trong antd `Icon` để cùng cỡ và màu với bộ icon chung. */
+const strokeSvg = (paths: ReactNode) => () => (
+  <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    {paths}
+  </svg>
+);
+const ReplySvg = strokeSvg(<><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></>);
+const ReplyAllSvg = strokeSvg(<><path d="M7 14 2 9l5-5" /><path d="M12 14 7 9l5-5" /><path d="M7 9h8.5a5.5 5.5 0 0 1 0 11H13" /></>);
 const NO_SHARED: SharedMailbox[] = [];
 
 async function encodedAttachment(filename: string, contentType: string, source: ArrayBuffer) {
@@ -119,6 +131,7 @@ function Notice({ notice, error }: { notice: string; error: string }) {
 
 export default function EmailPage() {
   const queryClient = useQueryClient();
+  const { me } = useAuth();
   const [folder, setFolder] = useState<Folder>('inbox');
   const [selectedId, setSelectedId] = useState('');
   const [composing, setComposing] = useState(false);
@@ -133,6 +146,8 @@ export default function EmailPage() {
   const [subject, setSubject] = useState('');
   const [bodyHtml, setBodyHtml] = useState('');
   const [draftId, setDraftId] = useState('');
+  const [replyRefs, setReplyRefs] = useState<ReplyRefs | null>(null);
+  const [editorFocus, setEditorFocus] = useState(0);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [attachment, setAttachment] = useState<{ filename: string; contentType: string; contentBase64: string } | null>(null);
@@ -172,6 +187,14 @@ export default function EmailPage() {
     const text = htmlToPlainText(html);
     return { text, html: text ? html : '' };
   }
+  /** Hộp nhóm đang đọc mà người dùng có quyền gửi; không có quyền thì gửi bằng địa chỉ cá nhân. */
+  const sendableMailbox = mailbox && (shared.data ?? []).some((box) => box.address === mailbox && box.currentRoles.includes('send')) ? mailbox : '';
+  /** Địa chỉ của chính mình bị loại khỏi Trả lời tất cả: cá nhân, alias, hộp nhóm đang đọc. */
+  function ownAddresses() {
+    const email = me.user.email ?? '';
+    const local = email.includes('@') ? email.slice(0, email.lastIndexOf('@')) : '';
+    return [email, local ? `${local}@vcworkspace.test` : '', ...(aliases.data ?? []).map((item) => item.address), mailbox, selected?.mailboxOwner ?? ''];
+  }
   async function run(action: () => Promise<void>) {
     setError('');
     try {
@@ -181,7 +204,7 @@ export default function EmailPage() {
     }
   }
   async function saveDraft() {
-    const payload = JSON.stringify({ ...recipients(), subject, ...content() });
+    const payload = JSON.stringify({ ...recipients(), subject, ...content(), ...(replyRefs ?? {}) });
     const row = await json(draftId ? `/mail/drafts/${draftId}` : '/mail/drafts', { method: draftId ? 'PATCH' : 'POST', headers: headers(), body: payload });
     setDraftId(row.id);
     setNotice('Đã lưu bản nháp.');
@@ -193,6 +216,7 @@ export default function EmailPage() {
     setCc((row.cc ?? []).join(', '));
     setBcc((row.bcc ?? []).join(', '));
     setShowCopies(!!(row.cc?.length || row.bcc?.length));
+    setReplyRefs(row.inReplyTo ? { inReplyTo: row.inReplyTo, references: row.references ?? [] } : null);
     setSubject(row.subject);
     setBodyHtml(row.html ? cleanHtml(row.html) : textToHtml(row.text ?? ''));
     setNotice('Đã mở lại bản nháp.');
@@ -209,6 +233,7 @@ export default function EmailPage() {
     setTo('');
     setCc('');
     setBcc('');
+    setReplyRefs(null);
     setSubject(selected.subject.startsWith('Fwd:') ? selected.subject : `Fwd: ${selected.subject}`);
     setBodyHtml(
       textToHtml(
@@ -218,16 +243,54 @@ export default function EmailPage() {
     setNotice('Đã đính kèm thư gốc để chuyển tiếp.');
     setComposing(true);
   }
+  /**
+   * Trả lời / Trả lời tất cả: Message-ID và References đọc từ header MIME gốc (API danh sách không trả
+   * Message-ID); nội dung trích dẫn lấy từ /body đã lọc. Server dựa In-Reply-To để giữ cùng threadId.
+   */
+  async function replySelected(all: boolean) {
+    if (!selected) return;
+    const query = mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : '';
+    const [response, body] = await Promise.all([
+      fetch(`${API_BASE}/mail/messages/${selected.id}/raw${query}`, { credentials: 'same-origin' }),
+      queryClient.fetchQuery(mailBodyQuery(selected.id, mailbox)),
+    ]);
+    if (!response.ok) throw new Error('Không tải được thư gốc để trả lời.');
+    const { messageId, references } = threadHeaders(await response.text());
+    const next = replyRecipients(selected, { all, sentFolder: folder === 'sent', own: ownAddresses() });
+    setTo(next.to.join(', '));
+    setCc(next.cc.join(', '));
+    setBcc('');
+    setShowCopies(next.cc.length > 0);
+    setSubject(replySubject(selected.subject));
+    setFromIdentity(sendableMailbox);
+    setReplyRefs(messageId ? { inReplyTo: messageId, references } : null);
+    setDraftId('');
+    setAttachment(null);
+    setManaging(false);
+    setNotice('');
+    setBodyHtml(quotedReplyHtml(selected, body));
+    setComposing(true);
+    setEditorFocus((value) => value + 1);
+  }
   async function send() {
     const response = await fetch(`${API_BASE}/mail/send`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: headers(true),
-      body: JSON.stringify({ ...recipients(), subject, ...content(), draftId: draftId || undefined, attachments: attachment ? [attachment] : [], fromIdentity: fromIdentity || (mailbox || undefined) }),
+      body: JSON.stringify({
+        ...recipients(),
+        subject,
+        ...content(),
+        draftId: draftId || undefined,
+        attachments: attachment ? [attachment] : [],
+        fromIdentity: fromIdentity || sendableMailbox || undefined,
+        ...(replyRefs ? { ...replyRefs, mailbox: mailbox || undefined } : {}),
+      }),
     });
     if (!response.ok) throw new Error('Mail server chưa xác nhận gửi.');
     setNotice('Mail server đã nhận thư.');
     setDraftId('');
+    setReplyRefs(null);
     setAttachment(null);
     setTo('');
     setCc('');
@@ -295,6 +358,7 @@ export default function EmailPage() {
   }, []);
   const openCompose = useCallback(() => {
     setManaging(false);
+    setReplyRefs(null);
     setComposing(true);
     setNotice('');
   }, []);
@@ -486,7 +550,7 @@ export default function EmailPage() {
               <div className="mail-pane-toolbar">
                 <div>
                   <p className="mail-eyebrow">Soạn thư</p>
-                  <h2>{draftId ? 'Bản nháp' : 'Thư mới'}</h2>
+                  <h2>{draftId ? 'Bản nháp' : replyRefs ? 'Trả lời' : 'Thư mới'}</h2>
                 </div>
                 <Button type="text" icon={<CloseOutlined />} aria-label="Đóng soạn thư" onClick={() => setComposing(false)} />
               </div>
@@ -516,7 +580,7 @@ export default function EmailPage() {
                   <Input id="mail-subject" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Thêm tiêu đề" />
                 </Form.Item>
                 <div className="mail-body-field">
-                  <RichTextEditor value={bodyHtml} onChange={setBodyHtml} onError={setError} label="Nội dung" placeholder="Nhập nội dung thư…" />
+                  <RichTextEditor value={bodyHtml} onChange={setBodyHtml} onError={setError} label="Nội dung" placeholder="Nhập nội dung thư…" focusKey={editorFocus} />
                 </div>
               </Form>
               {attachment && (
@@ -547,7 +611,13 @@ export default function EmailPage() {
                   <p className="mail-eyebrow">{folderTitle}</p>
                   <h2>{selected.subject || '(Không có tiêu đề)'}</h2>
                 </div>
-                <Space>
+                <Space wrap>
+                  <Button icon={<Icon component={ReplySvg} aria-hidden />} onClick={() => void run(() => replySelected(false))}>
+                    Trả lời
+                  </Button>
+                  <Button icon={<Icon component={ReplyAllSvg} aria-hidden />} onClick={() => void run(() => replySelected(true))}>
+                    Trả lời tất cả
+                  </Button>
                   <Button icon={<SendOutlined aria-hidden />} onClick={() => void run(forwardSelected)}>
                     Chuyển tiếp
                   </Button>
