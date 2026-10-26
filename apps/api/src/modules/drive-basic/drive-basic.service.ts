@@ -32,7 +32,7 @@ export class DriveBasicService {
 
   private cid(ctx: Ctx) { return new Types.ObjectId(ctx.companyId); }
   private uid(ctx: Ctx) { return new Types.ObjectId(ctx.user.id); }
-  private actor(ctx: Ctx) { return { email: ctx.user.email }; }
+  private actor(ctx: Ctx) { return { email: ctx.user.email, companyId: ctx.companyId }; }
   // Quyền suy từ phòng ban và R4 hiện tại của user; dòng WorkspaceSpaceMember chỉ là bản đối soát,
   // không phải nguồn quyền (đổi phòng hoặc mất R4 phải có hiệu lực ngay, kể cả với vé editor và link).
   private roleIn(space: any, user: { id: string; departmentId?: string; systemRoles: string[] }): 'manager' | 'reader' | undefined {
@@ -506,7 +506,7 @@ export class DriveBasicService {
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId,
       kind: 'file', trashedAt: { $exists: false } }).lean<any>();
     if (!row || !await this.ticketRole(ticket, row.spaceId)) throw Errors.notFound('Không tìm thấy văn bản');
-    const stored = await this.storage.get(row.storageKey, { email: ticket.email });
+    const stored = await this.storage.get(row.storageKey, { email: ticket.email, companyId: ticket.companyId });
     if (stored.sha256 !== row.contentSha256) throw Errors.storageIntegrity();
     return { row, bytes: stored.bytes! };
   }
@@ -553,7 +553,7 @@ export class DriveBasicService {
       if (!kind || bytes.length > 10 * 1024 * 1024 || !validOfficePackage(bytes, kind)) throw new Error('EDITOR_INVALID_OOXML');
       const number = Number(row.versionNumber || 1) + 1;
       const key = `${String(row.storageKey).split('/').slice(0, -1).join('/')}/version-${ticket.fileId}-v${number}-${new Types.ObjectId().toHexString()}`;
-      const stored = await this.storage.put(key, bytes, { email: ticket.email });
+      const stored = await this.storage.put(key, bytes, { email: ticket.email, companyId: ticket.companyId });
       if (stored.sha256 !== sha256(bytes)) throw new Error('STORAGE_INTEGRITY_MISMATCH');
       const version = await this.db.m.WorkspaceDriveVersion.create({ companyId: ticket.companyId, fileId: row._id,
         number, storageKey: key, mimeType: row.mimeType, size: bytes.length, contentSha256: stored.sha256,

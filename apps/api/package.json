@@ -11,6 +11,7 @@
     "nap-so-do": "tsx src/nap-so-do.ts",
     "nhom-c1": "tsx src/nhom-c1.ts",
     "nhan-cay-thu-muc": "tsx src/nhan-cay-thu-muc.ts",
+    "kho-credential": "tsx src/kho-credential.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "MONGOMS_SYSTEM_BINARY=${MONGOMS_SYSTEM_BINARY:-/usr/local/bin/mongod} jest"
   },

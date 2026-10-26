@@ -17,7 +17,8 @@
 | CSP web | `apps/web/src/lib/document-server.ts`, `next.config.ts` | Bản build production dừng nếu `NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS` có origin http mạng. Vẫn nhận http loopback để giữ bản build QA local. CSP và danh sách nạp `api.js` dùng chung một hàm. |
 | Mẫu env | `deploy/api.env.example` | Khối Drive/Office ghi đúng luật mới. Ghi rõ credential JSON là tạm, chờ thiết kế mục 2. |
 
-Không sửa `drive-basic.service.ts`, vì phiên bảo mật O1 đang sửa luồng lưu ONLYOFFICE. Callback hiện
+Không sửa logic `drive-basic.service.ts`, vì phiên bảo mật O1 đang sửa luồng lưu ONLYOFFICE. Phần
+credential ở mục 2 chỉ đổi 3 dòng ở đó, để truyền `companyId` vào `StorageActor`. Callback hiện
 so `url` Document Server trả về với `internalOrigin` (protocol, host, port). Khi bật production,
 Document Server phải trả URL tải về theo đúng origin nội bộ đó. Mục 4 có bước kiểm.
 
@@ -25,7 +26,7 @@ Test: `apps/api/test/prod-drive-office-b1.e2e-spec.ts` (luật URL, cấu hình 
 production, e2e Drive qua WebDAV giả trên http loopback) và
 `apps/web/src/lib/document-server.test.ts`.
 
-## 2. Thiết kế credential theo người dùng (CHỜ CHỦ DỰ ÁN DUYỆT)
+## 2. Thiết kế credential theo người dùng (ĐÃ DUYỆT 2026-10-26: P1 cho B1, P2 sau SSO)
 
 ### Vấn đề
 
@@ -89,16 +90,37 @@ Ràng buộc từ mã hiện tại:
 ### Đề xuất
 
 Đi P1 cho B1 vì chạy được ngay với đăng nhập Google. Khi production có Authentik, thì chuyển sang
-P2 (adapter giữ `CredentialStore` làm điểm cắm, nên chỉ thay phần lấy credential). Trong lúc chờ
-duyệt, giữ `WORKSPACE_STORAGE_CREDENTIALS_JSON` cho staging. Không bật nextcloud trên production
-bằng biến này.
+P2 (adapter giữ `CredentialStore` làm điểm cắm, nên chỉ thay phần lấy credential).
+`WORKSPACE_STORAGE_CREDENTIALS_JSON` chỉ còn cho dev/staging.
+
+### Đã làm (P1, phần lưu trữ)
+
+Chủ dự án duyệt P1 ngày 2026-10-26. Câu 2–4 dưới đây chưa được trả lời, nên phần đã làm giữ các giá
+trị cấu hình được và không giả định câu trả lời.
+
+| Phần | Ở đâu | Hành vi |
+|---|---|---|
+| Mã hoá | `apps/api/src/common/credential-cipher.ts` | AES-256-GCM, IV 12 byte ngẫu nhiên, tag 16 byte bắt buộc (tag bị cắt ngắn thì bị từ chối). Keyring `kid:<base64 32 byte>`: khoá đầu dùng để mã hoá, mọi khoá đều giải mã được. AAD = `companyId|userId|ncUid`. Mọi lỗi giải mã chỉ trả mã chung. |
+| Cấu hình | `config.ts` | `WORKSPACE_STORAGE_CREDENTIAL_SOURCE` = `env` hoặc `store`; production mặc định và bắt buộc `store`. `WORKSPACE_CREDENTIAL_KEYS` hoặc `WORKSPACE_CREDENTIAL_KEYS_FILE` bắt buộc khi dùng `store`. `WORKSPACE_CREDENTIAL_ROTATE_DAYS` là số nguyên 1–365, mặc định 90. Production đặt `WORKSPACE_STORAGE_CREDENTIALS_JSON` thì API dừng khi khởi động. |
+| Lưu | collection `workspace_storage_credentials` | Mỗi người một dòng. Chỉ lưu bản mã. Có `rotateAfter` và `lastUsedAt`. Thu hồi thì xoá bản mã nhưng giữ dòng để đối soát. |
+| Dùng | `StorageCredentialStore` (`drive-basic/storage-credential.store.ts`), adapter Nextcloud | Bản giải mã được cache tối đa 5 phút. Nextcloud trả 401 thì bỏ cache để lần sau đọc bản mới. `StorageActor` thêm `companyId`; `drive-basic.service.ts` chỉ đổi 3 dòng truyền `companyId`. |
+| Xoay vòng | `dueForRotation`, `rotate(issuer)`, `reencrypt` | Xoay app password chạy theo thứ tự cấp mới → lưu → xoá cũ. Cấp mới lỗi thì giữ nguyên bản cũ. Xoá cũ lỗi thì trả `oldRevoked: false` để người vận hành xoá tay. Xoay khoá chủ: `reencrypt` mã hoá lại bằng khoá đầu keyring. |
+| Vận hành | `pnpm --filter @vcdocs/api run kho-credential -- nap\|thu-hoi\|den-han\|ma-hoa-lai` | App password chỉ nhận qua stdin; truyền qua tham số dòng lệnh bị từ chối. |
+
+**Chưa làm, chờ câu 3:**
+- Bản production của `AppPasswordIssuer`: gọi OCS `getapppassword`/`apppassword` và đặt lại mật khẩu
+  bằng admin. Hiện chỉ có bản giả trong test.
+- Job tự xoay theo lịch.
+
+Trong lúc chờ, người vận hành tạo app password trên Nextcloud rồi nạp bằng lệnh `nap`. Lệnh
+`den-han` liệt kê những credential đã tới hạn xoay.
 
 Hợp đồng API không đổi: credential là nội bộ. Nếu cần trang quản trị xem trạng thái cấp hoặc xoay
 credential, sẽ ghi đề nghị riêng vào `apps/api/DE_NGHI_SUA_HOP_DONG.md` khi được duyệt.
 
 ### Câu hỏi cần chủ dự án chốt
 
-1. Duyệt P1 cho B1 và P2 làm đích sau SSO?
+1. ~~Duyệt P1 cho B1 và P2 làm đích sau SSO?~~ Đã duyệt 2026-10-26.
 2. Chu kỳ xoay app password (đề xuất 90 ngày) và ai giữ bản sao lưu keyring
    `WORKSPACE_CREDENTIAL_KEYS`?
 3. Có cho phép làm chế độ production cho identity lifecycle (gọi Nextcloud OCS thật bằng admin quyền
@@ -111,6 +133,8 @@ credential, sẽ ghi đề nghị riêng vào `apps/api/DE_NGHI_SUA_HOP_DONG.md`
 Xem khối Drive/Office trong `deploy/api.env.example`. Tóm tắt:
 - `WORKSPACE_STORAGE_MODE=nextcloud`, `WORKSPACE_STORAGE_BASE_URL=https://...` (không có user/pass
   hay query).
+- `WORKSPACE_STORAGE_CREDENTIAL_SOURCE=store` (mặc định ở production),
+  `WORKSPACE_CREDENTIAL_KEYS_FILE` trỏ tới file secret, `WORKSPACE_CREDENTIAL_ROTATE_DAYS` (mặc định 90).
 - `DOCUMENT_EDITOR_ENABLED=true`, `DOCUMENT_EDITOR_PUBLIC_ORIGIN=https://office...`,
   `DOCUMENT_EDITOR_INTERNAL_ORIGIN=http://onlyoffice` (hoặc https),
   `DOCUMENT_EDITOR_API_ORIGIN=http://api:4000`, `DOCUMENT_EDITOR_JWT_SECRET` ≥ 32 byte.

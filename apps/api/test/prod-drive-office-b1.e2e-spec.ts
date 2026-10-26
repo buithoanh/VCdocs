@@ -1,20 +1,21 @@
-import { createServer, IncomingMessage, Server } from 'node:http';
-import { AddressInfo } from 'node:net';
 import { loadConfig } from '../src/config/config';
 import { checkServiceUrl } from '../src/common/service-url';
 import { NextcloudWorkspaceStorage } from '../src/modules/drive-basic/nextcloud-storage';
 import { createTestApp, TestApp } from './support/app';
+import { fakeWebdav } from './support/fake-webdav';
 
 // Giai đoạn B1 (docs/ke-hoach/vcworkspace-21-b1-drive-office-production.md): Drive/Office lên production.
 const production = {
   NODE_ENV: 'production', GOOGLE_MODE: 'real', PUBLIC_API_ORIGIN: 'https://vcdocs.example.com', WEB_ORIGIN: 'https://vcdocs.example.com', COOKIE_SECURE: 'true',
 };
-const nextcloudProd = { ...production, WORKSPACE_STORAGE_MODE: 'nextcloud', WORKSPACE_STORAGE_BASE_URL: 'https://cloud.example.com' };
+const nextcloudProd = { ...production, WORKSPACE_STORAGE_MODE: 'nextcloud', WORKSPACE_STORAGE_BASE_URL: 'https://cloud.example.com',
+  WORKSPACE_CREDENTIAL_KEYS: 'k1:' + Buffer.alloc(32, 1).toString('base64') };
 const editorProd = {
   ...nextcloudProd, DOCUMENT_EDITOR_ENABLED: 'true', DOCUMENT_EDITOR_JWT_SECRET: 'x'.repeat(40),
   DOCUMENT_EDITOR_PUBLIC_ORIGIN: 'https://office.example.com', DOCUMENT_EDITOR_INTERNAL_ORIGIN: 'http://onlyoffice', DOCUMENT_EDITOR_API_ORIGIN: 'http://api:4000',
 };
 const storageCfg = (baseUrl: string) => ({ mode: 'nextcloud' as const, baseUrl, credentials: {}, timeoutMs: 1_000 });
+const noCredentials = { resolve: async () => { throw new Error('không dùng'); }, forget: () => undefined };
 
 describe('URL dịch vụ nội bộ', () => {
   it('https luôn nhận; http chỉ loopback ngoài production, hoặc tên dịch vụ một nhãn khi cho phép', () => {
@@ -52,10 +53,11 @@ describe('Nextcloud production', () => {
   });
 
   it('adapter tự kiểm lại URL dù cấu hình được dựng ngoài loadConfig', () => {
-    expect(() => new NextcloudWorkspaceStorage(storageCfg('https://cloud.example.com'), { production: true })).not.toThrow();
-    expect(() => new NextcloudWorkspaceStorage(storageCfg('http://127.0.0.1:18080'), { production: true })).toThrow('production bắt buộc https');
-    expect(() => new NextcloudWorkspaceStorage(storageCfg('http://127.0.0.1:18080'), { production: false })).not.toThrow();
-    expect(() => new NextcloudWorkspaceStorage(storageCfg('http://cloud.example.com'), { production: false })).toThrow('loopback');
+    const make = (url: string, production: boolean) => () => new NextcloudWorkspaceStorage(storageCfg(url), { production, credentials: noCredentials });
+    expect(make('https://cloud.example.com', true)).not.toThrow();
+    expect(make('http://127.0.0.1:18080', true)).toThrow('production bắt buộc https');
+    expect(make('http://127.0.0.1:18080', false)).not.toThrow();
+    expect(make('http://cloud.example.com', false)).toThrow('loopback');
   });
 });
 
@@ -89,43 +91,14 @@ describe('ONLYOFFICE production', () => {
   });
 });
 
-/** WebDAV giả tối thiểu trên loopback: đủ PROPFIND/MKCOL/PUT/GET/MOVE cho Drive cơ bản. */
-function fakeWebdav() {
-  const objects = new Map<string, Buffer | 'dir'>();
-  const auth: string[] = [];
-  const body = (req: IncomingMessage) => new Promise<Buffer>((resolve) => {
-    const chunks: Buffer[] = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => resolve(Buffer.concat(chunks)));
-  });
-  const server: Server = createServer(async (req, res) => {
-    auth.push(String(req.headers.authorization));
-    const path = decodeURI(new URL(req.url!, 'http://x').pathname);
-    const bytes = await body(req);
-    const done = (status: number, data?: Buffer) => { res.statusCode = status; res.end(data); };
-    if (req.headers.authorization !== 'Basic ' + Buffer.from('vcw-a:app-pass-a').toString('base64')) return done(401);
-    if (req.method === 'PROPFIND') return done(objects.has(path) ? 207 : 404);
-    if (req.method === 'MKCOL') { if (objects.has(path)) return done(405); objects.set(path, 'dir'); return done(201); }
-    if (req.method === 'PUT') { if (objects.has(path)) return done(412); objects.set(path, bytes); return done(201); }
-    if (req.method === 'GET') { const v = objects.get(path); return v && v !== 'dir' ? done(200, v) : done(404); }
-    if (req.method === 'MOVE') {
-      const to = decodeURI(new URL(String(req.headers.destination)).pathname);
-      for (const [k, v] of [...objects]) if (k === path || k.startsWith(path + '/')) { objects.delete(k); objects.set(to + k.slice(path.length), v); }
-      return done(201);
-    }
-    done(405);
-  });
-  return { server, objects, auth };
-}
-
 describe('Drive qua adapter Nextcloud trên http loopback (dev/test)', () => {
   let t: TestApp;
-  const dav = fakeWebdav();
+  const dav = fakeWebdav({ 'vcw-a': 'app-pass-a' });
   beforeAll(async () => {
-    await new Promise<void>((resolve) => dav.server.listen(0, '127.0.0.1', resolve));
-    const port = (dav.server.address() as AddressInfo).port;
-    t = await createTestApp({ workspaceStorage: { mode: 'nextcloud', baseUrl: `http://127.0.0.1:${port}`, timeoutMs: 2_000,
+    t = await createTestApp({ workspaceStorage: { mode: 'nextcloud', baseUrl: await dav.start(), timeoutMs: 2_000,
       credentials: { 'tp.mkt@vcprosperous.com': { username: 'vcw-a', password: 'app-pass-a' } } } });
   });
-  afterAll(async () => { await t?.close(); await new Promise((resolve) => dav.server.close(resolve)); });
+  afterAll(async () => { await t?.close(); await dav.stop(); });
 
   it('tải lên/tải về đi qua WebDAV của đúng người, người không có credential bị từ chối', async () => {
     const manager = await t.login('tp.mkt');

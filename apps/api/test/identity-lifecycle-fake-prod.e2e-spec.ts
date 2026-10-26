@@ -22,7 +22,8 @@ describe('Audit 8/12: cấu hình production không chạy lifecycle giả', () 
     OIDC_CLIENT_ID: 'app', OIDC_CLIENT_SECRET: 'secret', OIDC_COMPANY_DOMAIN: 'example.com',
     PUBLIC_API_ORIGIN: 'https://api.example.com', WEB_ORIGIN: 'https://app.example.com', COOKIE_SECURE: 'true',
     WORKSPACE_STORAGE_MODE: 'nextcloud', MAIL_ENGINE_MODE: 'stalwart', DOCUMENT_EDITOR_ENABLED: 'true', DOCUMENT_EDITOR_JWT_SECRET: 'x'.repeat(40),
-    // B1: production nextcloud/editor cần URL https tường minh.
+    // B1: production nextcloud/editor cần URL https tường minh và keyring credential.
+    WORKSPACE_CREDENTIAL_KEYS: 'k1:' + Buffer.alloc(32, 1).toString('base64'),
     WORKSPACE_STORAGE_BASE_URL: 'https://cloud.example.com', DOCUMENT_EDITOR_PUBLIC_ORIGIN: 'https://office.example.com',
     DOCUMENT_EDITOR_INTERNAL_ORIGIN: 'http://onlyoffice', DOCUMENT_EDITOR_API_ORIGIN: 'http://api:4000',
   };
