@@ -442,6 +442,18 @@ export class DriveBasicService {
     return `${header}.${body}.${this.sign(`${header}.${body}`)}`;
   }
 
+  /**
+   * Key phiên ONLYOFFICE của version hiện tại. Forcesave (status 6) tạo version mới nhưng Document Server
+   * vẫn giữ phiên và key cũ, nên khi version hiện tại do forcesave của key K tạo ra thì phiên K vẫn là phiên
+   * hiện hành: người mở sau nhận K để vào chung phiên, callback sau của K vẫn được lưu. Status 2 đóng phiên;
+   * tải version, khôi phục hay lưu khi đóng đều làm version hiện tại không còn gắn với phiên mở nào.
+   */
+  private async editorSessionKey(companyId: string, fileId: string, file: { versionNumber?: number; currentVersionId?: unknown }) {
+    const open = file.currentVersionId && await this.db.m.WorkspaceEditorSave.findOne({ companyId, fileId,
+      versionId: file.currentVersionId, status: 'saved', callbackStatus: 6 }).lean<any>();
+    return open?.editorKey || `vcw-${fileId}-v${file.versionNumber}`;
+  }
+
   async editorConfig(ctx: Ctx, fileId: string) {
     if (!this.cfg.documentEditor.enabled) throw Errors.state('Trình soạn thảo đang tắt');
     const file: any = await this.file(ctx, fileId);
@@ -456,7 +468,7 @@ export class DriveBasicService {
     const api = this.cfg.documentEditor.apiOriginForEditor.replace(/\/$/, '');
     const config: any = {
       documentType: kind === 'document' ? 'word' : kind === 'spreadsheet' ? 'cell' : 'slide',
-      document: { fileType: kind === 'document' ? 'docx' : kind === 'spreadsheet' ? 'xlsx' : 'pptx', key: `vcw-${fileId}-v${file.versionNumber}`, title: file.name,
+      document: { fileType: kind === 'document' ? 'docx' : kind === 'spreadsheet' ? 'xlsx' : 'pptx', key: await this.editorSessionKey(ctx.companyId, fileId, file), title: file.name,
         url: `${api}/api/v1/drive/editor/content?ticket=${encodeURIComponent(contentTicket)}`,
         permissions: { edit: mode === 'edit', download: true, print: true, comment: mode === 'edit' },
         referenceData: { fileKey: fileId, instanceId: api } },
@@ -543,9 +555,9 @@ export class DriveBasicService {
       const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file' }).lean<any>();
       if (!row) throw new Error('NOT_FOUND');
       if (await this.ticketRole(ticket, row.spaceId) !== 'manager') throw new Error('EDITOR_FORBIDDEN');
-      // Hai phiên cùng version dùng chung key. Sau khi một callback đã tạo version
-      // mới, callback khác mang key cũ không được ghi đè currentVersion.
-      if (editorKey !== `vcw-${ticket.fileId}-v${row.versionNumber}`) throw new Error('EDITOR_STALE_VERSION');
+      // Chỉ phiên hiện hành được ghi. Phiên đã đóng (status 2) hoặc bị version khác (tải lên, khôi phục)
+      // vượt qua thì callback mang key cũ không được ghi đè currentVersion.
+      if (editorKey !== await this.editorSessionKey(ticket.companyId, ticket.fileId, row)) throw new Error('EDITOR_STALE_VERSION');
       const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error('EDITOR_DOWNLOAD_FAILED');
       const bytes = Buffer.from(await response.arrayBuffer());
@@ -561,7 +573,7 @@ export class DriveBasicService {
       await this.db.m.WorkspaceDriveItem.updateOne({ _id: row._id, companyId: ticket.companyId }, { $set: {
         storageKey: key, currentVersionId: version._id, versionNumber: number, mimeType: row.mimeType, size: bytes.length,
         contentSha256: stored.sha256, updatedBy: new Types.ObjectId(ticket.userId) } });
-      await this.db.m.WorkspaceEditorSave.updateOne({ _id: save._id, companyId: ticket.companyId }, { $set: { status: 'saved', versionId: version._id } });
+      await this.db.m.WorkspaceEditorSave.updateOne({ _id: save._id, companyId: ticket.companyId }, { $set: { status: 'saved', versionId: version._id, callbackStatus: status } });
       const auditId = await this.audit.write({ companyId: ticket.companyId, userId: ticket.userId, email: ticket.email }, {
         action: 'workspace_drive.editor.save', objectType: 'workspace_drive_item', objectId: ticket.fileId,
         after: { editorKey, status, versionId: String(version._id), number, size: bytes.length, contentSha256: stored.sha256 },

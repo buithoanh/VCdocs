@@ -320,6 +320,8 @@ const WorkspaceEditorSave = mk({
   callbackFingerprint: { type: String, required: true },
   status: { type: String, enum: ['saving', 'saved', 'failed'], required: true },
   versionId: OID,
+  // Mã trạng thái callback ONLYOFFICE đã tạo version: 6 = forcesave (phiên soạn còn mở, key giữ nguyên), 2 = đóng phiên.
+  callbackStatus: Number,
   errorCode: String,
 });
 WorkspaceEditorSave.index({ companyId: 1, fileId: 1, callbackFingerprint: 1 }, { unique: true });
