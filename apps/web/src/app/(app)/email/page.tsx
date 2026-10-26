@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { mailBodyQuery, MessageBody, type MailBodyAttachment } from './MessageBody';
@@ -46,6 +46,9 @@ export default function EmailPage() {
   const [selectedId, setSelectedId] = useState('');
   const [composing, setComposing] = useState(false);
   const [search, setSearch] = useState('');
+  // Chỉ gọi danh sách khi ngừng gõ 300 ms; mỗi lần gọi đồng bộ với mail server (review O7).
+  const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => { const timer = setTimeout(() => setSearchQuery(search.trim()), 300); return () => clearTimeout(timer); }, [search]);
   const [mailbox, setMailbox] = useState('');
   const [managing, setManaging] = useState(false);
   const [to, setTo] = useState('');
@@ -71,7 +74,7 @@ export default function EmailPage() {
   const labels = useQuery({ queryKey: ['mail-labels', mailbox], queryFn: () => json(`/mail/labels${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`).then((value) => value.items as Label[]) });
   const aliases = useQuery({ queryKey: ['mail-aliases'], queryFn: () => json('/mail/aliases').then((value) => value.items as { id: string; address: string }[]) });
   const shared = useQuery({ queryKey: ['mail-shared'], queryFn: () => json('/mail/shared-mailboxes').then((value) => value.items as SharedMailbox[]) });
-  const messages = useQuery({ queryKey: ['mail', folder, mailbox, search], queryFn: () => json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${search.trim() ? `&q=${encodeURIComponent(search.trim())}&scope=all` : ''}`).then((value) => value.items as Message[]) });
+  const messages = useQuery({ queryKey: ['mail', folder, mailbox, searchQuery], queryFn: () => json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}&scope=all` : ''}`).then((value) => value.items as Message[]) });
   const filtered = useMemo(() => messages.data ?? [], [messages.data]);
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
   const headers = (idempotent = false) => ({ 'Content-Type': 'application/json', 'X-Request-Id': newId(), ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}), ...(idempotent ? { 'Idempotency-Key': newId() } : {}) });
@@ -137,9 +140,21 @@ export default function EmailPage() {
     setDraftId(''); setAttachment(null); setManaging(false); setNotice('');
     setBodyHtml(quotedReplyHtml(selected, body)); setComposing(true); setEditorFocus((value) => value + 1);
   }
+  /**
+   * Bấm Gửi lại sau lỗi hay bấm hai lần với đúng nội dung cũ dùng lại Idempotency-Key cũ để server không gửi đôi
+   * (review O11); nội dung đã sửa thì là thư khác, key mới.
+   */
+  const lastSend = useRef<{ payload: string; key: string } | null>(null);
+  const [sending, setSending] = useState(false);
   async function send() {
-    const response = await fetch(`${API_BASE}/mail/send`, { method: 'POST', credentials: 'same-origin', headers: headers(true), body: JSON.stringify({ ...recipients(), subject, ...content(), draftId: draftId || undefined, attachments: attachment ? [attachment] : [], fromIdentity: fromIdentity || sendableMailbox || undefined, ...(replyRefs ? { ...replyRefs, mailbox: mailbox || undefined } : {}) }) });
+    const payload = JSON.stringify({ ...recipients(), subject, ...content(), draftId: draftId || undefined, attachments: attachment ? [attachment] : [], fromIdentity: fromIdentity || sendableMailbox || undefined, ...(replyRefs ? { ...replyRefs, mailbox: mailbox || undefined } : {}) });
+    if (lastSend.current?.payload !== payload) lastSend.current = { payload, key: newId() };
+    setSending(true);
+    let response: Response;
+    try { response = await fetch(`${API_BASE}/mail/send`, { method: 'POST', credentials: 'same-origin', headers: { ...headers(), 'Idempotency-Key': lastSend.current.key }, body: payload }); }
+    finally { setSending(false); }
     if (!response.ok) throw new Error('Mail server chưa xác nhận gửi.');
+    lastSend.current = null;
     setNotice('Mail server đã nhận thư.'); setDraftId(''); setReplyRefs(null); setAttachment(null); setTo(''); setCc(''); setBcc(''); setShowCopies(false); setSubject(''); setBodyHtml(''); setComposing(false); setFolder('sent');
     await queryClient.invalidateQueries({ queryKey: ['mail'] });
   }
@@ -211,7 +226,7 @@ export default function EmailPage() {
           </div>
           {attachment && <div className="mail-attachment"><Icon name="paperclip"/><span>{attachment.filename}</span><button type="button" onClick={() => setAttachment(null)} aria-label={`Bỏ tệp ${attachment.filename}`}><Icon name="close"/></button></div>}
           {(notice || error) && <p className={`mail-notice ${error ? 'is-error' : ''}`} role="status">{error || notice}</p>}
-          <div className="mail-compose-actions"><button className="mail-send-button" type="button" disabled={!parseAddressList(to).length || !subject} onClick={() => void run(send)}>Gửi</button><label className="mail-attach-button"><Icon name="paperclip"/><span>Đính kèm</span><input className="sr-only" type="file" onChange={(event) => event.target.files?.[0] && void choose(event.target.files[0])}/></label><button className="mail-text-button" type="button" onClick={() => void run(saveDraft)}>Lưu nháp</button><button className="mail-text-button" type="button" disabled={!draftId} onClick={() => void run(reopen)}>Mở lại</button></div>
+          <div className="mail-compose-actions"><button className="mail-send-button" type="button" disabled={sending || !parseAddressList(to).length || !subject} onClick={() => void run(send)}>Gửi</button><label className="mail-attach-button"><Icon name="paperclip"/><span>Đính kèm</span><input className="sr-only" type="file" onChange={(event) => event.target.files?.[0] && void choose(event.target.files[0])}/></label><button className="mail-text-button" type="button" onClick={() => void run(saveDraft)}>Lưu nháp</button><button className="mail-text-button" type="button" disabled={!draftId} onClick={() => void run(reopen)}>Mở lại</button></div>
         </section> : selected ? <article className="mail-reader">
           <div className="mail-pane-toolbar"><div><p className="mail-eyebrow">{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</p><h2>{selected.subject || '(Không có tiêu đề)'}</h2></div><div className="mail-reader-actions"><button className="mail-download-button" type="button" onClick={() => void run(() => replySelected(false))}><Icon name="reply"/>Trả lời</button><button className="mail-download-button" type="button" onClick={() => void run(() => replySelected(true))}><Icon name="replyAll"/>Trả lời tất cả</button><button className="mail-download-button" type="button" onClick={() => void run(forwardSelected)}><Icon name="sent"/>Chuyển tiếp</button><a className="mail-download-button" href={`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`}><Icon name="download"/>Tải MIME</a></div></div>
           <div className="mail-sender"><span className="mail-avatar">{selected.from.slice(0, 2).toUpperCase()}</span><div><strong>{selected.from}</strong><p>Đến {selected.to.join(', ')}</p>{selected.cc?.length ? <p>Cc {selected.cc.join(', ')}</p> : null}{selected.bcc?.length ? <p>Bcc {selected.bcc.join(', ')}</p> : null}</div><time>{new Date(selected.sentAt).toLocaleString('vi-VN')}</time></div>
