@@ -275,6 +275,8 @@ const WorkspaceSpaceMember = mk({
 });
 WorkspaceSpaceMember.index({ companyId: 1, spaceId: 1, userId: 1 }, { unique: true });
 
+export const WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'workspace_drive_item_live_name';
+export const LEGACY_WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'companyId_1_spaceId_1_parentId_1_name_1';
 const WorkspaceDriveItem = mk({
   spaceId: { type: OID, required: true },
   parentId: OID,
@@ -290,7 +292,9 @@ const WorkspaceDriveItem = mk({
   trashedFromParentId: OID,
   trashedRootId: OID,
 });
-WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1 }, { unique: true });
+// Tên chỉ duy nhất trong các mục chưa bỏ thùng rác: mục đang dùng có trashedAt null, mục trong thùng rác mang
+// thời điểm bỏ nên không chặn tên mới. Index cũ (không có trashedAt) được Db.ready() gỡ.
+WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1, trashedAt: 1 }, { unique: true, name: WORKSPACE_DRIVE_ITEM_NAME_INDEX });
 
 const WorkspaceDriveVersion = mk({
   fileId: { type: OID, required: true },

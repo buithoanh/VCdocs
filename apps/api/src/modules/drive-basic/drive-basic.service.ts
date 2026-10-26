@@ -141,7 +141,7 @@ export class DriveBasicService {
   private async assertNameAvailable(ctx: Ctx, spaceId: string, parentId: string | undefined, name: string, excludeId?: Types.ObjectId) {
     const exists = await this.db.m.WorkspaceDriveItem.exists({ companyId: this.cid(ctx),
       spaceId: new Types.ObjectId(spaceId), parentId: parentId ? new Types.ObjectId(parentId) : { $exists: false }, name,
-      ...(excludeId ? { _id: { $ne: excludeId } } : {}) });
+      trashedAt: { $exists: false }, ...(excludeId ? { _id: { $ne: excludeId } } : {}) });
     if (exists) throw Errors.storageConflict();
   }
   async createFolder(ctx: Ctx, input: { spaceId: string; parentId?: string; name: string }) {
@@ -429,9 +429,16 @@ export class DriveBasicService {
         companyId: this.cid(ctx), trashedAt: { $exists: false } });
       if (!parent) throw Errors.state('Thư mục cha cũ không còn hoạt động');
     }
-    await this.db.m.WorkspaceDriveItem.updateMany({ companyId: this.cid(ctx), trashedRootId: row._id }, {
-      $unset: { trashedAt: 1, trashedFromParentId: 1, trashedRootId: 1 }, $set: { updatedBy: this.uid(ctx) },
-    });
+    // Tên cũ có thể đã được mục khác dùng sau khi bỏ thùng rác: báo trùng tên, đổi tên rồi khôi phục.
+    await this.assertNameAvailable(ctx, String(row.spaceId), row.parentId ? String(row.parentId) : undefined, row.name, row._id);
+    try {
+      await this.db.m.WorkspaceDriveItem.updateMany({ companyId: this.cid(ctx), trashedRootId: row._id }, {
+        $unset: { trashedAt: 1, trashedFromParentId: 1, trashedRootId: 1 }, $set: { updatedBy: this.uid(ctx) },
+      });
+    } catch (error: any) {
+      if (error?.code === 11000) throw Errors.storageConflict();
+      throw error;
+    }
     await this.audit.record(ctx, { action: 'workspace_drive.item.restore', objectType: 'workspace_drive_item', objectId: itemId,
       after: { parentId: row.parentId || null } });
     const restored = await this.db.m.WorkspaceDriveItem.findOne({ _id: row._id, companyId: this.cid(ctx) }).lean<any>();

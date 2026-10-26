@@ -20,6 +20,16 @@ describe('Drive: luật tải tệp và phiên bản', () => {
     return { client, spaceId: space.id as string };
   }
 
+  it('O10: khởi động gỡ index tên cũ tính cả thùng rác', async () => {
+    // Chạy trước các ca khác: index cũ chỉ tạo được khi chưa có tên trùng với mục trong thùng rác.
+    const collection = t.db.m.WorkspaceDriveItem.collection;
+    await collection.createIndex({ companyId: 1, spaceId: 1, parentId: 1, name: 1 }, { unique: true });
+    await t.db.ready();
+    const names = (await collection.indexes()).map((index) => index.name);
+    expect(names).not.toContain('companyId_1_spaceId_1_parentId_1_name_1');
+    expect(names).toContain('workspace_drive_item_live_name');
+  });
+
   it('O9: phiên bản mới của XLSX nhận XLSX', async () => {
     const { client, spaceId } = await manager();
     const sheet = await client.post('/drive/spreadsheets', { spaceId, name: 'O9 bảng' }, { idem: 'review-o9-sheet' });
@@ -83,5 +93,26 @@ describe('Drive: luật tải tệp và phiên bản', () => {
     expect(await t.db.m.WorkspaceDriveVersion.countDocuments({ companyId: t.ids.companyId, fileId: done.id })).toBe(1);
     // Lượt đã xong: gọi lại cùng key trả đúng tệp đó.
     expect(await drive.upload(ctx, { spaceId }, file, 'review-o8-parallel')).toMatchObject({ id: done.id });
+  });
+
+  it('O10: tên của mục đã bỏ thùng rác dùng lại được; khôi phục khi tên đã bị dùng thì báo trùng', async () => {
+    const { client, spaceId } = await manager();
+    const file = (text: string) => ({ name: 'o10-ten.txt', type: 'text/plain', content: Buffer.from(text) });
+    const old = await client.upload('/drive/files', { spaceId }, file('cu'), { idem: 'review-o10-old' });
+    expect(old.status).toBe(201);
+    // Hai mục đang dùng vẫn không trùng tên.
+    expect((await client.upload('/drive/files', { spaceId }, file('trung'), { idem: 'review-o10-dup' })).status).toBe(409);
+    expect((await client.post(`/drive/items/${old.body.id}/trash`, {})).status).toBe(200);
+    const fresh = await client.upload('/drive/files', { spaceId }, file('moi'), { idem: 'review-o10-new' });
+    expect(fresh.status).toBe(201);
+    const folder = await client.post('/drive/folders', { spaceId, name: 'o10-thu-muc' });
+    expect((await client.post(`/drive/items/${folder.body.id}/trash`, {})).status).toBe(200);
+    expect((await client.post('/drive/folders', { spaceId, name: 'o10-thu-muc' })).status).toBe(201);
+    const restore = await client.post(`/drive/items/${old.body.id}/restore`, {});
+    expect(restore.status).toBe(409);
+    expect((await client.get(`/drive/files/${fresh.body.id}/content`)).text).toBe('moi');
+    // Đổi tên mục mới rồi khôi phục bản cũ được.
+    expect((await client.patch(`/drive/items/${fresh.body.id}`, { name: 'o10-ten-moi.txt' })).status).toBe(200);
+    expect((await client.post(`/drive/items/${old.body.id}/restore`, {})).status).toBe(200);
   });
 });
