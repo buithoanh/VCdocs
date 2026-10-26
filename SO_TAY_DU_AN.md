@@ -60,6 +60,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Push và mở PR `vcworkspace/antd-ho-so` vào `dev` (chủ dự án tự chạy, 2026-10-26):** nhánh nằm gọn trên `origin/dev` (PR #10 gộp antd bước 1 đã merge 01:29Z) với 5 commit d3b7ca0 → 422875c. Nội dung PR và lệnh push/mở PR soạn sẵn ở `docs/ke-hoach/vcworkspace-pr-antd-modules.md`. Sau PR này, các trang ngoài sáu module (đăng nhập, trang chủ, tra cứu, chia sẻ, thông báo, danh mục, bảng mã, nhân sự, việc nền, `/bo-nho`) vẫn dùng lớp cũ, chờ chủ dự án quyết có chuyển tiếp không.
+
 - [ ] **Giao diện Ant Design – bước 6 module Email xong, chờ chủ dự án xem (2026-10-26), cùng nhánh `vcworkspace/antd-ho-so`:** `email/page.tsx` giữ khung ba vùng kiểu Outlook (lớp bố cục `.mail-shell/.mail-folders/.mail-list-pane/.mail-reading-pane…`) nhưng mọi điều khiển sang antd: ô tìm Input, nút làm mới, cột trái là Button (Thư mới primary, thư mục `color=primary variant=filled` khi chọn, icon antd `aria-hidden` để tên nút không đổi), dòng thư là Button block + Avatar, rỗng/tải/lỗi bằng Empty/Spin/ErrorBox; khung đọc: Space nút Chuyển tiếp / Tải MIME, Avatar, Tag nhãn và trạng thái gửi, thông báo bằng Alert; soạn thư: antd Form ngang (Gửi từ Select, Đến + nút Cc/Bcc, Cc, Bcc, Tiêu đề), đính kèm bằng Upload (`beforeUpload` trả false) và Tag closable, nút Gửi/Lưu nháp/Mở lại; quản lý mail: Row/Col + Card, mỗi form là antd Form + `Space.Compact` Input/Button, nhãn và quyền thành viên là Button nhỏ. `RichTextEditor` thanh công cụ dùng antd Button + icon antd (giữ roving tabindex, aria-label); `MessageBody` ghi chú bằng Alert, lỗi bằng ErrorBox, nút lưu Drive antd (giữ `.mail-body-text` vì test). CSS `.mail-*` cũ **giữ nguyên** vì `/bo-nho` (làm lại trên dev) dùng chung; chỉ thêm `.mail-nav-btn/.mail-message-row.ant-btn/.mail-notice-box…` và nới cột đọc ở ≤1200px. Test `email.test.tsx` giữ nguyên 10/10 (file này nay mất ~25 s/10 ca trong jsdom), FE 96/96, typecheck đạt, `pnpm ai:check` đạt; QA giả vai Trưởng phòng MKT: soạn và gửi thư cho chính mình, xem ở Đã gửi, mở khung đọc, màn Quản lý mail. **Đã hết sáu module đã chốt**; còn ngoài phạm vi: `/bo-nho`, `/chia-se`, `/thong-bao`, `/danh-muc*`, `/bang-ma`, `/nhan-su`, `/tra-cuu`, `/viec-nen`, trang đăng nhập vẫn dùng lớp cũ `.btn/.field/.filters/.list`; chưa push/PR.
 
 - [ ] **Giao diện Ant Design – bước 5 module Thư mục/Drive xong, chờ chủ dự án xem (2026-10-26), cùng nhánh `vcworkspace/antd-ho-so`:** `thu-muc/FolderBrowser.tsx` cây thư mục bằng antd `Tree` (`showLine`, `blockNode`, tải con theo `loadData` qua `GET /folders/{id}/children`, `isLeaf` theo `hasChildren`, tiêu đề nút có số/mã/tên + Tag trạng thái), bố cục hai cột Row/Col, bộ lọc drive Form/Row/Col, chi tiết dùng Space + LinkButton, ô trống `Empty`; hộp thoại Đổi tên và Tạo thư mục là antd Form trong Modal (parent/kind/code Select, số kế tiếp vẫn qua `/folders/next-number`, D20 bỏ loại không hợp lệ khi đổi cha), Tạo năm/tháng dùng `MonthField` + Checkbox. `drive/[id]` checkbox antd; `drive/page.tsx` giữ nguyên (đã DataTable). CSS bỏ `.tree*`/`.layout-split`, thêm `.vc-tree`. Module không còn `.filters/.tree/.actions/.btn/.checkbox/.hint/.empty`. Test FE 96/96, typecheck đạt, `pnpm ai:check` đạt; QA giả: cây tải con khi mở nút, chọn nút hiện chi tiết, danh sách drive, hộp thoại Tạo thư mục (vai Trưởng phòng MKT). **Chưa làm:** Email (bố cục kiểu Outlook, nhiều CSS riêng `.mail-*`); chưa push/PR.
@@ -281,6 +283,16 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-10-26 · Soạn nội dung PR sáu module antd
+
+- Chủ dự án duyệt Email và dừng loạt module. Kiểm `origin/dev`: PR #10 (`claude/gop-antd`) đã merge nên `vcworkspace/antd-ho-so` chỉ còn 5 commit module; 26 file, +1774/−732.
+- Soạn `docs/ke-hoach/vcworkspace-pr-antd-modules.md` (tóm tắt theo module, thay đổi dùng chung, kiểm tra, lưu ý trước merge, lệnh push/mở PR). Chỉ sửa tài liệu; không push (repo chặn).
+
+### 2026-10-26 · Cập nhật sơ đồ nhánh git
+- Đã làm (chỉ đọc git, `git fetch --prune`; không sửa nhánh): vẽ lại https://claude.ai/artifact/LAs5cVJWkugw7huhWj1AKx (bản 2). 44 nhánh máy, 10 trên GitHub, 138 commit, PR #1–#11 đã merge, 0 PR mở, 27 worktree phụ. `origin/main` = `origin/dev` + 2 commit merge PR. 33 nhánh máy và 6 nhánh GitHub `claude/…` đã gộp hết vào `dev`.
+- Chưa vào `dev`: `giai-doan-2` (5 commit, M10 Bàn giao + M15 Nhật ký theo OpenAPI 1.5.0-gd2, dev nay 2.6.0-gd2) và 3 nhánh con; `claude/chat19-assistant-ai` (1 commit, chưa push); `vcworkspace/antd-ho-so` (bước 2–5 + bước 6 chưa commit); `giai-doan-1` (12 commit sổ tay production, máy hơn GitHub 4). `tmp-reader` đã có bản tương đương trong dev (PR #8).
+- Còn dở: chủ dự án quyết M10/M15 (đưa vào dev hay bỏ), PR chat19, đưa sổ tay production vào dev, dọn nhánh/worktree đã gộp.
 
 ### 2026-10-26 · Giao diện Ant Design bước 6: module Email
 
