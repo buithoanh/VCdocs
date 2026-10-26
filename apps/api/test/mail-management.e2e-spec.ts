@@ -80,7 +80,9 @@ describe('Quản lý Email VCworkspace', () => {
     const inbound = sharedInbox.body.items.find((x: any) => x.subject === 'Thư vào nhóm');
     const raw = await member.agent.get(`/api/v1/mail/messages/${inbound.id}/raw?mailbox=${encodeURIComponent(shared.body.address)}`).buffer(true).parse(binary as any);
     expect(raw.status).toBe(200); expect(Buffer.from(raw.body).toString('utf8')).toContain(Buffer.from('shared inbound body').toString('base64'));
-    await manager.post(`/mail/labels?mailbox=${encodeURIComponent(shared.body.address)}`, { name: 'Nhóm08', color: '#112233' }, { idem: 'shared-label-08' });
+    // Review O14: thành viên chỉ đọc/gửi không tạo nhãn của hộp nhóm; người có manage tạo, thành viên đọc gán nhãn.
+    expect((await member.post(`/mail/labels?mailbox=${encodeURIComponent(shared.body.address)}`, { name: 'Tự đặt', color: '#445566' }, { idem: 'shared-label-member-08' })).status).toBe(403);
+    expect((await manager.post(`/mail/labels?mailbox=${encodeURIComponent(shared.body.address)}`, { name: 'Nhóm08', color: '#112233' }, { idem: 'shared-label-08' })).status).toBe(201);
     expect((await member.patch(`/mail/messages/${inbound.id}/labels?mailbox=${encodeURIComponent(shared.body.address)}`, { labels: ['Nhóm08'] })).body.labels).toEqual(['Nhóm08']);
     expect((await manager.patch(`/mail/shared-mailboxes/${shared.body.id}/members`, { email: 'nv.mkt@vcworkspace.test', roles: ['send'] })).status).toBe(400);
     await manager.patch(`/mail/shared-mailboxes/${shared.body.id}/members`, { email: 'nv.mkt@vcworkspace.test', roles: ['manage'] });
