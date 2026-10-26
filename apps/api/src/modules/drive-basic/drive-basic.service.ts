@@ -17,6 +17,8 @@ import { canonical } from '../../audit/audit.service';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+// Lease của một lượt tải: đủ cho tệp 10 MiB qua kho chậm; quá hạn thì retry cùng key được nhận lại lượt.
+const UPLOAD_LEASE_MS = 2 * 60_000;
 const UPLOAD_MIME = ['text/plain', 'application/octet-stream', DOCX, XLSX, PPTX, 'application/pdf'];
 type EditorTicket = { fileId: string; companyId: string; userId: string; email: string; exp: number; mode: 'edit' | 'view';
   purpose: 'content' | 'callback' };
@@ -169,20 +171,12 @@ export class DriveBasicService {
     if (!UPLOAD_MIME.includes(file.mimetype)) throw Errors.unsupportedMedia();
     const fingerprint = sha256([input.spaceId, input.parentId || '', file.originalname, file.mimetype,
       String(file.size), sha256(file.buffer), canonical(input.provenance ?? {})].join('|'));
-    const existing = await this.db.m.UploadAttempt.findOne({ companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key }).lean<any>();
-    if (existing) {
-      if (existing.fingerprint !== fingerprint) throw Errors.state('Idempotency-Key đã dùng cho nội dung khác');
-      if (existing.state === 'done') return this.file(ctx, String(existing.itemId));
-    }
+    const attempt = await this.claimUpload(ctx, input.spaceId, key, fingerprint);
+    if (attempt.done) return this.file(ctx, String(attempt.done));
+    const { existing, leaseToken } = attempt;
     if (!existing) await this.assertNameAvailable(ctx, input.spaceId, input.parentId, file.originalname);
-    const id = existing?.itemId ? new Types.ObjectId(existing.itemId) : new Types.ObjectId();
-    if (!existing) {
-      await this.db.m.UploadAttempt.create({ companyId: this.cid(ctx), userId: this.uid(ctx),
-        spaceId: new Types.ObjectId(input.spaceId), idempotencyKey: key, fingerprint, state: 'pending', itemId: id });
-    } else {
-      await this.db.m.UploadAttempt.updateOne({ _id: existing._id, companyId: this.cid(ctx) },
-        { $set: { state: 'pending' }, $unset: { errorCode: 1 } });
-    }
+    const id = existing?.itemId ? new Types.ObjectId(existing.itemId) : attempt.itemId;
+    const owned = { companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key, leaseToken };
     try {
       // Blob phiên bản nằm ở khóa bất biến ngoài cây tên/cha. Vì vậy rename/move
       // metadata không làm mất khả năng đọc lại một phiên bản cũ.
@@ -203,28 +197,69 @@ export class DriveBasicService {
         }
       }
       if (stored.sha256 !== sha256(file.buffer)) throw Errors.storageIntegrity();
-      const row = await this.db.m.WorkspaceDriveItem.create({ _id: id, companyId: this.cid(ctx),
+      // Lượt trước có thể đã tạo item/version rồi lỗi ở bước sau: dùng lại thay vì tạo trùng _id (409 vĩnh viễn).
+      let row = existing ? await this.db.m.WorkspaceDriveItem.findOne({ _id: id, companyId: this.cid(ctx),
+        spaceId: new Types.ObjectId(input.spaceId) }) : null;
+      if (!row) row = await this.db.m.WorkspaceDriveItem.create({ _id: id, companyId: this.cid(ctx),
         spaceId: new Types.ObjectId(input.spaceId), parentId: input.parentId ? new Types.ObjectId(input.parentId) : undefined,
         kind: 'file', name: file.originalname, mimeType: file.mimetype, size: file.size,
         contentSha256: stored.sha256, storageKey: stored.key, versionNumber: 1,
         createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
-      const version = await this.db.m.WorkspaceDriveVersion.create({ companyId: this.cid(ctx), fileId: id,
-        number: 1, storageKey: stored.key, mimeType: file.mimetype, size: file.size,
-        contentSha256: stored.sha256, provenance: input.provenance, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
-      row.currentVersionId = version._id;
-      await row.save();
-      await this.db.m.UploadAttempt.updateOne({ companyId: this.cid(ctx), userId: this.uid(ctx),
-        idempotencyKey: key, itemId: id }, { $set: { state: 'done' } });
+      const version = (existing && await this.db.m.WorkspaceDriveVersion.findOne({ companyId: this.cid(ctx), fileId: id, number: 1 }))
+        || await this.db.m.WorkspaceDriveVersion.create({ companyId: this.cid(ctx), fileId: id,
+          number: 1, storageKey: stored.key, mimeType: file.mimetype, size: file.size,
+          contentSha256: stored.sha256, provenance: input.provenance, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
+      if (!row.currentVersionId) {
+        row.currentVersionId = version._id;
+        await row.save();
+      }
+      const finished = await this.db.m.UploadAttempt.updateOne(owned, { $set: { state: 'done' }, $unset: { leaseToken: 1, leaseUntil: 1 } });
+      if (finished.matchedCount !== 1) throw Errors.state('Lượt tải cùng Idempotency-Key đang được request khác xử lý');
       await this.audit.record(ctx, { action: 'workspace_drive.file.upload', objectType: 'workspace_drive_item',
         objectId: id.toHexString(), after: { spaceId: input.spaceId, name: file.originalname,
           mimeType: file.mimetype, size: file.size, contentSha256: stored.sha256 } });
       return { ...toApi(row.toObject()), allowedActions: ['download'] };
     } catch (error: any) {
-      await this.db.m.UploadAttempt.updateOne({ companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key }, { $set: { state: 'failed', errorCode: error?.code || 'INTERNAL' } });
+      await this.db.m.UploadAttempt.updateOne(owned, { $set: { state: 'failed', errorCode: error?.code || 'INTERNAL' },
+        $unset: { leaseToken: 1, leaseUntil: 1 } });
       if (error?.code === 11000) throw Errors.storageConflict();
       throw error;
     }
   }
+  /**
+   * Giữ lượt tải theo Idempotency-Key: tạo mới hoặc nhận lại lượt failed/pending đã hết lease bằng một thao tác
+   * nguyên tử, để hai request cùng key không cùng ghi. Lượt đang chạy (lease còn hạn) trả 409, client thử lại sau.
+   */
+  private async claimUpload(ctx: Ctx, spaceId: string, key: string, fingerprint: string):
+    Promise<{ done?: Types.ObjectId; existing?: any; leaseToken: string; itemId: Types.ObjectId }> {
+    const filter = { companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key };
+    const leaseToken = new Types.ObjectId().toHexString(), itemId = new Types.ObjectId();
+    const leaseUntil = () => new Date(Date.now() + UPLOAD_LEASE_MS);
+    let existing = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+    if (!existing) {
+      try {
+        await this.db.m.UploadAttempt.create({ ...filter, spaceId: new Types.ObjectId(spaceId), fingerprint, state: 'pending',
+          itemId, leaseToken, leaseUntil: leaseUntil() });
+        return { leaseToken, itemId };
+      } catch (error: any) {
+        if (error?.code !== 11000) throw error;
+        existing = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+        if (!existing) throw Errors.state('Lượt tải cùng Idempotency-Key chưa thể đối soát');
+      }
+    }
+    if (existing.fingerprint !== fingerprint) throw Errors.state('Idempotency-Key đã dùng cho nội dung khác');
+    if (existing.state === 'done') return { done: existing.itemId, leaseToken, itemId };
+    const claimed = await this.db.m.UploadAttempt.findOneAndUpdate({ _id: existing._id, companyId: this.cid(ctx), state: { $ne: 'done' },
+      $or: [{ state: 'failed' }, { leaseUntil: { $lte: new Date() } }, { leaseUntil: { $exists: false } }] },
+    { $set: { state: 'pending', leaseToken, leaseUntil: leaseUntil() }, $unset: { errorCode: 1 } }, { new: true }).lean<any>();
+    if (!claimed) {
+      const latest = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+      if (latest?.state === 'done') return { done: latest.itemId, leaseToken, itemId };
+      throw Errors.state('Lượt tải cùng Idempotency-Key đang được request khác xử lý');
+    }
+    return { existing: claimed, leaseToken, itemId };
+  }
+
   async file(ctx: Ctx, fileId: string) {
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: fileId, companyId: this.cid(ctx), kind: 'file',
       trashedAt: { $exists: false } }).lean<any>();

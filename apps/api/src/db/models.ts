@@ -310,6 +310,9 @@ const UploadAttempt = mk({
   fingerprint: { type: String, required: true },
   state: { type: String, enum: ['pending', 'done', 'failed'], required: true },
   itemId: OID,
+  // Lượt pending đang có request giữ; hết hạn thì retry cùng key được nhận lại.
+  leaseToken: String,
+  leaseUntil: Date,
   errorCode: String,
 });
 UploadAttempt.index({ companyId: 1, userId: 1, idempotencyKey: 1 }, { unique: true });
