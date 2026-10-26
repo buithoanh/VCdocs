@@ -75,4 +75,15 @@ describe('Phiên soạn ONLYOFFICE', () => {
     expect((await meta(manager, fileId)).versionNumber).toBe(3);
     expect((await config(manager, fileId)).key).toBe(`vcw-${fileId}-v3`);
   });
+
+  it('O5: callback không ghi vào tệp đang ở thùng rác; khôi phục rồi thì lưu được', async () => {
+    const { manager, fileId, key, ticket } = await open('O5-thung-rac');
+    expect((await manager.post(`/drive/items/${fileId}/trash`, {})).status).toBe(200);
+    // Lần callback bị từ chối có fingerprint đã ghi 'failed'; Document Server gửi lại cùng nội dung sau khi khôi phục.
+    expect((await callback(ticket, { key, status: 2, url: `${origin}/cache/final.docx` })).body).toEqual({ error: 1 });
+    expect(await t.db.m.WorkspaceDriveVersion.countDocuments({ companyId: t.ids.companyId, fileId })).toBe(1);
+    expect((await manager.post(`/drive/items/${fileId}/restore`, {})).status).toBe(200);
+    expect((await callback(ticket, { key, status: 2, url: `${origin}/cache/final.docx` })).body).toEqual({ error: 0 });
+    expect((await meta(manager, fileId)).versionNumber).toBe(2);
+  });
 });

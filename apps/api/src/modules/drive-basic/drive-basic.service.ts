@@ -552,7 +552,9 @@ export class DriveBasicService {
     const save = existing || await this.db.m.WorkspaceEditorSave.create({ companyId: ticket.companyId,
       createdBy: ticket.userId, updatedBy: ticket.userId, fileId: ticket.fileId, editorKey, callbackFingerprint: fingerprint, status: 'saving' });
     try {
-      const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file' }).lean<any>();
+      // Tệp trong thùng rác không nhận bản lưu mới; khôi phục rồi phiên cũ (cùng key) lưu tiếp được.
+      const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file',
+        trashedAt: { $exists: false } }).lean<any>();
       if (!row) throw new Error('NOT_FOUND');
       if (await this.ticketRole(ticket, row.spaceId) !== 'manager') throw new Error('EDITOR_FORBIDDEN');
       // Chỉ phiên hiện hành được ghi. Phiên đã đóng (status 2) hoặc bị version khác (tải lên, khôi phục)
