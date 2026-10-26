@@ -1,7 +1,10 @@
 # Đưa VCworkspace (nhánh dev) lên production: hai phương án
 
-Ngày: 2026-10-26. Trạng thái: đề xuất để chủ dự án chọn. Không ai thao tác máy chủ, DNS, IAM
-hay dữ liệu thật khi viết trang này.
+Ngày: 2026-10-26. Không ai thao tác máy chủ, DNS, IAM hay dữ liệu thật khi viết trang này.
+
+**Quyết định (chủ dự án, 2026-10-26):** đi phương án A trước, tức tắt các phân hệ và kiểm hồi quy
+trên bản sao CSDL trước khi deploy. Sau đó bật dần theo phương án B: Drive/Office trước, Email sau
+cùng.
 
 ## Hiện trạng đã kiểm trong mã
 
