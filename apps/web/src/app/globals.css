@@ -442,3 +442,5 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
 .vc-filters { margin-bottom: 12px; }
 .vc-filters .ant-form-item { margin-bottom: 8px; }
 .vc-check-list { display: flex; flex-direction: column; gap: 4px; }
+.vc-decide-bar { display: flex; gap: 8px; padding: 12px 0; background: var(--bg); border-top: 1px solid var(--border); }
+.vc-decide-bar .ant-btn { flex: 1; }

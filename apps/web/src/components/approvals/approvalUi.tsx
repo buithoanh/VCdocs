@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { Typography } from 'antd';
 import { useState } from 'react';
 import { ApiError, api, idem, unwrap } from '@/api/client';
 import type { Approval } from '@/api/types';
@@ -47,9 +48,9 @@ export function DecideDialog({ approval, kind, onClose, onDone }: { approval: Ap
       title={titles[kind]}
       description={
         <>
-          <p>{approvalTitle(approval)}</p>
-          {invalidated && <p className="error-text">File đã bị sửa sau khi trình nên phiếu không còn hiệu lực. Người trình cần trình lại.</p>}
-          <p className="small">Ý kiến, thời điểm và người duyệt được lưu làm bằng chứng phê duyệt, không sửa được.</p>
+          <div>{approvalTitle(approval)}</div>
+          {invalidated && <Typography.Text type="danger">File đã bị sửa sau khi trình nên phiếu không còn hiệu lực. Người trình cần trình lại.</Typography.Text>}
+          <div className="small">Ý kiến, thời điểm và người duyệt được lưu làm bằng chứng phê duyệt, không sửa được.</div>
         </>
       }
       confirmLabel={titles[kind]}
