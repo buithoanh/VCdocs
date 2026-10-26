@@ -1,10 +1,11 @@
 'use client';
 
+import { Select, Space, Spin } from 'antd';
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getPeopleVersion, getPerson, subscribePeople } from '@/api/client';
 import { deptName, useDepartments, useUserLookup } from '@/api/queries';
-import { hasAction } from '@/lib/permissions';
 import { shortId } from '@/lib/format';
+import { hasAction } from '@/lib/permissions';
 import { Button, Field } from './ui';
 
 /** Tên nhân sự lấy từ `people` của các phản hồi (D10); không gọi /users/{id}. */
@@ -29,82 +30,143 @@ export function DeptName({ id }: { id?: string }) {
   return <>{deptName(q.data, id)}</>;
 }
 
-export function DeptSelect({ value, onChange, label = 'Phòng', required, allowAll, hint }: { value: string; onChange: (v: string) => void; label?: string; required?: boolean; allowAll?: boolean; hint?: ReactNode }) {
+export function DeptSelect({
+  value,
+  onChange,
+  label = 'Phòng',
+  required,
+  allowAll,
+  hint,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label?: string;
+  required?: boolean;
+  allowAll?: boolean;
+  hint?: ReactNode;
+}) {
   const q = useDepartments();
   const id = useId();
+  const options = [
+    ...(allowAll ? [{ value: '', label: 'Tất cả phòng' }] : []),
+    ...(q.data ?? []).map((d) => ({ value: d.id, label: `${d.number} ${d.code} – ${d.name}` })),
+  ];
   return (
     <Field label={label} required={required} htmlFor={id} hint={hint}>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required}>
-        <option value="">{allowAll ? 'Tất cả phòng' : q.isLoading ? 'Đang tải…' : '— Chọn phòng —'}</option>
-        {q.data?.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.number} {d.code} – {d.name}
-          </option>
-        ))}
-      </select>
+      <Select
+        id={id}
+        value={allowAll ? value : value || undefined}
+        onChange={(v) => onChange(v ?? '')}
+        options={options}
+        loading={q.isLoading}
+        placeholder={q.isLoading ? 'Đang tải…' : '— Chọn phòng —'}
+        allowClear={!required && !allowAll}
+        showSearch
+        optionFilterProp="label"
+        style={{ width: '100%' }}
+      />
     </Field>
   );
 }
 
-/** Chọn một nhân sự (tìm theo tên/email). */
-export function UserPicker({ label, value, onChange, required, hint, excludeIds = [] }: { label: string; value: string; onChange: (id: string) => void; required?: boolean; hint?: ReactNode; excludeIds?: string[] }) {
-  const [q, setQ] = useState('');
+function useDebounced(value: string, ms = 250) {
   const [debounced, setDebounced] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(q.trim()), 250);
+    const t = setTimeout(() => setDebounced(value.trim()), ms);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [value, ms]);
+  return debounced;
+}
+
+const SEARCH_ERROR = 'Không tìm được người, vui lòng thử lại.';
+const SEARCH_PLACEHOLDER = 'Gõ tên hoặc email để tìm';
+
+function notFound(debounced: string, loading: boolean) {
+  if (!debounced) return SEARCH_PLACEHOLDER;
+  if (loading) return <Spin size="small" />;
+  return 'Không thấy ai phù hợp';
+}
+
+/** Chọn một nhân sự (tìm theo tên/email qua /users/lookup). */
+export function UserPicker({
+  label,
+  value,
+  onChange,
+  required,
+  hint,
+  excludeIds = [],
+}: {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  required?: boolean;
+  hint?: ReactNode;
+  excludeIds?: string[];
+}) {
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
   const search = useUserLookup(debounced);
   const id = useId();
   const selected = usePerson(value);
-  const options = (search.data ?? []).filter((u) => !excludeIds.includes(u.id));
+  const options = (search.data ?? []).filter((u) => !excludeIds.includes(u.id)).map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }));
+  if (value && !options.some((o) => o.value === value)) {
+    options.unshift({ value, label: selected ? `${selected.name} · ${selected.email}` : 'Đã chọn' });
+  }
   return (
-    <Field label={label} required={required} htmlFor={id} hint={hint}>
-      <div className="picker">
-        <input type="search" placeholder="Gõ tên hoặc email để tìm" value={q} onChange={(e) => setQ(e.target.value)} aria-label={`Tìm ${label.toLowerCase()}`} />
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required}>
-          <option value="">{!debounced ? '— Gõ tên để tìm —' : search.isLoading ? 'Đang tìm…' : `— Chọn (${options.length} người) —`}</option>
-          {value && !options.some((u) => u.id === value) && <option value={value}>{selected ? `${selected.name} · ${selected.email}` : 'Đã chọn'}</option>}
-          {options.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} · {u.email}
-            </option>
-          ))}
-        </select>
-      </div>
-      {search.error && <p className="field-error">Không tìm được người, vui lòng thử lại.</p>}
+    <Field label={label} required={required} htmlFor={id} hint={hint} error={search.error ? SEARCH_ERROR : undefined}>
+      <Select
+        id={id}
+        showSearch
+        value={value || undefined}
+        onSearch={setQ}
+        filterOption={false}
+        onChange={(v) => {
+          onChange(v ?? '');
+          setQ('');
+        }}
+        options={options}
+        allowClear={!required}
+        placeholder={SEARCH_PLACEHOLDER}
+        notFoundContent={notFound(debounced, search.isLoading)}
+        loading={search.isLoading}
+        style={{ width: '100%' }}
+      />
     </Field>
   );
 }
 
-/** Chọn nhiều nhân sự. */
+/** Chọn nhiều nhân sự; người đã chọn hiện thành thẻ trong ô. */
 export function MultiUserPicker({ label, value, onChange, hint }: { label: string; value: string[]; onChange: (ids: string[]) => void; hint?: ReactNode }) {
-  const [pick, setPick] = useState('');
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const search = useUserLookup(debounced);
+  const id = useId();
+  useSyncExternalStore(subscribePeople, getPeopleVersion, getPeopleVersion);
+  const chosen = value.map((uid) => {
+    const p = getPerson(uid);
+    return { value: uid, label: p ? `${p.name} · ${p.email}` : `Nhân sự ${shortId(uid)}` };
+  });
+  const found = (search.data ?? []).filter((u) => !value.includes(u.id)).map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }));
   return (
-    <div>
-      <UserPicker
-        label={label}
-        value={pick}
-        hint={hint}
-        excludeIds={value}
-        onChange={(id) => {
-          if (id && !value.includes(id)) onChange([...value, id]);
-          setPick('');
+    <Field label={label} htmlFor={id} hint={hint} error={search.error ? SEARCH_ERROR : undefined}>
+      <Select
+        id={id}
+        mode="multiple"
+        showSearch
+        value={value}
+        onSearch={setQ}
+        filterOption={false}
+        onChange={(ids) => {
+          onChange(ids);
+          setQ('');
         }}
+        options={[...chosen, ...found]}
+        placeholder={SEARCH_PLACEHOLDER}
+        notFoundContent={notFound(debounced, search.isLoading)}
+        loading={search.isLoading}
+        style={{ width: '100%' }}
       />
-      {value.length > 0 && (
-        <ul className="chips">
-          {value.map((id) => (
-            <li key={id} className="chip">
-              <UserName id={id} />
-              <button aria-label="Bỏ" onClick={() => onChange(value.filter((x) => x !== id))}>
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    </Field>
   );
 }
 
@@ -121,12 +183,12 @@ export function ActionBar<A extends string>({ obj, actions, emptyText }: { obj: 
   const visible = actions.filter((a) => hasAction(obj, a.action));
   if (!visible.length) return emptyText ? <p className="muted small">{emptyText}</p> : null;
   return (
-    <div className="actions">
+    <Space wrap className="actions">
       {visible.map((a) => (
         <Button key={a.action} variant={a.variant ?? 'secondary'} onClick={a.onClick}>
           {a.label}
         </Button>
       ))}
-    </div>
+    </Space>
   );
 }

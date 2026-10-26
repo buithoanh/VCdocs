@@ -5,17 +5,20 @@ import type { SystemRole } from '@/api/types';
 import { JobsProvider } from '@/components/jobs';
 import { TestAuthProvider } from '@/components/providers/AuthProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
+import { UiProvider } from '@/components/providers/UiProvider';
 import { makeMe } from './fixtures';
 
 export function renderApp(ui: ReactElement, { roles = ['R6'] as SystemRole[] } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}>
-      <ToastProvider>
-        <TestAuthProvider me={makeMe(roles)}>
-          <JobsProvider>{ui}</JobsProvider>
-        </TestAuthProvider>
-      </ToastProvider>
-    </QueryClientProvider>,
+    <UiProvider test>
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <TestAuthProvider me={makeMe(roles)}>
+            <JobsProvider>{ui}</JobsProvider>
+          </TestAuthProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </UiProvider>,
   );
 }
