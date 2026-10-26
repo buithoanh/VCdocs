@@ -292,7 +292,9 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 ### 2026-10-26 · Cập nhật sơ đồ nhánh git
 - Đã làm (chỉ đọc git, `git fetch --prune`; không sửa nhánh): vẽ lại https://claude.ai/artifact/LAs5cVJWkugw7huhWj1AKx (bản 2). 44 nhánh máy, 10 trên GitHub, 138 commit, PR #1–#11 đã merge, 0 PR mở, 27 worktree phụ. `origin/main` = `origin/dev` + 2 commit merge PR. 33 nhánh máy và 6 nhánh GitHub `claude/…` đã gộp hết vào `dev`.
 - Chưa vào `dev`: `giai-doan-2` (5 commit, M10 Bàn giao + M15 Nhật ký theo OpenAPI 1.5.0-gd2, dev nay 2.6.0-gd2) và 3 nhánh con; `claude/chat19-assistant-ai` (1 commit, chưa push); `vcworkspace/antd-ho-so` (bước 2–5 + bước 6 chưa commit); `giai-doan-1` (12 commit sổ tay production, máy hơn GitHub 4). `tmp-reader` đã có bản tương đương trong dev (PR #8).
-- Còn dở: chủ dự án quyết M10/M15 (đưa vào dev hay bỏ), PR chat19, đưa sổ tay production vào dev, dọn nhánh/worktree đã gộp.
+- Dọn (chủ dự án yêu cầu): xoá 15 worktree sạch đã gộp (audit-fix-01…11, agent-acce/af0c, antd-trial, qa-main) và 27 nhánh máy đã gộp (`claude/audit-fix-01…12`, `claude/gop-antd`, `claude/pr8-combined`, `claude/mail-compose-cc-bcc-richtext`, `claude/chat17-talk`, `claude/nghien-cuu-vcworkspace`, `vcworkspace/giao-dien-antd`, `vcworkspace/chat01-12b`, 8 `worktree-agent-…`); mỗi nhánh kiểm `merge-base --is-ancestor origin/dev` trước khi xoá. Giữ worktree + nhánh đã gộp chat13/14/15/16 (container PoC đang mount, có `poc/*/secrets`), `nhan-cay-thu-muc`, `so-do-to-chuc` (worktree có `apps/api/.env`, `so-do-to-chuc.yaml`). Còn 17 nhánh máy, 12 worktree phụ.
+- **Bị chặn:** `git push origin --delete` 6 nhánh GitHub đã gộp (repo chặn push cho Claude) — chủ dự án tự chạy: `git push origin --delete claude/audit-fix-12-imap-literal claude/chat17-talk claude/gop-antd claude/mail-compose-cc-bcc-richtext claude/nghien-cuu-vcworkspace claude/ui-bo-nho-redesign`.
+- Còn dở: chủ dự án quyết M10/M15 (đưa vào dev hay bỏ), PR chat19, đưa sổ tay production vào dev, xoá 6 nhánh GitHub; dọn worktree PoC chat13–16 khi tắt container.
 
 ### 2026-10-26 · Giao diện Ant Design bước 6: module Email
 
