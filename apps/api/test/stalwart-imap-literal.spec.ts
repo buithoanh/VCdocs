@@ -137,4 +137,14 @@ describe('StalwartMailPort tách phản hồi IMAP theo literal {N}', () => {
     expect(Date.now() - started).toBeLessThan(2_000);
     expect(sockets[0].ended || sockets[0].destroyedByClient).toBe(true);
   });
+
+  it('review O7: listFolder chỉ tải BODY[] của thư chưa biết, nhận diện bằng Message-ID ở header', async () => {
+    const sockets = connectWith(mailbox({ '1': message2, '2': mail(['Message-ID: <m4@vcworkspace.test>', 'Subject: Thư bốn', '', 'mới']) }));
+    const items = await port().listFolder(OWNER, 'inbox', undefined, async (engineId) => engineId === 'm2@vcworkspace.test');
+    expect(items.map((x) => x.engineId)).toEqual(['m4@vcworkspace.test']);
+    const commands = sockets[0].commands.join('\n');
+    expect(commands).not.toContain('UID FETCH 1 BODY.PEEK[]');
+    expect(commands).toContain('UID FETCH 2 BODY.PEEK[]');
+    expect(sockets[0].destroyedByClient || sockets[0].ended).toBe(true);
+  });
 });
