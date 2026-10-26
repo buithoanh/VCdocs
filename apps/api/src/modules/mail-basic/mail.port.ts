@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 
 export type MailAttachment = { filename: string; contentType: string; bytes: Buffer; sha256: string };
+/** `to` là danh sách RCPT TO của SMTP envelope (To ∪ Cc ∪ Bcc), không phải header To. */
 export type MailEnvelope = { from: string; to: string[]; authOwner?: string; sentMailbox?: string };
 export type StoredMail = { engineId: string; owner: string; raw: Buffer; acceptedAt: Date; folder: string; visibleAfterList?: number };
 export type EngineMail = { engineId: string; raw: Buffer };

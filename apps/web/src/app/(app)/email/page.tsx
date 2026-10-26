@@ -3,9 +3,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
+import { MessageBody, type MailBodyAttachment } from './MessageBody';
+import { RichTextEditor } from './RichTextEditor';
+import { cleanHtml, htmlToPlainText, parseAddressList, textToHtml } from './rich-text';
 
 type Folder = 'inbox' | 'sent';
-type Message = { id: string; threadId: string; from: string; to: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string };
+type Message = { id: string; threadId: string; from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string };
 type Label = { id: string; name: string; color?: string };
 type SharedMailbox = { id: string; address: string; name: string; currentRoles: string[]; members: { email: string; roles: string[] }[] };
 type IconName = 'compose' | 'inbox' | 'sent' | 'search' | 'refresh' | 'paperclip' | 'download' | 'close';
@@ -39,9 +42,12 @@ export default function EmailPage() {
   const [mailbox, setMailbox] = useState('');
   const [managing, setManaging] = useState(false);
   const [to, setTo] = useState('');
+  const [cc, setCc] = useState('');
+  const [bcc, setBcc] = useState('');
+  const [showCopies, setShowCopies] = useState(false);
   const [fromIdentity, setFromIdentity] = useState('');
   const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
+  const [bodyHtml, setBodyHtml] = useState('');
   const [draftId, setDraftId] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -52,8 +58,6 @@ export default function EmailPage() {
   const [sharedAddress, setSharedAddress] = useState('');
   const [sharedName, setSharedName] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
-  const [attachmentPart, setAttachmentPart] = useState('0');
-  const [attachmentHash, setAttachmentHash] = useState('');
   const spaces = useQuery({ queryKey: ['interop-spaces'], queryFn: () => json('/spaces').then((value) => value.items as { id:string; name:string; role:string }[]) });
   const labels = useQuery({ queryKey: ['mail-labels', mailbox], queryFn: () => json(`/mail/labels${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`).then((value) => value.items as Label[]) });
   const aliases = useQuery({ queryKey: ['mail-aliases'], queryFn: () => json('/mail/aliases').then((value) => value.items as { id: string; address: string }[]) });
@@ -63,16 +67,21 @@ export default function EmailPage() {
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
   const headers = (idempotent = false) => ({ 'Content-Type': 'application/json', 'X-Request-Id': newId(), ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}), ...(idempotent ? { 'Idempotency-Key': newId() } : {}) });
 
+  /** To/Cc/Bcc tách theo dấu phẩy hoặc chấm phẩy như Gmail/Outlook; server kiểm địa chỉ và bỏ trùng giữa các ô. */
+  function recipients() { return { to: parseAddressList(to), cc: parseAddressList(cc), bcc: parseAddressList(bcc) }; }
+  /** html (đã lọc allowlist) và text thuần lấy từ cùng nội dung trình soạn thảo. */
+  function content() { const html = cleanHtml(bodyHtml); const text = htmlToPlainText(html); return { text, html: text ? html : '' }; }
   async function run(action: () => Promise<void>) { setError(''); try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra.'); } }
   async function saveDraft() {
-    const payload = JSON.stringify({ to: to ? [to] : [], subject, text: body });
+    const payload = JSON.stringify({ ...recipients(), subject, ...content() });
     const row = await json(draftId ? `/mail/drafts/${draftId}` : '/mail/drafts', { method: draftId ? 'PATCH' : 'POST', headers: headers(), body: payload });
     setDraftId(row.id); setNotice('Đã lưu bản nháp.');
   }
   async function reopen() {
     if (!draftId) return;
     const row = await json(`/mail/drafts/${draftId}`);
-    setTo(row.to[0] ?? ''); setSubject(row.subject); setBody(row.text); setNotice('Đã mở lại bản nháp.'); setComposing(true);
+    setTo((row.to ?? []).join(', ')); setCc((row.cc ?? []).join(', ')); setBcc((row.bcc ?? []).join(', ')); setShowCopies(!!(row.cc?.length || row.bcc?.length));
+    setSubject(row.subject); setBodyHtml(row.html ? cleanHtml(row.html) : textToHtml(row.text ?? '')); setNotice('Đã mở lại bản nháp.'); setComposing(true);
   }
   async function choose(file: File) {
     setAttachment(await encodedAttachment(file.name, file.type || 'application/octet-stream', await file.arrayBuffer()));
@@ -87,14 +96,14 @@ export default function EmailPage() {
     const response = await fetch(`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('Không tải được thư gốc để chuyển tiếp.');
     setAttachment(await encodedAttachment('forwarded-message.eml', 'message/rfc822', await response.arrayBuffer()));
-    setTo(''); setSubject(selected.subject.startsWith('Fwd:') ? selected.subject : `Fwd: ${selected.subject}`);
-    setBody(`\n\n---------- Thư được chuyển tiếp ----------\nTừ: ${selected.from}\nĐến: ${selected.to.join(', ')}\nNgày: ${new Date(selected.sentAt).toLocaleString('vi-VN')}\nTiêu đề: ${selected.subject}\n\nThư gốc được đính kèm dưới dạng MIME.`);
+    setTo(''); setCc(''); setBcc(''); setSubject(selected.subject.startsWith('Fwd:') ? selected.subject : `Fwd: ${selected.subject}`);
+    setBodyHtml(textToHtml(`\n\n---------- Thư được chuyển tiếp ----------\nTừ: ${selected.from}\nĐến: ${selected.to.join(', ')}${selected.cc?.length ? `\nCc: ${selected.cc.join(', ')}` : ''}\nNgày: ${new Date(selected.sentAt).toLocaleString('vi-VN')}\nTiêu đề: ${selected.subject}\n\nThư gốc được đính kèm dưới dạng MIME.`));
     setNotice('Đã đính kèm thư gốc để chuyển tiếp.'); setComposing(true);
   }
   async function send() {
-    const response = await fetch(`${API_BASE}/mail/send`, { method: 'POST', credentials: 'same-origin', headers: headers(true), body: JSON.stringify({ to: [to], subject, text: body, draftId: draftId || undefined, attachments: attachment ? [attachment] : [], fromIdentity: fromIdentity || (mailbox || undefined) }) });
+    const response = await fetch(`${API_BASE}/mail/send`, { method: 'POST', credentials: 'same-origin', headers: headers(true), body: JSON.stringify({ ...recipients(), subject, ...content(), draftId: draftId || undefined, attachments: attachment ? [attachment] : [], fromIdentity: fromIdentity || (mailbox || undefined) }) });
     if (!response.ok) throw new Error('Mail server chưa xác nhận gửi.');
-    setNotice('Mail server đã nhận thư.'); setDraftId(''); setAttachment(null); setTo(''); setSubject(''); setBody(''); setComposing(false); setFolder('sent');
+    setNotice('Mail server đã nhận thư.'); setDraftId(''); setAttachment(null); setTo(''); setCc(''); setBcc(''); setShowCopies(false); setSubject(''); setBodyHtml(''); setComposing(false); setFolder('sent');
     await queryClient.invalidateQueries({ queryKey: ['mail'] });
   }
   async function post(path: string, payload: unknown) { return json(path, { method: 'POST', headers: headers(true), body: JSON.stringify(payload) }); }
@@ -104,11 +113,12 @@ export default function EmailPage() {
   async function createAlias() { await post('/mail/aliases', { address: aliasAddress, displayName: aliasAddress.split('@')[0] }); setAliasAddress(''); setNotice('Đã tạo alias gửi; alias không phải hộp thư nhóm.'); await aliases.refetch(); }
   async function createShared() { await post('/mail/shared-mailboxes', { address: sharedAddress, name: sharedName }); setSharedAddress(''); setSharedName(''); setNotice('Đã tạo hộp thư nhóm với quyền tách biệt.'); await shared.refetch(); }
   async function setMember(box: SharedMailbox, roles: string[]) { await json(`/mail/shared-mailboxes/${box.id}/members`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ email: memberEmail, roles }) }); setNotice(roles.length ? 'Đã cập nhật quyền thành viên.' : 'Đã thu hồi quyền thành viên ngay.'); await shared.refetch(); }
-  async function saveAttachmentToDrive() {
+  /** `part` lấy từ GET /body, cùng chỉ số với save-to-drive. */
+  async function saveAttachmentToDrive(item: MailBodyAttachment) {
     if (!selected) return;
-    const target=(spaces.data ?? []).find((item)=>item.role==='manager');
+    const target=(spaces.data ?? []).find((space)=>space.role==='manager');
     if (!target) throw new Error('Bạn chưa có không gian Drive được phép ghi.');
-    const row=await post(`/mail/messages/${selected.id}/attachments/${Number(attachmentPart)}/save-to-drive${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { spaceId:target.id, ...(attachmentHash ? { expectedSha256:attachmentHash } : {}) });
+    const row=await post(`/mail/messages/${selected.id}/attachments/${item.part}/save-to-drive${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`, { spaceId:target.id });
     setNotice(`Đã lưu ${row.name} vào ${target.name}; hash ${row.contentSha256.slice(0,12)}…`);
   }
   function openFolder(next: Folder) { setFolder(next); setMailbox(''); setSelectedId(''); setComposing(false); setManaging(false); setNotice(''); }
@@ -154,18 +164,22 @@ export default function EmailPage() {
           <div className="mail-pane-toolbar"><div><p className="mail-eyebrow">Soạn thư</p><h2>{draftId ? 'Bản nháp' : 'Thư mới'}</h2></div><button className="mail-icon-button" type="button" onClick={() => setComposing(false)} aria-label="Đóng soạn thư"><Icon name="close"/></button></div>
           <div className="mail-compose-fields">
             <label><span>Gửi từ</span><select value={fromIdentity} onChange={(event) => setFromIdentity(event.target.value)}><option value="">Địa chỉ cá nhân</option>{(aliases.data ?? []).map((item) => <option key={item.id} value={item.address}>{item.address}</option>)}{(shared.data ?? []).filter((box) => box.currentRoles.includes('send')).map((box) => <option key={box.id} value={box.address}>{box.name} — {box.address}</option>)}</select></label>
-            <label><span>Đến</span><input value={to} onChange={(event) => setTo(event.target.value)} placeholder="ten@vcworkspace.test"/></label>
+            <div className="mail-recipient-row"><label><span>Đến</span><input value={to} onChange={(event) => setTo(event.target.value)} placeholder="ten@vcworkspace.test, ..."/></label><button className="mail-copies-toggle" type="button" aria-expanded={showCopies} aria-controls="mail-copy-fields" onClick={() => setShowCopies((value) => !value)}>Cc/Bcc</button></div>
+            {showCopies && <div id="mail-copy-fields" className="mail-copy-fields">
+              <label><span>Cc</span><input value={cc} onChange={(event) => setCc(event.target.value)} placeholder="Phân cách bằng dấu phẩy hoặc chấm phẩy"/></label>
+              <label><span>Bcc</span><input value={bcc} onChange={(event) => setBcc(event.target.value)} placeholder="Người nhận ẩn, không ai khác thấy"/></label>
+            </div>}
             <label><span>Tiêu đề</span><input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Thêm tiêu đề"/></label>
-            <label className="mail-body-field"><span className="sr-only">Nội dung</span><textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="Nhập nội dung thư…"/></label>
+            <div className="mail-body-field"><RichTextEditor value={bodyHtml} onChange={setBodyHtml} onError={setError} label="Nội dung" placeholder="Nhập nội dung thư…"/></div>
           </div>
           {attachment && <div className="mail-attachment"><Icon name="paperclip"/><span>{attachment.filename}</span><button type="button" onClick={() => setAttachment(null)} aria-label={`Bỏ tệp ${attachment.filename}`}><Icon name="close"/></button></div>}
           {(notice || error) && <p className={`mail-notice ${error ? 'is-error' : ''}`} role="status">{error || notice}</p>}
-          <div className="mail-compose-actions"><button className="mail-send-button" type="button" disabled={!to || !subject} onClick={() => void run(send)}>Gửi</button><label className="mail-attach-button"><Icon name="paperclip"/><span>Đính kèm</span><input className="sr-only" type="file" onChange={(event) => event.target.files?.[0] && void choose(event.target.files[0])}/></label><button className="mail-text-button" type="button" onClick={() => void run(saveDraft)}>Lưu nháp</button><button className="mail-text-button" type="button" disabled={!draftId} onClick={() => void run(reopen)}>Mở lại</button></div>
+          <div className="mail-compose-actions"><button className="mail-send-button" type="button" disabled={!parseAddressList(to).length || !subject} onClick={() => void run(send)}>Gửi</button><label className="mail-attach-button"><Icon name="paperclip"/><span>Đính kèm</span><input className="sr-only" type="file" onChange={(event) => event.target.files?.[0] && void choose(event.target.files[0])}/></label><button className="mail-text-button" type="button" onClick={() => void run(saveDraft)}>Lưu nháp</button><button className="mail-text-button" type="button" disabled={!draftId} onClick={() => void run(reopen)}>Mở lại</button></div>
         </section> : selected ? <article className="mail-reader">
           <div className="mail-pane-toolbar"><div><p className="mail-eyebrow">{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</p><h2>{selected.subject || '(Không có tiêu đề)'}</h2></div><div className="mail-reader-actions"><button className="mail-download-button" type="button" onClick={() => void run(forwardSelected)}><Icon name="sent"/>Chuyển tiếp</button><a className="mail-download-button" href={`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`}><Icon name="download"/>Tải MIME</a></div></div>
-          <div className="mail-sender"><span className="mail-avatar">{selected.from.slice(0, 2).toUpperCase()}</span><div><strong>{selected.from}</strong><p>Đến {selected.to.join(', ')}</p></div><time>{new Date(selected.sentAt).toLocaleString('vi-VN')}</time></div>
-          <div className="mail-content-placeholder"><div className="mail-content-mark">VC</div><h3>Thư đã được lưu an toàn</h3><p>Bản email gốc được giữ nguyên trên mail server. Tải MIME để xem đầy đủ nội dung và tệp đính kèm.</p>{selected.labels?.length ? <div className="mail-chips">{selected.labels.map((label) => <span key={label}>{label}</span>)}</div> : null}<span className={`mail-delivery ${selected.deliveryStatus === 'accepted' ? 'is-success' : 'is-error'}`}>{selected.deliveryStatus === 'accepted' ? 'Đã được mail server nhận' : 'Gửi chưa thành công'}</span></div>
-          <div className="mail-compose-actions"><input aria-label="Số thứ tự attachment" type="number" min="0" value={attachmentPart} onChange={(event)=>setAttachmentPart(event.target.value)}/><input aria-label="SHA-256 attachment dự kiến" value={attachmentHash} onChange={(event)=>setAttachmentHash(event.target.value)} placeholder="SHA-256 (khuyến nghị)"/><button type="button" onClick={()=>void run(saveAttachmentToDrive)}>Lưu attachment vào Drive</button></div>
+          <div className="mail-sender"><span className="mail-avatar">{selected.from.slice(0, 2).toUpperCase()}</span><div><strong>{selected.from}</strong><p>Đến {selected.to.join(', ')}</p>{selected.cc?.length ? <p>Cc {selected.cc.join(', ')}</p> : null}{selected.bcc?.length ? <p>Bcc {selected.bcc.join(', ')}</p> : null}</div><time>{new Date(selected.sentAt).toLocaleString('vi-VN')}</time></div>
+          {selected.labels?.length || selected.deliveryStatus !== 'accepted' ? <div className="mail-chips mail-reader-labels">{selected.labels?.map((label) => <span key={label}>{label}</span>)}{selected.deliveryStatus !== 'accepted' && <span className="mail-delivery is-error">Gửi chưa thành công</span>}</div> : null}
+          <MessageBody key={`${selected.id}:${mailbox}`} messageId={selected.id} mailbox={mailbox} onSaveAttachment={(item) => void run(() => saveAttachmentToDrive(item))}/>
           {(notice || error) && <p className={`mail-notice ${error ? 'is-error' : ''}`} role="status">{error || notice}</p>}
         </article> : <div className="mail-empty-reader"><div className="mail-empty-illustration"><Icon name="inbox"/></div><h2>Chọn một thư để đọc</h2><p>Hoặc bắt đầu cuộc trò chuyện mới với đồng nghiệp.</p><button className="mail-compose-button" type="button" onClick={() => { setManaging(false); setComposing(true); }}><Icon name="compose"/>Thư mới</button></div>}
       </main>

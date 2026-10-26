@@ -184,9 +184,11 @@ describe('Identity lifecycle coordinator sản phẩm', () => {
 
   it('subject revision fence chặn operation cũ ghi đè operation mới khác key sau upstream delay', async () => {
     const r9 = await t.login('it'), port = t.app.get(IDENTITY_LIFECYCLE_PORT) as FakeIdentityLifecyclePort;
-    port.holdNextMs = 100;
+    port.holdNextMs = 300;
+    // Chờ đúng lúc operation cũ đã giữ revision và đang ở upstream, không đoán bằng sleep (runner CI chậm).
+    const held = new Promise<void>((resolve) => { port.onHold = resolve; });
     const oldPromise = r9.post('/identity/lifecycle-operations', { subject, email: 'old@vcprosperous.com', groups: ['vcw-team-a'], active: true }, { idem: 'subject-old-12b' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await held;
     const newer = await r9.post('/identity/lifecycle-operations', { subject, email: 'new@vcprosperous.com', groups: [], active: false }, { idem: 'subject-new-12b' });
     expect(newer.status).toBe(409);
     const old = await oldPromise;
