@@ -437,3 +437,7 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
   .mail-compose-actions { flex-wrap: wrap; }
   .mail-management-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Bộ lọc danh sách (antd Form, Row/Col) ── */
+.vc-filters { margin-bottom: 12px; }
+.vc-filters .ant-form-item { margin-bottom: 8px; }

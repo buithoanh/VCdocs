@@ -15,8 +15,13 @@ export type Column<T> = {
   className?: string;
 };
 
+/** Phân trang phía máy chủ: trang hiện tại, số dòng mỗi trang, tổng số dòng. */
+export type TablePagination = { page: number; limit: number; total: number; onPage: (p: number) => void };
+
 /** Bấm vào phần tử tương tác trong dòng thì không mở dòng. */
 const INTERACTIVE = 'a,button,input,select,textarea,label,[role="combobox"]';
+
+const showTotal = (t: number) => `${formatNumber(t)} dòng`;
 
 /**
  * Bảng theo HD-VCPV-02 trên antd Table: dòng tiêu đề nền #13233A chữ trắng, dòng xen kẽ #FFFFFF / #E8EDF3.
@@ -29,6 +34,7 @@ export function DataTable<T>({
   rowHref,
   empty = 'Chưa có dữ liệu.',
   caption,
+  pagination,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -36,6 +42,7 @@ export function DataTable<T>({
   rowHref?: (row: T) => string | undefined;
   empty?: ReactNode;
   caption?: string;
+  pagination?: TablePagination;
 }) {
   const router = useRouter();
   if (!rows.length) return <Empty>{empty}</Empty>;
@@ -53,7 +60,11 @@ export function DataTable<T>({
       columns={cols}
       dataSource={rows}
       rowKey={rowKey}
-      pagination={false}
+      pagination={
+        pagination
+          ? { current: pagination.page, pageSize: pagination.limit, total: pagination.total, onChange: pagination.onPage, showSizeChanger: false, showTotal }
+          : false
+      }
       caption={caption ? <span className="sr-only">{caption}</span> : undefined}
       rowClassName={(_, i) => (i % 2 ? 'vc-row-even' : 'vc-row-odd')}
       onRow={(row) => {
@@ -71,17 +82,7 @@ export function DataTable<T>({
   );
 }
 
-export function Pagination({ page, limit, total, onPage }: { page: number; limit: number; total: number; onPage: (p: number) => void }) {
-  if (total <= limit) return total > 0 ? <p className="muted small">{formatNumber(total)} dòng</p> : null;
-  return (
-    <AntPagination
-      className="pagination"
-      current={page}
-      pageSize={limit}
-      total={total}
-      onChange={onPage}
-      showSizeChanger={false}
-      showTotal={(t) => `${formatNumber(t)} dòng`}
-    />
-  );
+export function Pagination({ page, limit, total, onPage }: TablePagination) {
+  if (total <= limit) return total > 0 ? <p className="muted small">{showTotal(total)}</p> : null;
+  return <AntPagination className="pagination" current={page} pageSize={limit} total={total} onChange={onPage} showSizeChanger={false} showTotal={showTotal} />;
 }

@@ -19,7 +19,7 @@ import {
 } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useRef, type MouseEvent, type MouseEventHandler, type ReactNode } from 'react';
+import { useId, useRef, type CSSProperties, type MouseEvent, type MouseEventHandler, type ReactNode } from 'react';
 import { errorText } from '@/api/client';
 import { toneOf, type Tone } from '@/lib/labels';
 
@@ -52,6 +52,7 @@ export type ButtonProps = {
   block?: boolean;
   icon?: ReactNode;
   className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
   title?: string;
   id?: string;
@@ -378,6 +379,7 @@ export function DefList({ items }: { items: [ReactNode, ReactNode][] }) {
       className="vc-deflist"
       size="small"
       layout="vertical"
+      colon={false}
       column={{ xs: 1, sm: 2, lg: 3 }}
       items={items.map(([k, v], i) => ({ key: i, label: k, children: v ?? '—' }))}
     />
