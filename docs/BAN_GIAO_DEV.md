@@ -130,7 +130,7 @@ xung đột nếu gộp theo đúng thứ tự này):
 
 | # | Nhánh | Nội dung | Gate đã chạy | Xung đột dự kiến |
 |---|---|---|---|---|
-| 1 | `claude/prod-cau-hinh-vcworkspace-2fe0b0` (2 commit) | Chế độ `disabled` cho Drive/Email, guard 503, FE ẩn menu theo `NEXT_PUBLIC_WORKSPACE_MODULES`, mẫu env deploy | test lẻ đạt; chưa build Docker | không |
+| 1 | `claude/prod-cau-hinh-vcworkspace-2fe0b0` (2 commit) | Chế độ `disabled` cho Drive/Email, guard 503, FE ẩn menu theo `NEXT_PUBLIC_WORKSPACE_MODULES`, mẫu env deploy | `ai:check:full` PASS 2026-11-06 (BE 379, FE 104); chưa build Docker. Nội dung PR: `docs/ke-hoach/vcworkspace-pr-prod-disabled.md` trên nhánh | không |
 | 2 | `vcworkspace/antd-ho-so` = **PR #12** | Ant Design bước 2–6: Hồ sơ, Tài liệu, Phê duyệt, Thư mục/Drive, Email; QA server bật việc nền | FE 96/96, `ai:check` đạt | sổ tay |
 | 3 | `claude/bao-mat-o1-o15-3028d0` (14 commit) | Sửa review O1–O15 (ONLYOFFICE forcesave, thùng rác, mail Đã gửi, idempotency, header bảo mật, OIDC…) | `ai:check:full` PASS | sổ tay, `email/page.tsx` |
 | 4 | `claude/gd2-m10-m15-vao-dev-c7c4dd` | VCdocs M10 Bàn giao + M15 Nhật ký, OpenAPI **2.7.0-gd2** | `ai:check:full` PASS (BE 411, FE 127) | sổ tay, `RecordView.tsx`, `DocumentView.tsx`, `globals.css`, `permissions.ts`, `apps/web/DE_NGHI_SUA_HOP_DONG.md` |
