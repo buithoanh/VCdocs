@@ -60,6 +60,8 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Bàn giao cho team DEV (2026-11-06):** điểm vào `docs/BAN_GIAO_DEV.md` (sản phẩm, chạy local, quy trình, thứ tự gộp 7 nhánh, việc P0–P3, quyết định chờ, bẫy, thứ ngoài repo). Nhánh `claude/ban-giao-dev` (từ `dev` 6656766), chỉ tài liệu; chờ chủ dự án đẩy lên GitHub và mở PR vào `dev`. Mỗi khi gộp một nhánh trong bảng mục 5 của trang đó thì cập nhật bảng.
+
 - [ ] **Giao diện Ant Design – bước 1 xong, chờ chủ dự án xem (2026-10-25), nhánh `vcworkspace/giao-dien-antd` cắt từ `vcworkspace/chat01-12b`:** đã cài `antd@6.6.7`, `@ant-design/icons`, `@ant-design/nextjs-registry`; `UiProvider` (ConfigProvider locale vi + token HD-VCPV-02) + `AntdRegistry` ở root layout; font Be Vietnam Pro qua `next/font/google` (build cần mạng tới Google Fonts một lần). Lớp nền đã đổi ruột sang antd, giữ nguyên API: `ui.tsx` (Button/LinkButton/Card/Badge→Tag/ErrorBox+Notice→Alert/Loading→Spin/Empty/Field+TextField→Form.Item+Input/SelectField→Select/Modal/Tabs/DefList→Descriptions), `AppShell` (Layout+Menu+Badge, Drawer trên điện thoại), `ToastProvider` (notification góc dưới phải), `DataTable` (Table sọc, header navy, thẻ trên điện thoại qua `data-label`) + `Pagination`, `ActionDialog`, `pickers` (DeptSelect/UserPicker/MultiUserPicker → Select showSearch). Test: `src/test/antd.ts` (chooseOption/findOption/selectedText), setup thêm matchMedia/ResizeObserver/getComputedStyle; 3 file test đổi thao tác select. Gate: typecheck đạt, FE 76/76, `next build` (`.next-antd`) đạt, `pnpm ai:check` đạt (BE 180, 9 skip; FE 76); xem bằng mắt trên QA giả (qa-api 14100 + qa-web 13100) các trang chủ, hồ sơ, lập hồ sơ, nhân sự, danh mục, cây thư mục, điện thoại. **Chưa làm:** các trang còn dùng `.btn`/`.field`/select gốc (trang đăng nhập, bộ lọc, email), DatePicker thay input date/month, bỏ emoji ở trang; chuyển từng module theo thứ tự đã chốt. Brand hiển thị đổi "VCdocs" → "VCworkspace" ở thanh trên và title; chữ "sổ VCdocs" trong trang để lại cho lúc chuyển module. First-load JS tăng lên ~400 kB/trang vì antd.
 
 - [ ] **Push + PR `claude/mail-compose-cc-bcc-richtext` vào `dev` (chủ dự án tự chạy):** Cc/Bcc + soạn thư định dạng (2.5.0-gd2) và đọc nội dung thư an toàn trong khung đọc (`GET /mail/messages/{id}/body`, 2.6.0-gd2), full gate PASS local 2026-10-26; commit đọc nội dung nằm trên nhánh tạm `tmp-reader` (trên 29a0ef4), cần đẩy vào cùng nhánh PR #8. Còn cần xem UI trên trình duyệt và thử Stalwart thật (thư HTML từ client ngoài).
@@ -276,6 +278,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-11-06 · Soạn tài liệu bàn giao cho team DEV
+- Đã làm: đọc sổ tay, rà `origin/dev`, PR #1–#15 và mọi nhánh local chưa gộp; thử gộp khô (`git merge-tree`, không đổi ref) bảy nhánh theo thứ tự đề xuất để ghi file xung đột. Viết `docs/BAN_GIAO_DEV.md`, thêm link ở `README.md` và `docs/README.md`. Nhánh `claude/ban-giao-dev` (worktree `.claude/worktrees/ban-giao-dev`). Không đọc `.env`, không chạm máy chủ, không đẩy lên GitHub.
+- Phát hiện: `origin/vcworkspace/antd-ho-so` thiếu commit gộp ca04977 (PR #12 chưa có check CI); `main`/`dev` chưa bật branch protection; hai worktree còn việc chưa commit (`phuong-an-b-chi-tiet`: tài liệu phương án B chi tiết; `chay-dev-local`: seed `qa-review-data.spec.ts`) — đã ghi vào trang bàn giao, không đụng.
+- Còn dở: chủ dự án đẩy nhánh + mở PR; ba link trong trang (trang 20, trang 21 B1, báo cáo engine) chỉ sống sau khi gộp nhánh chứa chúng.
 
 ### 2026-10-26 · Email: Trả lời và Trả lời tất cả
 

@@ -1,5 +1,7 @@
 # Tài liệu dự án VCworkspace
 
+**Người mới vào dự án đọc trước:** [Bàn giao cho team DEV](BAN_GIAO_DEV.md).
+
 Bản lưu trong kho mã của các tài liệu gốc. **Bản gốc nằm trên Claude (artifact); khi hai bản lệch, bản gốc đúng.** Sửa tài liệu thì sửa bản gốc rồi xuất lại vào đây.
 
 | Tài liệu | Bản trong repo | Bản gốc (artifact) | Bản đã xuất |
