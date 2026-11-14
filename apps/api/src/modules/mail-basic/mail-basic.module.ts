@@ -4,6 +4,7 @@ import { MailBasicService } from './mail-basic.service';
 import { FakeMailPort, MAIL_PORT, MailPort } from './mail.port';
 import { APP_CONFIG, AppConfig } from '../../config/config';
 import { StalwartMailPort } from './stalwart-mail.port';
+import { MailSyncService } from './mail-sync.service';
 import { disabledPort } from '../../common/workspace-modules';
-@Module({ controllers: [MailBasicController], providers: [MailBasicService, FakeMailPort, { provide: MAIL_PORT, inject:[APP_CONFIG,FakeMailPort], useFactory:(cfg:AppConfig,fake:FakeMailPort)=>cfg.mailEngine.mode==='stalwart'?new StalwartMailPort(cfg.mailEngine):cfg.mailEngine.mode==='disabled'?disabledPort<MailPort>('mail'):fake }], exports: [MailBasicService] })
+@Module({ controllers: [MailBasicController], providers: [MailBasicService, MailSyncService, FakeMailPort, { provide: MAIL_PORT, inject:[APP_CONFIG,FakeMailPort], useFactory:(cfg:AppConfig,fake:FakeMailPort)=>cfg.mailEngine.mode==='stalwart'?new StalwartMailPort(cfg.mailEngine):cfg.mailEngine.mode==='disabled'?disabledPort<MailPort>('mail'):fake }], exports: [MailBasicService, MailSyncService] })
 export class MailBasicModule {}

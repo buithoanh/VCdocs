@@ -72,6 +72,8 @@ export interface AppConfig {
     mode: 'fake' | 'stalwart' | 'disabled'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
     credentials: Record<string, { username: string; password: string }>;
     management?: { baseUrl: string; username: string; password: string };
+    /** Nhịp việc nền đồng bộ INBOX + báo thư mới (ms); 0 = tắt; bỏ trống = 60 000. */
+    syncIntervalMs?: number;
   };
   documentEditor: {
     publicOrigin: string;
@@ -342,6 +344,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       mode: (env.MAIL_ENGINE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'stalwart' | 'disabled',
       host: env.MAIL_ENGINE_HOST || '127.0.0.1', smtpPort: num(env.MAIL_ENGINE_SMTP_PORT, 18465), imapPort: num(env.MAIL_ENGINE_IMAP_PORT, 18993), sievePort: num(env.MAIL_ENGINE_SIEVE_PORT, 14190), controlPort: num(env.MAIL_ENGINE_CONTROL_PORT, 19090), controlToken: env.MAIL_ENGINE_CONTROL_TOKEN || '',
       credentials: storageCredentials(env.MAIL_ENGINE_CREDENTIALS_JSON),
+      syncIntervalMs: num(env.MAIL_SYNC_INTERVAL_MS, 60_000),
       management: env.MAIL_ENGINE_MANAGEMENT_URL && env.MAIL_ENGINE_MANAGEMENT_USER && env.MAIL_ENGINE_MANAGEMENT_PASSWORD ? {
         baseUrl: env.MAIL_ENGINE_MANAGEMENT_URL,
         username: env.MAIL_ENGINE_MANAGEMENT_USER,

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 2.8.0-gd2
+  version: 2.9.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT). Phạm vi:
@@ -2182,6 +2182,18 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/MailMessage' } } } } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /mail/unread-count:
+    get:
+      tags: [Quản lý Email]
+      summary: Số thư mới chưa mở của người đăng nhập (huy hiệu mục Email)
+      description: |
+        Đếm thông báo trong ứng dụng loại `mail.new` chưa đọc của chính người gọi, trên mọi hộp thư họ
+        được báo (cá nhân và hộp nhóm có quyền read). Thông báo do việc nền đồng bộ INBOX tạo, không báo
+        thư do chính người đó gửi. Không gọi mail server. `GET /mail/messages/{id}/body` của một thư
+        đánh dấu thông báo của thư đó là đã đọc.
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, required: [count], properties: { count: { type: integer, minimum: 0 } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /mail/threads/{id}:
     get:
       tags: [Email cơ bản]
@@ -2251,6 +2263,7 @@ paths:
         Giới hạn: HTML gốc 2 MiB, HTML sau lọc 256 KiB, `text` 256 Ki ký tự, 100 tệp; vượt thì `truncated`.
         `attachments[].part` là chỉ số dùng cho `/mail/messages/{messageId}/attachments/{part}/save-to-drive`.
         Client phải hiển thị `html` trong iframe sandbox không có allow-scripts/allow-same-origin.
+        Gọi thành công đánh dấu thông báo thư mới (`mail.new`) của chính người gọi cho thư này là đã đọc.
       parameters: [{ $ref: '#/components/parameters/IdPath' }, { name: mailbox, in: query, schema: { type: string, format: email }, description: 'Bắt buộc khi đọc shared mailbox' }]
       responses:
         '200': { description: OK, headers: { Cache-Control: { schema: { type: string, const: 'private, no-store' } } }, content: { application/json: { schema: { $ref: '#/components/schemas/MailMessageBody' } } } }
@@ -2499,6 +2512,7 @@ components:
         inReplyTo: { type: string }
         preview: { type: string }
         attachmentCount: { type: integer, minimum: 0 }
+        unread: { type: boolean, description: 'Chỉ có ở danh sách: người gọi còn thông báo thư mới chưa đọc cho thư này' }
     MailMessageBody:
       type: object
       required: [text, hasRemoteContent, truncated, attachments]

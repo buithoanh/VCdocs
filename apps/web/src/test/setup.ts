@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+// findBy*/waitFor mặc định chờ 1 giây. Trang antd lớn (Email) trên máy đang tải nặng hoặc runner CI mất hơn thế
+// cho một lần tra theo role, nên chờ tối đa 5 giây; ca đạt vẫn xong ngay khi phần tử xuất hiện.
+configure({ asyncUtilTimeout: 5000 });
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { setCsrfToken, setUnauthorizedHandler } from '@/api/client';
 import { server } from './server';

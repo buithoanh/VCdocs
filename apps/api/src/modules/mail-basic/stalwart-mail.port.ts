@@ -1,8 +1,7 @@
 import * as net from 'net';
 import * as tls from 'tls';
-import { simpleParser } from 'mailparser';
 import { IMAP_LITERAL_MARK, tlsConnect, type ImapResponse } from './tls-client';
-import { MailDeliveryError, type MailEnvelope, type MailFilterRule, type MailPort } from './mail.port';
+import { MailDeliveryError, headerMessageId, isSyntheticMessageId, syntheticMessageId, type EngineMail, type FolderSyncState, type MailEnvelope, type MailFilterRule, type MailPort } from './mail.port';
 
 type ReadableSocket = net.Socket | tls.TLSSocket;
 type MailIo = Awaited<ReturnType<typeof tlsConnect>>;
@@ -19,17 +18,7 @@ function fetchedLiterals(untagged: ImapResponse[], section: RegExp) {
   }
   return rows;
 }
-/**
- * Message-ID làm engineId đọc bằng cùng parser với metadata (mailparser, chỉ phần header):
- * dòng giống header trong thân thư không được tính, thư thiếu Message-ID trả undefined.
- */
-export async function headerMessageId(raw: Buffer) {
-  const text = raw.toString('latin1'), blank = /\r?\n\r?\n/.exec(text);
-  const head = Buffer.from(blank ? text.slice(0, blank.index + blank[0].length) : text, 'latin1');
-  const parsed = await simpleParser(head, { skipHtmlToText: true, skipTextToHtml: true, skipTextLinks: true });
-  const id = String(parsed.messageId ?? '').replace(/[<>]/g, '').trim();
-  return id || undefined;
-}
+export { headerMessageId };
 function bufferedReader(socket: ReadableSocket) {
   let buffer = '', cursor = 0;
   socket.on('data', (chunk: Buffer) => { buffer += chunk.toString('utf8'); });
@@ -82,11 +71,15 @@ export class StalwartMailPort implements MailPort {
   private async imapCommand(io:MailIo,tag:string,command:string){io.write(`${tag} ${command}\r\n`);const done=await io.readImap(tag);if(done.status!=='OK')throw new Error(`MAIL_IMAP_${done.status}:${tag}`);return done.untagged;}
   /** Mở phiên IMAP đã LOGIN và luôn đóng socket, kể cả khi lỗi. */
   private async withImap<T>(owner:string,work:(io:MailIo)=>Promise<T>){const c=this.credential(owner),io=await tlsConnect(this.cfg.host,this.cfg.imapPort);try{await io.readImapGreeting();await this.imapCommand(io,'a1',`LOGIN ${imapQuote(c.username)} ${imapQuote(c.password)}`);return await work(io);}finally{io.close();}}
-  /** UID của thư có Message-ID (đọc bằng parser header) đúng engineId; thư thiếu Message-ID không khớp thư nào. */
+  /**
+   * UID của thư có Message-ID (đọc bằng parser header) đúng engineId. engineId dạng khoá băm (thư thiếu Message-ID)
+   * chỉ so với các thư không có Message-ID, bằng cách băm nguyên văn từng thư đó.
+   */
   private async uid(io:MailIo,engineId:string,folder?:string,engineMailbox?:string,accessOwner?:string){
     await this.imapCommand(io,'a2',`SELECT "${this.engineFolder(folder,engineMailbox,accessOwner)}"`);
-    const rows=fetchedLiterals(await this.imapCommand(io,'a3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/),target=engineId.toLowerCase();
-    for(const row of rows)if((await headerMessageId(row.literal))?.toLowerCase()===target)return row.uid;
+    const rows=fetchedLiterals(await this.imapCommand(io,'a3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/),target=engineId.toLowerCase(),synthetic=isSyntheticMessageId(target),bare:string[]=[];
+    for(const row of rows){const id=(await headerMessageId(row.literal))?.toLowerCase();if(!id)bare.push(row.uid);else if(!synthetic&&id===target)return row.uid;}
+    if(synthetic){let index=1;for(const uid of bare){const fetched=fetchedLiterals(await this.imapCommand(io,`h${index++}`,`UID FETCH ${uid} BODY.PEEK[]`),/BODY\[\]/).find(x=>x.uid===uid);if(fetched&&syntheticMessageId(fetched.literal)===target)return uid;}}
     throw new Error('MAIL_NOT_FOUND');
   }
   private keyword(label:string){return `VC-${Buffer.from(label,'utf8').toString('hex')}`;}
@@ -129,25 +122,36 @@ export class StalwartMailPort implements MailPort {
   private async kickImapSessions(principal:string){if(!/^[a-z0-9._%+-]+@vcworkspace\.test$/.test(principal.toLowerCase()))throw new Error('MAIL_PRINCIPAL_INVALID');const socket=net.connect({host:this.cfg.host,port:this.cfg.controlPort}),read=bufferedReader(socket);await new Promise<void>((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});socket.write(`AUTH ${this.cfg.controlToken} KICK IMAP ${principal.toLowerCase()}\n`);await read(/^OK \d+$/m);socket.end();}
   async setSharedMember(address:string,member:string,enabled:boolean){const [group,user]=await Promise.all([this.account(address),this.account(member)]),ids={...(user.memberGroupIds??{})};if(enabled)ids[group.id]=true;else delete ids[group.id];await this.jmap([['x:Account/set',{update:{[user.id]:{memberGroupIds:ids}}},'u']]);const verified=await this.account(member);if((verified.memberGroupIds?.[group.id]===true)!==enabled)throw new Error('MAIL_GROUP_READBACK_FAILED');if(!enabled)await this.kickImapSessions(member);}
   async offboardUser(address:string){const user=await this.account(address),aliases=Object.fromEntries(Object.entries(user.aliases??{}).map(([key,value]:[string,any])=>[key,{...value,enabled:false}]));await this.jmap([['x:Account/set',{update:{[user.id]:{memberGroupIds:{},aliases,secrets:[]}}},'u']]);const verified=await this.account(address);if(Object.keys(verified.memberGroupIds??{}).length||Object.values(verified.aliases??{}).some((x:any)=>x.enabled!==false)||(verified.secrets??[]).length)throw new Error('MAIL_OFFBOARD_READBACK_FAILED');await this.kickImapSessions(address);}
-  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string,known?:(engineId:string)=>Promise<boolean>){
+  /** UID trong các phản hồi `* SEARCH ...`. */
+  private searchedUids(untagged:{text:string}[]){return untagged.flatMap(x=>/^\* SEARCH((?: \d+)*)\s*$/i.exec(x.text)?.[1].trim().split(/\s+/).filter(Boolean)??[]);}
+  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string,known?:(engineId:string)=>Promise<boolean>,state?:FolderSyncState){
     return this.withImap(accessOwner,async io=>{
-      await this.imapCommand(io,'s1',`SELECT "${this.engineFolder(folder,engineMailbox,accessOwner)}"`);
-      const searched=await this.imapCommand(io,'s2','UID SEARCH ALL'),uids=searched.flatMap(x=>/^\* SEARCH((?: \d+)*)\s*$/i.exec(x.text)?.[1].trim().split(/\s+/).filter(Boolean)??[]),items:{engineId:string;raw:Buffer}[]=[];
-      if(!uids.length)return items;
-      // Đọc Message-ID của cả thư mục trước (review O7): thư đã có trong CSDL không tải lại toàn bộ nội dung.
+      const selected=await this.imapCommand(io,'s1',`SELECT "${this.engineFolder(folder,engineMailbox,accessOwner)}"`);
+      const uidValidity=selected.map(x=>/\[UIDVALIDITY (\d+)\]/i.exec(x.text)?.[1]).find(Boolean),items:EngineMail[]=[];
+      // Đồng bộ gia tăng: con trỏ chỉ dùng khi cùng UIDVALIDITY; khác thì đọc lại cả thư mục (người gọi chống trùng bằng engineId).
+      const from=state?.cursor&&uidValidity&&state.cursor.uidValidity===uidValidity?state.cursor.lastUid:0,range=from>0?`${from+1}:*`:'1:*';
+      const finish=(lastUid:number)=>{if(state&&uidValidity)state.next={uidValidity,lastUid};return items;};
+      // `n:*` luôn trả thư cuối dù UID của nó nhỏ hơn n (RFC 3501 §6.4.8) nên lọc lại theo con trỏ.
+      const uids=this.searchedUids(await this.imapCommand(io,'s2',from>0?`UID SEARCH UID ${range}`:'UID SEARCH ALL')).filter(uid=>Number(uid)>from);
+      if(!uids.length)return finish(from);
+      // Đọc Message-ID của các thư trong khoảng trước (review O7): thư đã có trong CSDL không tải lại toàn bộ nội dung.
       const heads=new Map<string,string|undefined>();
-      if(known)for(const row of fetchedLiterals(await this.imapCommand(io,'s3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/))heads.set(row.uid,await headerMessageId(row.literal));
+      if(known)for(const row of fetchedLiterals(await this.imapCommand(io,'s3',`UID FETCH ${range} (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])`),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/))heads.set(row.uid,await headerMessageId(row.literal));
       let index=4;
       for(const uid of uids){
         const head=heads.get(uid);
-        if(known&&(!head||await known(head)))continue;
+        if(known&&head&&await known(head))continue;
         const fetched=fetchedLiterals(await this.imapCommand(io,`s${index++}`,`UID FETCH ${uid} BODY.PEEK[]`),/BODY\[\]/).find(x=>x.uid===uid);
         if(!fetched)continue;
-        // Thư thiếu Message-ID ở header không có khoá engine ổn định nên bị bỏ qua, không làm hỏng cả danh sách.
-        const engineId=await headerMessageId(fetched.literal);
-        if(engineId)items.push({engineId,raw:fetched.literal});
+        // Thư thiếu Message-ID ở header dùng khoá băm nội dung: vẫn vào chỉ mục và không nhân đôi qua các lượt đồng bộ.
+        const engineId=await headerMessageId(fetched.literal)??syntheticMessageId(fetched.literal);
+        if(known&&!head&&await known(engineId))continue;
+        items.push({engineId,raw:fetched.literal,uid:Number(uid)});
       }
-      return items;
+      return finish(Math.max(from,...uids.map(Number)));
     });
+  }
+  async findByMessageId(accessOwner:string,internetMessageId:string,folder?:string,engineMailbox?:string){
+    return this.withImap(accessOwner,async io=>{try{await this.uid(io,internetMessageId,folder,engineMailbox,accessOwner);return internetMessageId;}catch(error){if((error as Error)?.message==='MAIL_NOT_FOUND')return undefined;throw error;}});
   }
 }

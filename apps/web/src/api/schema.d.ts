@@ -6179,6 +6179,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mail/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Số thư mới chưa mở của người đăng nhập (huy hiệu mục Email)
+         * @description Đếm thông báo trong ứng dụng loại `mail.new` chưa đọc của chính người gọi, trên mọi hộp thư họ
+         *     được báo (cá nhân và hộp nhóm có quyền read). Thông báo do việc nền đồng bộ INBOX tạo, không báo
+         *     thư do chính người đó gửi. Không gọi mail server. `GET /mail/messages/{id}/body` của một thư
+         *     đánh dấu thông báo của thư đó là đã đọc.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            count: number;
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/mail/threads/{id}": {
         parameters: {
             query?: never;
@@ -6463,6 +6508,7 @@ export interface paths {
          *     Giới hạn: HTML gốc 2 MiB, HTML sau lọc 256 KiB, `text` 256 Ki ký tự, 100 tệp; vượt thì `truncated`.
          *     `attachments[].part` là chỉ số dùng cho `/mail/messages/{messageId}/attachments/{part}/save-to-drive`.
          *     Client phải hiển thị `html` trong iframe sandbox không có allow-scripts/allow-same-origin.
+         *     Gọi thành công đánh dấu thông báo thư mới (`mail.new`) của chính người gọi cho thư này là đã đọc.
          */
         get: {
             parameters: {
@@ -7217,6 +7263,8 @@ export interface components {
             inReplyTo?: string;
             preview?: string;
             attachmentCount?: number;
+            /** @description Chỉ có ở danh sách: người gọi còn thông báo thư mới chưa đọc cho thư này */
+            unread?: boolean;
         };
         MailMessageBody: {
             /** @description Chữ thuần (dòng phân cách bằng \n); hiển thị như văn bản, không như HTML */

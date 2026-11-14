@@ -72,7 +72,7 @@ export class WorkspaceInteropService {
     if(!link.token){
       const message=link.sentMessageId&&await this.db.m.WorkspaceMailMessage.findOne({_id:link.sentMessageId,companyId:this.cid(ctx)}).lean<any>();
       if(!message)throw Errors.state('Link đã tạo nhưng không còn đối soát được thư đã gửi');
-      return toApi(message,['companyId','engineId','engineOwner','searchText','searchBody']);
+      return toApi(message,['companyId','engineId','engineOwner','searchText','searchBody','notifiedAt']);
     }
     const url=`${this.cfg.webOrigin}/bo-nho/lien-ket#${link.token}`;
     const sent:any=await this.mail.send(ctx, { to, subject:body.subject, text:`${String(body.text||'')}\n\n${url}`, fromIdentity:body.fromIdentity }, `drive-link:${key}`);

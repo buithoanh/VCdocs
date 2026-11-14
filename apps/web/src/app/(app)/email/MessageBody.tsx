@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { API_BASE } from '@/api/client';
 import { ErrorBox } from '@/components/ui';
@@ -49,8 +50,11 @@ export function mailBodyQuery(messageId: string, mailbox: string) {
   } as const;
 }
 
-export function MessageBody({ messageId, mailbox, onSaveAttachment }: { messageId: string; mailbox: string; onSaveAttachment: (attachment: MailBodyAttachment) => void }) {
+export function MessageBody({ messageId, mailbox, onSaveAttachment, onRead }: { messageId: string; mailbox: string; onSaveAttachment: (attachment: MailBodyAttachment) => void; onRead?: () => void }) {
   const body = useQuery(mailBodyQuery(messageId, mailbox));
+  // Server đánh dấu đã đọc khi trả nội dung; báo cho trang để bỏ dấu chưa đọc và làm mới số thư mới.
+  const loaded = !!body.data;
+  useEffect(() => { if (loaded) onRead?.(); }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
   if (body.isLoading) return <div className="mail-state mail-body-state"><Spin size="small" /> Đang tải nội dung thư…</div>;
   if (body.error || !body.data) return <div className="mail-body-state"><ErrorBox error={new Error('Không tải được nội dung thư.')} onRetry={() => void body.refetch()} /></div>;
   const { html, text, hasRemoteContent, truncated, attachments } = body.data;

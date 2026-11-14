@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, LOGIN_PATH, setCsrfToken, unwrap } from '@/api/client';
 import { roleLabel } from '@/lib/labels';
 import { NAV_GROUP_LABEL, navFor, type NavItem } from '@/lib/permissions';
+import { workspaceModuleEnabled } from '@/lib/workspace-modules';
 import { useAuth } from './providers/AuthProvider';
 import { useToast } from './providers/ToastProvider';
 
@@ -21,6 +22,22 @@ export function useUnreadCount() {
     queryFn: () => unwrap(api.GET('/notifications', { params: { query: { unread: true, limit: 1 } } })).then((r) => r.unreadCount),
     refetchInterval: 60_000,
     staleTime: 30_000,
+  });
+}
+
+/** Khoá cache số thư mới chưa mở; trang Email làm mới khoá này khi người dùng mở thư. */
+export const MAIL_UNREAD_KEY = ['mail-unread-count'] as const;
+
+/** Số thư mới chưa mở (việc nền phía server tạo thông báo); hỏi lại mỗi phút, lỗi thì coi như 0. */
+export function useMailUnreadCount() {
+  return useQuery({
+    queryKey: MAIL_UNREAD_KEY,
+    queryFn: () => unwrap(api.GET('/mail/unread-count')).then((r) => r.count),
+    // Email tắt trên máy chủ này (production chưa có mail engine): không hỏi, tránh 503 mỗi phút.
+    enabled: workspaceModuleEnabled('mail'),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    retry: false,
   });
 }
 
@@ -50,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const unread = useUnreadCount();
   const pending = usePendingApprovals();
+  const mailUnread = useMailUnreadCount().data ?? 0;
   const toast = useToast();
   useEffect(() => setOpen(false), [pathname]);
 
@@ -63,7 +81,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         type: 'group',
         key: g,
         label: NAV_GROUP_LABEL[g],
-        children: gi.map((i) => ({ key: i.href, label: <Link href={i.href}>{i.label}</Link> })),
+        children: gi.map((i) => ({
+          key: i.href,
+          label: i.href === '/email' && mailUnread > 0
+            ? <Link href={i.href} aria-label={`Email, ${mailUnread} thư mới`}>{i.label} <Badge count={mailUnread} overflowCount={99} size="small" /></Link>
+            : <Link href={i.href}>{i.label}</Link>,
+        })),
       });
     }
   }

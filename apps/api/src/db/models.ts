@@ -397,10 +397,21 @@ const WorkspaceMailMessage = mk({
   searchText: { type: String, default: '' },
   searchBody: { type: String, default: '' },
   deliveryStatus: { type: String, enum: ['accepted', 'failed'], required: true },
+  /** Việc nền đã xét báo "thư mới" cho dòng này (đặt nguyên tử để không báo lặp). */
+  notifiedAt: Date,
 });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, engineId: 1 }, { unique: true });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, threadId: 1, sentAt: 1 });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, folder: 1, sentAt: -1 });
+
+/** Con trỏ đồng bộ gia tăng theo hộp thư + thư mục logic: UID chỉ có nghĩa trong cùng UIDVALIDITY. */
+const WorkspaceMailSyncCursor = mk({
+  mailboxOwner: { type: String, required: true, lowercase: true },
+  folder: { type: String, required: true },
+  uidValidity: { type: String, required: true },
+  lastUid: { type: Number, required: true },
+});
+WorkspaceMailSyncCursor.index({ companyId: 1, mailboxOwner: 1, folder: 1 }, { unique: true });
 
 const WorkspaceMailDraft = mk({
   ownerEmail: { type: String, required: true, lowercase: true },
@@ -807,6 +818,7 @@ export const MODEL_DEFS = {
   WorkspaceDriveShareLink: { schema: WorkspaceDriveShareLink, collection: 'workspace_drive_share_links' },
   WorkspaceStorageCredential: { schema: WorkspaceStorageCredential, collection: 'workspace_storage_credentials' },
   WorkspaceMailMessage: { schema: WorkspaceMailMessage, collection: 'workspace_mail_messages' },
+  WorkspaceMailSyncCursor: { schema: WorkspaceMailSyncCursor, collection: 'workspace_mail_sync_cursors' },
   WorkspaceMailDraft: { schema: WorkspaceMailDraft, collection: 'workspace_mail_drafts' },
   WorkspaceMailSend: { schema: WorkspaceMailSend, collection: 'workspace_mail_sends' },
   WorkspaceMailLabel: { schema: WorkspaceMailLabel, collection: 'workspace_mail_labels' },

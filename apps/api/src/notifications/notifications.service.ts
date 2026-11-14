@@ -29,14 +29,15 @@ export class NotificationsService {
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
   ) {}
 
-  async notify(companyId: string, userIds: (string | undefined)[], n: NotifyInput) {
+  /** `inAppOnly`: chỉ tạo thông báo trong ứng dụng, không gửi email kèm (vd. báo thư mới của Email). */
+  async notify(companyId: string, userIds: (string | undefined)[], n: NotifyInput, opts: { inAppOnly?: boolean } = {}) {
     const ids = [...new Set(userIds.filter(Boolean).map(String))];
     if (!ids.length) return;
     const users = await this.db.m.User.find({ companyId: new Types.ObjectId(companyId), _id: { $in: ids.map((x) => new Types.ObjectId(x)) }, status: { $ne: 'left' } }).lean<any[]>();
     const instantEmails: string[] = [];
     for (const u of users) {
       const s = u.notificationSettings ?? DEFAULT_SETTINGS;
-      const wantsEmail = s.channels?.includes('email');
+      const wantsEmail = !opts.inAppOnly && s.channels?.includes('email');
       await this.db.m.Notification.create({
         companyId: new Types.ObjectId(companyId),
         userId: u._id,
