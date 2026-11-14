@@ -1,0 +1,96 @@
+{
+  "runId": "eurooffice-mvp1qcpe",
+  "engine": "eurooffice",
+  "container": "vcworkspace-office-load-eurooffice",
+  "startedAt": "2026-10-26T09:20:26.532Z",
+  "sessions": 48,
+  "docs": 12,
+  "usersPerDoc": 4,
+  "typeSeconds": 180,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 25,
+  "offline": null,
+  "sharedContext": true,
+  "leanClient": true,
+  "processLimit": 12,
+  "abortReason": null,
+  "hostFreeMinGiB": 3.81,
+  "ready": 48,
+  "editMode": 48,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 0,
+  "openMs": {
+    "p50": 560,
+    "p95": 1580,
+    "max": 2096
+  },
+  "typeBurstMs": {
+    "p50": 443,
+    "p95": 1154,
+    "max": 2155
+  },
+  "markersTyped": 1725,
+  "markersMissing": 2,
+  "markersMissingClientSide": 2,
+  "viewsCaptured": 48,
+  "docsConverged": 12,
+  "docsSaved": 12,
+  "saveAfterCloseMs": {
+    "p50": 13258,
+    "max": 15344
+  },
+  "docFetches": 12,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 1.9,
+      "dsCpuP95": 5.8,
+      "dsCpuMax": 5.8,
+      "dsMemMaxMiB": 1796,
+      "dsPidsMax": 156,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 48,
+      "dsCpuAvg": 33.6,
+      "dsCpuP95": 90.3,
+      "dsCpuMax": 107.5,
+      "dsMemMaxMiB": 1874,
+      "dsPidsMax": 158,
+      "clientRssMaxMiB": 4513,
+      "clientCpuAvg": 80.5,
+      "samples": 97
+    },
+    "edit": {
+      "seconds": 185,
+      "dsCpuAvg": 375.8,
+      "dsCpuP95": 708.7,
+      "dsCpuMax": 1442.2,
+      "dsMemMaxMiB": 1997,
+      "dsPidsMax": 207,
+      "clientRssMaxMiB": 6185,
+      "clientCpuAvg": 571.2,
+      "samples": 367
+    },
+    "save": {
+      "seconds": 17,
+      "dsCpuAvg": 468.6,
+      "dsCpuP95": 1203,
+      "dsCpuMax": 1203,
+      "dsMemMaxMiB": 3459,
+      "dsPidsMax": 270,
+      "clientRssMaxMiB": 287,
+      "clientCpuAvg": 0.1,
+      "samples": 33
+    }
+  }
+}

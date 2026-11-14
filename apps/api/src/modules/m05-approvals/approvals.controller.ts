@@ -30,6 +30,8 @@ export class ApprovalsController {
       filter.submittedBy = me;
     } else {
       filter.$or = [{ approverId: me }, { checkerId: me }, { submittedBy: me }];
+      // Kiểm toán viên: thêm phiếu thuộc các phòng được cấp (E16)
+      if (ctx.auditor?.driveIds.length) filter.$or.push({ driveId: { $in: ctx.auditor.driveIds } });
     }
     if (q.status) filter.status = q.status;
     if (q.objectType) filter.objectType = q.objectType;
@@ -55,10 +57,11 @@ export class ApprovalsController {
     return out;
   }
 
-  private async load(ctx: Ctx, id: string) {
+  private async load(ctx: Ctx, id: string, req: 'read' | 'write' = 'write') {
     const a = await this.approvals.get(ctx.companyId, oid(id));
     if (!a) throw Errors.notFound('Không tìm thấy phiếu');
     if (this.approvals.isRelated(ctx, a)) return a;
+    if (req === 'read' && this.access.auditorCovers(ctx, { driveId: a.driveId })) return a;
     // R3 xem phiếu mọi drive trừ drive Mật không là thành viên (→ 404 như đối tượng Mật khác)
     if (this.access.hasRole(ctx, 'R3')) {
       await this.access.assertVisibleOrR3(ctx, a.driveId);
@@ -70,7 +73,7 @@ export class ApprovalsController {
 
   @Get(':id')
   async get(@CurrentCtx() ctx: Ctx, @Param('id') id: string) {
-    return this.approvals.toApi(ctx, await this.load(ctx, id));
+    return this.approvals.toApi(ctx, await this.load(ctx, id, 'read'));
   }
 
   @Post(':id/check')

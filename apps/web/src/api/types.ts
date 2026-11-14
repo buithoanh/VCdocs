@@ -26,6 +26,17 @@ export type ExternalShare = S['ExternalShare'];
 export type Notification = S['Notification'];
 export type NotificationSettings = S['NotificationSettings'];
 export type Job = S['Job'];
+export type Handover = S['Handover'];
+/**
+ * S['HandoverDetail'] sinh ra `… & Record<string, never>` vì khối `{ type: object, required: [items] }`
+ * trong openapi không có properties (đề nghị #16) – mọi trường thành never. Tự ghép lại cho đúng.
+ */
+export type HandoverDetail = S['Handover'] & S['WithPeople'] & { items: S['HandoverItem'][] };
+export type HandoverItem = S['HandoverItem'];
+export type AuditLog = S['AuditLog'];
+export type AuditAnchor = S['AuditAnchor'];
+export type AuditorAccess = S['AuditorAccess'];
+export type EvidencePack = S['EvidencePack'];
 
 export type SystemRole = S['SystemRole'];
 export type DriveRole = S['DriveRole'];
@@ -46,3 +57,8 @@ export type CodeStatus = S['CodeStatus'];
 export type UserStatus = S['UserStatus'];
 export type JobStatus = S['JobStatus'];
 export type NotificationChannel = S['NotificationChannel'];
+export type HandoverStatus = S['HandoverStatus'];
+export type HandoverItemKind = S['HandoverItemKind'];
+export type HandoverItemAction = S['HandoverItemAction'];
+export type HandoverItemStatus = S['HandoverItemStatus'];
+export type AuditorAccessStatus = S['AuditorAccessStatus'];

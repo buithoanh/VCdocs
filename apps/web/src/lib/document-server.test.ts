@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { allowedDocumentServer, documentServerOrigins, isObjectId } from './document-server';
+import { allowedDocumentServer, documentServerOrigins, insecureDocumentServerOrigins, isObjectId } from './document-server';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -18,6 +18,16 @@ describe('danh sách Document Server cho phép', () => {
     for (const bad of ['https://office.example.vn.attacker.example', 'https://office.example.vn@attacker.example', 'http://office.example.vn',
       'https://office.example.vn:8443', '//attacker.example', 'javascript:alert(1)', 'https://office.example.vn/?x=1', 42, null])
       expect(allowedDocumentServer(bad)).toBeNull();
+  });
+
+  it('bản build production bỏ origin http mạng, giữ https và http loopback cho QA local', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS', 'https://office.example.vn, http://office.example.vn, http://127.0.0.1:18082, http://onlyoffice');
+    expect(documentServerOrigins()).toEqual(['https://office.example.vn', 'http://127.0.0.1:18082']);
+    expect(insecureDocumentServerOrigins()).toEqual(['http://office.example.vn', 'http://onlyoffice']);
+    expect(allowedDocumentServer('http://office.example.vn')).toBeNull();
+    vi.stubEnv('NODE_ENV', 'development');
+    expect(insecureDocumentServerOrigins()).toEqual([]);
   });
 
   it('fileId phải là ObjectId 24 hex', () => {

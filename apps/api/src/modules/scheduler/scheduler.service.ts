@@ -1,6 +1,19 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 
+import { dateVN, TZ } from '../../common/util';
+
 export type ScheduledTask = { name: string; everyMs: number; run: () => Promise<void> };
+
+/** Giờ:phút và thứ (0 = Chủ nhật) theo giờ Việt Nam */
+export function clockVN(d = new Date()): { hhmm: string; weekday: number; date: string } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.weekday);
+  return { hhmm: `${parts.hour === '24' ? '00' : parts.hour}:${parts.minute}`, weekday, date: dateVN(d) };
+}
 
 /**
  * Việc định kỳ chạy trong tiến trình (giai đoạn 1): gỡ chia sẻ hết hạn, nhắc
@@ -14,6 +27,26 @@ export class SchedulerService implements OnModuleDestroy {
 
   add(task: ScheduledTask) {
     this.tasks.push(task);
+  }
+
+  /**
+   * Việc chạy mỗi ngày một lần từ giờ `at` (giờ Việt Nam), tuỳ chọn chỉ vào một
+   * thứ trong tuần. Kiểm 5 phút một lần; `run` phải tự chống chạy trùng trong
+   * ngày (nhiều tiến trình, khởi động lại) – vd tra việc nền đã tạo hôm nay.
+   */
+  addDaily(task: { name: string; at: string; weekday?: number; run: (today: string) => Promise<void> }) {
+    let lastDate = '';
+    this.add({
+      name: task.name,
+      everyMs: 5 * 60_000,
+      run: async () => {
+        const c = clockVN();
+        if (c.hhmm < task.at || lastDate === c.date) return;
+        if (task.weekday !== undefined && c.weekday !== task.weekday) return;
+        lastDate = c.date;
+        await task.run(c.date);
+      },
+    });
   }
   list() {
     return this.tasks.map((t) => t.name);

@@ -99,6 +99,18 @@ export class IdentityLifecycleService {
     return row;
   }
 
+  /**
+   * Bàn giao (M10): người đã bị khoá (left) thì vô hiệu hoá danh tính ở IdP và Nextcloud, thu hồi mọi phiên.
+   * Không có binding OIDC (đăng nhập Google) hoặc lifecycle tắt thì bỏ qua (null). Khoá Idempotency theo người,
+   * nên gọi lại (việc 00:30 hôm sau, hay R9 reconcile) chạy tiếp đúng operation cũ.
+   */
+  async disableLeftUser(ctx: Ctx, user: any) {
+    if (this.cfg.identityLifecycle.mode === 'disabled') return null;
+    const binding = await this.db.m.OidcIdentity.findOne({ companyId: new Types.ObjectId(ctx.companyId), userId: user._id }).lean<any>();
+    if (!binding) return null;
+    return this.create(ctx, { subject: binding.subject, email: binding.email, groups: binding.groups ?? [], active: false, globalRevoke: true }, `handover-left-${user._id}`);
+  }
+
   async get(ctx: Ctx, id: string) {
     if (!Types.ObjectId.isValid(id)) throw Errors.notFound();
     const row = await this.db.m.IdentityLifecycleOperation.findOne({ _id: new Types.ObjectId(id), companyId: new Types.ObjectId(ctx.companyId) }).lean<any>();

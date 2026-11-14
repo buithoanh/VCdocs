@@ -4,8 +4,10 @@ import type { Response } from 'express';
 import { CurrentCtx, Ctx } from '../../common/context';
 import { Errors } from '../../common/errors';
 import { Roles } from '../../common/decorators';
+import { RequiresWorkspace } from '../../common/workspace-modules';
 import { MailBasicService } from './mail-basic.service';
 @Controller('mail')
+@RequiresWorkspace('mail')
 export class MailBasicController {
   constructor(private readonly service: MailBasicService) {}
   @Get('messages') list(@CurrentCtx() ctx: Ctx, @Query('folder') folder?: string, @Query('mailbox') mailbox?: string, @Query('q') q?: string, @Query('scope') scope?: string, @Query('label') label?: string) { return this.service.list(ctx, { folder, mailbox, q, scope, label }); }

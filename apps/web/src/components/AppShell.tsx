@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, LOGIN_PATH, setCsrfToken, unwrap } from '@/api/client';
 import { roleLabel } from '@/lib/labels';
 import { NAV_GROUP_LABEL, navFor, type NavItem } from '@/lib/permissions';
+import { workspaceModuleEnabled } from '@/lib/workspace-modules';
 import { useAuth } from './providers/AuthProvider';
 import { useToast } from './providers/ToastProvider';
 
@@ -32,6 +33,8 @@ export function useMailUnreadCount() {
   return useQuery({
     queryKey: MAIL_UNREAD_KEY,
     queryFn: () => unwrap(api.GET('/mail/unread-count')).then((r) => r.count),
+    // Email tắt trên máy chủ này (production chưa có mail engine): không hỏi, tránh 503 mỗi phút.
+    enabled: workspaceModuleEnabled('mail'),
     refetchInterval: 60_000,
     staleTime: 30_000,
     retry: false,
@@ -50,6 +53,7 @@ export function usePendingApprovals() {
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/';
   if (href === '/phe-duyet') return pathname === '/phe-duyet' || /^\/phe-duyet\/(?!uy-quyen)/.test(pathname);
+  if (href === '/nhat-ky') return pathname === '/nhat-ky' || pathname.startsWith('/nhat-ky/goi-bang-chung');
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -67,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const toast = useToast();
   useEffect(() => setOpen(false), [pathname]);
 
-  const items = navFor(roles);
+  const items = navFor(roles, { auditor: !!me.auditorAccess });
   const selectedKeys = items.filter((i) => isActive(pathname, i.href)).map((i) => i.href);
   const menuItems: NonNullable<MenuProps['items']> = [];
   for (const g of GROUPS) {

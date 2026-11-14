@@ -230,5 +230,46 @@ export class MailBasicService {
     const shared=await this.db.m.WorkspaceSharedMailbox.findOne({companyId,address}).lean<any>();
     if(shared){this.log.warn(`Hộp thư nhóm ${address} trùng hộp thư cá nhân của ${email}; cần quản trị đổi địa chỉ hộp nhóm`);await this.audit.write(actor,{action:'workspace_mail.shared.conflict',objectType:'workspace_shared_mailbox',objectId:String(shared._id),after:{address,userEmail:email}});}
   }
-  async offboardUser(ctx:Ctx,userId:string){const user=await this.db.m.User.findOne({_id:this.oid(userId),companyId:this.cid(ctx)}).lean<any>();if(!user)throw Errors.notFound('Không tìm thấy người dùng');const address=await this.mailboxOf(ctx,user.email);if(!address)throw Errors.notFound('Người dùng không có hộp thư nội bộ');const shared=await this.db.m.WorkspaceSharedMailbox.find({companyId:this.cid(ctx),'members.email':address}).lean<any[]>();if(shared.some(row=>row.members.some((m:any)=>m.email===address&&m.roles.includes('manage'))&&!row.members.some((m:any)=>m.email!==address&&m.roles.includes('manage'))))throw Errors.validation('Phải chỉ định người quản lý kế nhiệm cho mọi hộp thư nhóm trước offboarding');try{await this.mail.offboardUser(address);}catch{throw Errors.storageUnavailable('Máy chủ mail chưa xác nhận thu hồi tài khoản');}await Promise.all([this.db.m.Session.deleteMany({companyId:this.cid(ctx),userId:user._id}),this.db.m.WorkspaceMailAlias.updateMany({companyId:this.cid(ctx),ownerEmail:address},{$set:{active:false,updatedBy:this.uid(ctx)}}),this.db.m.WorkspaceSharedMailbox.updateMany({companyId:this.cid(ctx),'members.email':address},{$pull:{members:{email:address}},$set:{updatedBy:this.uid(ctx)}}),this.db.m.User.updateOne({_id:user._id,companyId:this.cid(ctx)},{$set:{status:'left',isSuspended:true,updatedBy:this.uid(ctx)}})]);await this.audit.record(ctx,{action:'workspace_mail.user.offboard',objectType:'user',objectId:userId,after:{address,status:'left',sessionsRevoked:true}});return{userId,address,status:'left'};}
+  /** Hộp thư nhóm mà `address` là người quản lý duy nhất. */
+  private soleManaged(rows:any[],address:string){return rows.filter(row=>row.members.some((m:any)=>m.email===address&&m.roles.includes('manage'))&&!row.members.some((m:any)=>m.email!==address&&m.roles.includes('manage')));}
+  /** Thu hồi hộp thư của một người ở engine, alias và quyền hộp nhóm; không đổi trạng thái người dùng. Trả null khi không có hộp thư nội bộ. */
+  private async revokeMailbox(actor:AuditActor,user:any){
+    const companyId=new Types.ObjectId(actor.companyId),address=mailboxAddress(user.email,await this.domainOf(actor.companyId));
+    if(!address)return null;
+    const shared=await this.db.m.WorkspaceSharedMailbox.find({companyId,'members.email':address}).lean<any[]>();
+    if(this.soleManaged(shared,address).length)throw Errors.validation('Phải chỉ định người quản lý kế nhiệm cho mọi hộp thư nhóm trước offboarding');
+    try{await this.mail.offboardUser(address);}catch{throw Errors.storageUnavailable('Máy chủ mail chưa xác nhận thu hồi tài khoản');}
+    const by=actor.userId?{updatedBy:new Types.ObjectId(actor.userId)}:{};
+    await Promise.all([this.db.m.WorkspaceMailAlias.updateMany({companyId,ownerEmail:address},{$set:{active:false,...by}}),this.db.m.WorkspaceSharedMailbox.updateMany({companyId,'members.email':address},{$pull:{members:{email:address}},...(actor.userId?{$set:by}:{})})]);
+    return address;
+  }
+  async offboardUser(ctx:Ctx,userId:string){const user=await this.db.m.User.findOne({_id:this.oid(userId),companyId:this.cid(ctx)}).lean<any>();if(!user)throw Errors.notFound('Không tìm thấy người dùng');const address=await this.revokeMailbox(this.audit.actorFromCtx(ctx),user);if(!address)throw Errors.notFound('Người dùng không có hộp thư nội bộ');await Promise.all([this.db.m.Session.deleteMany({companyId:this.cid(ctx),userId:user._id}),this.db.m.User.updateOne({_id:user._id,companyId:this.cid(ctx)},{$set:{status:'left',isSuspended:true,updatedBy:this.uid(ctx)}})]);await this.audit.record(ctx,{action:'workspace_mail.user.offboard',objectType:'user',objectId:userId,after:{address,status:'left',sessionsRevoked:true}});return{userId,address,status:'left'};}
+  /**
+   * Bàn giao (M10), chạy từ việc nền nên nhận actor thay cho Ctx. Hộp thư nhóm mà người nghỉ là người quản lý duy nhất
+   * được thêm người nhận làm quản lý (đọc + quản lý), để hộp nhóm không mồ côi và bước thu hồi hộp thư sau đó không bị chặn.
+   */
+  async handoverSharedMailboxes(actor:AuditActor,leaverEmail:string,receiverEmail:string){
+    const domain=await this.domainOf(actor.companyId),from=mailboxAddress(leaverEmail,domain),to=mailboxAddress(receiverEmail,domain);
+    if(!from)return{mailboxes:[] as string[]};
+    const companyId=new Types.ObjectId(actor.companyId);
+    const rows=this.soleManaged(await this.db.m.WorkspaceSharedMailbox.find({companyId,'members.email':from}).lean<any[]>(),from);
+    if(!rows.length)return{mailboxes:[] as string[]};
+    if(!to)throw Errors.validation('Người nhận bàn giao không có hộp thư nội bộ để nhận quyền quản lý hộp thư nhóm');
+    const mailboxes:string[]=[];
+    for(const row of rows){
+      const roles=[...new Set([...(row.members.find((m:any)=>m.email===to)?.roles??[]),'read','manage'])];
+      try{await this.mail.setSharedMember(row.address,to,true);}catch{throw Errors.storageUnavailable(`Máy chủ mail chưa xác nhận quyền hộp thư nhóm ${row.address}`);}
+      const members=[...row.members.filter((m:any)=>m.email!==to).map((m:any)=>({email:m.email,roles:m.roles})),{email:to,roles}];
+      await this.db.m.WorkspaceSharedMailbox.updateOne({_id:row._id,companyId},{$set:{members}});
+      await this.audit.write(actor,{action:'workspace_mail.shared.handover',objectType:'workspace_shared_mailbox',objectId:String(row._id),after:{address:row.address,from,to,roles}});
+      mailboxes.push(row.address);
+    }
+    return{mailboxes};
+  }
+  /** Bàn giao (M10): người đã bị khoá (left) thì thu hồi hộp thư. Trả null khi người đó không có hộp thư nội bộ. */
+  async offboardLeftUser(actor:AuditActor,user:any){
+    const address=await this.revokeMailbox(actor,user);
+    if(address)await this.audit.write(actor,{action:'workspace_mail.user.offboard',objectType:'user',objectId:String(user._id),after:{address,status:'left',source:'handover.markLeft'}});
+    return address;
+  }
 }

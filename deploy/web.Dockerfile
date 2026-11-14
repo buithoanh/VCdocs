@@ -16,6 +16,12 @@ ENV API_ORIGIN=$API_ORIGIN NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone
 # Được nhúng lúc build vào trang soạn thảo và Content-Security-Policy; để trống thì không nạp editor.
 ARG NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=
 ENV NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS=$NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS
+# Phân hệ VCworkspace hiện menu/trang (drive, mail; phẩy ngăn cách). Rỗng = ẩn hết, khớp API disabled.
+ARG NEXT_PUBLIC_WORKSPACE_MODULES=
+ENV NEXT_PUBLIC_WORKSPACE_MODULES=$NEXT_PUBLIC_WORKSPACE_MODULES
+# Nút đăng nhập: google | oidc (khớp AUTH_MODE của API).
+ARG NEXT_PUBLIC_AUTH_PROVIDER=google
+ENV NEXT_PUBLIC_AUTH_PROVIDER=$NEXT_PUBLIC_AUTH_PROVIDER
 RUN pnpm --filter @vcdocs/web build
 
 FROM node:22-bookworm-slim

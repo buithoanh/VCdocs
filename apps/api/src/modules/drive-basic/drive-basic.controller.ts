@@ -5,8 +5,10 @@ import { CurrentCtx, Ctx, VQuery } from '../../common/context';
 import { Errors } from '../../common/errors';
 import { DriveBasicService } from './drive-basic.service';
 import { Public, SkipCsrf } from '../../common/decorators';
+import { RequiresWorkspace } from '../../common/workspace-modules';
 
 @Controller()
+@RequiresWorkspace('drive')
 export class DriveBasicController {
   constructor(private readonly drive: DriveBasicService) {}
   @Get('spaces') spaces(@CurrentCtx() ctx: Ctx) { return this.drive.spaces(ctx); }

@@ -1,5 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { checkServiceUrl } from '../common/service-url';
+import { CredentialKey, parseKeyring } from '../common/credential-cipher';
 
 /** Cấu hình đọc từ biến môi trường (.env). Không ghi khoá thật vào mã nguồn. */
 export interface AppConfig {
@@ -24,7 +26,8 @@ export interface AppConfig {
   };
   identityLifecycle: {
     /** disabled: route lifecycle trả 503, không có cổng nào chạm Authentik/Nextcloud (mặc định production). */
-    mode: 'fake' | 'local' | 'disabled';
+    /** remote: Authentik/Nextcloud thật qua https (hoặc tên dịch vụ Docker); local: chỉ endpoint thử chat12B. */
+    mode: 'fake' | 'local' | 'remote' | 'disabled';
     authentikBaseUrl?: string;
     authentikToken?: string;
     nextcloudBaseUrl?: string;
@@ -49,13 +52,24 @@ export interface AppConfig {
     fakeStateFile?: string;
   };
   workspaceStorage: {
-    mode: 'fake' | 'nextcloud';
+    /** disabled: route Drive/Office trả 503 (mặc định production khi chưa có Nextcloud thật). */
+    mode: 'fake' | 'nextcloud' | 'disabled';
     baseUrl?: string;
     credentials: Record<string, { username: string; password: string }>;
     timeoutMs: number;
+    /**
+     * env: app password tĩnh trong WORKSPACE_STORAGE_CREDENTIALS_JSON (dev/staging).
+     * store: bản mã AES-GCM trong workspace_storage_credentials (bắt buộc ở production).
+     */
+    credentialSource?: 'env' | 'store';
+    /** Keyring khoá chủ (khoá đầu mã hoá); xem common/credential-cipher.ts. */
+    credentialKeys?: CredentialKey[];
+    /** Số ngày tới hạn xoay app password, mặc định 90. */
+    credentialRotateDays?: number;
   };
   mailEngine: {
-    mode: 'fake' | 'stalwart'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
+    /** disabled: route Email trả 503 (mặc định production khi chưa có Stalwart thật). */
+    mode: 'fake' | 'stalwart' | 'disabled'; host: string; smtpPort: number; imapPort: number; sievePort: number; controlPort: number; controlToken: string;
     credentials: Record<string, { username: string; password: string }>;
     management?: { baseUrl: string; username: string; password: string };
     /** Nhịp việc nền đồng bộ INBOX + báo thư mới (ms); 0 = tắt; bỏ trống = 60 000. */
@@ -86,6 +100,10 @@ export interface AppConfig {
     accountingDeptCodes: string[];
     hrDeptCodes: string[];
     internalOpsBlockCode: string;
+    /** Hạn tối đa quyền xem tạm của kiểm toán viên (E16, E21) */
+    auditorMaxDays: number;
+    /** Số ngày giữ gói bằng chứng trên máy chủ (E17, E21) */
+    evidencePackDays: number;
   };
   rateLimit: { perMinute: number; searchPerMinute: number };
   /** Chat14 Flow: nhận webhook Nextcloud webhook_listeners, journal + worker nền */
@@ -236,6 +254,36 @@ export function loadDotEnv(): void {
 
 const DEFAULT_EDITOR_SECRET = 'vcworkspace-test-editor-secret';
 
+/**
+ * Credential Nextcloud theo người dùng (docs/ke-hoach/vcworkspace-21-b1-drive-office-production.md mục 2, P1).
+ * Production chỉ dùng bản mã trong CSDL; app password tĩnh trong env chỉ còn cho dev/staging.
+ */
+function validateStorageCredentials(s: AppConfig['workspaceStorage'], nodeEnv: string) {
+  const source = s.credentialSource || 'env';
+  if (!['env', 'store'].includes(source)) throw new Error('WORKSPACE_STORAGE_CREDENTIAL_SOURCE phải là env hoặc store');
+  if (nodeEnv === 'production' && source !== 'store') throw new Error('Production bắt buộc WORKSPACE_STORAGE_CREDENTIAL_SOURCE=store');
+  if (nodeEnv === 'production' && Object.keys(s.credentials).length) {
+    throw new Error('Không dùng WORKSPACE_STORAGE_CREDENTIALS_JSON ở production: nạp credential mã hoá bằng lệnh kho-credential');
+  }
+  if (source === 'store' && !s.credentialKeys?.length) throw new Error('WORKSPACE_CREDENTIAL_KEYS bắt buộc khi credential lưu trong CSDL');
+  const days = s.credentialRotateDays ?? 90;
+  if (!Number.isInteger(days) || days < 1 || days > 365) throw new Error('WORKSPACE_CREDENTIAL_ROTATE_DAYS phải là số nguyên 1–365');
+}
+
+/**
+ * ONLYOFFICE production: trình duyệt nạp api.js từ origin công khai nên bắt buộc https (trang web
+ * chạy https, http bị chặn mixed content và lộ JWT cấu hình). Hai origin còn lại đi trong mạng nội bộ
+ * nên nhận thêm http tới tên dịch vụ Docker một nhãn; không được rơi về giá trị PoC mặc định.
+ */
+function validateEditorOrigins(e: AppConfig['documentEditor'], env: NodeJS.ProcessEnv) {
+  if (!env.DOCUMENT_EDITOR_PUBLIC_ORIGIN || !env.DOCUMENT_EDITOR_INTERNAL_ORIGIN) {
+    throw new Error('DOCUMENT_EDITOR_PUBLIC_ORIGIN và DOCUMENT_EDITOR_INTERNAL_ORIGIN bắt buộc khi bật trình soạn thảo ở production');
+  }
+  checkServiceUrl('DOCUMENT_EDITOR_PUBLIC_ORIGIN', e.publicOrigin, { production: true });
+  checkServiceUrl('DOCUMENT_EDITOR_INTERNAL_ORIGIN', e.internalOrigin, { production: true, internalHttp: true });
+  checkServiceUrl('DOCUMENT_EDITOR_API_ORIGIN', e.apiOriginForEditor, { production: true, internalHttp: true });
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AppConfig> = {}): AppConfig {
   const nodeEnv = env.NODE_ENV || 'development';
   const googleMode = (env.GOOGLE_MODE || 'fake') as 'fake' | 'real';
@@ -259,7 +307,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       projectionMaxAgeSeconds: num(env.OIDC_PROJECTION_MAX_AGE_SECONDS, 300),
     },
     identityLifecycle: {
-      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'disabled',
+      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'remote' | 'disabled',
       authentikBaseUrl: env.IDENTITY_AUTHENTIK_BASE_URL,
       authentikToken: env.IDENTITY_AUTHENTIK_TOKEN,
       nextcloudBaseUrl: env.IDENTITY_NEXTCLOUD_BASE_URL,
@@ -284,13 +332,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
           : env.FAKE_GOOGLE_STATE_FILE || (googleMode === 'fake' && nodeEnv !== 'test' ? path.resolve(process.cwd(), '.vcdocs-dev', 'fake-google.json') : undefined),
     },
     workspaceStorage: {
-      mode: (env.WORKSPACE_STORAGE_MODE || 'fake') as 'fake' | 'nextcloud',
+      mode: (env.WORKSPACE_STORAGE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'nextcloud' | 'disabled',
       baseUrl: env.WORKSPACE_STORAGE_BASE_URL,
       credentials: storageCredentials(env.WORKSPACE_STORAGE_CREDENTIALS_JSON),
       timeoutMs: num(env.WORKSPACE_STORAGE_TIMEOUT_MS, 15_000),
+      credentialSource: (env.WORKSPACE_STORAGE_CREDENTIAL_SOURCE || (nodeEnv === 'production' ? 'store' : 'env')) as 'env' | 'store',
+      credentialKeys: parseKeyring(env.WORKSPACE_CREDENTIAL_KEYS_FILE ? fs.readFileSync(env.WORKSPACE_CREDENTIAL_KEYS_FILE, 'utf8') : env.WORKSPACE_CREDENTIAL_KEYS),
+      credentialRotateDays: num(env.WORKSPACE_CREDENTIAL_ROTATE_DAYS, 90),
     },
     mailEngine: {
-      mode: (env.MAIL_ENGINE_MODE || 'fake') as 'fake' | 'stalwart',
+      mode: (env.MAIL_ENGINE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'stalwart' | 'disabled',
       host: env.MAIL_ENGINE_HOST || '127.0.0.1', smtpPort: num(env.MAIL_ENGINE_SMTP_PORT, 18465), imapPort: num(env.MAIL_ENGINE_IMAP_PORT, 18993), sievePort: num(env.MAIL_ENGINE_SIEVE_PORT, 14190), controlPort: num(env.MAIL_ENGINE_CONTROL_PORT, 19090), controlToken: env.MAIL_ENGINE_CONTROL_TOKEN || '',
       credentials: storageCredentials(env.MAIL_ENGINE_CREDENTIALS_JSON),
       syncIntervalMs: num(env.MAIL_SYNC_INTERVAL_MS, 60_000),
@@ -325,6 +376,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       accountingDeptCodes: list(env.ACCOUNTING_DEPT_CODES, ['TCKT', 'LT']),
       hrDeptCodes: list(env.HR_DEPT_CODES, ['HCNS']),
       internalOpsBlockCode: env.INTERNAL_OPS_BLOCK_CODE || 'VHNB',
+      auditorMaxDays: num(env.AUDITOR_MAX_DAYS, 30),
+      evidencePackDays: num(env.EVIDENCE_PACK_DAYS, 7),
     },
     rateLimit: { perMinute: num(env.RATE_LIMIT_PER_MINUTE, 600), searchPerMinute: num(env.RATE_LIMIT_SEARCH_PER_MINUTE, 60) },
     flow: {
@@ -361,7 +414,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       throw new Error('OIDC production bắt buộc HTTPS cho issuer/API/web và COOKIE_SECURE=true');
     }
   }
-  if (!['fake', 'local', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local hoặc disabled');
+  if (!['fake', 'local', 'remote', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local, remote hoặc disabled');
+  if (cfg.identityLifecycle.mode === 'remote') {
+    // Cùng adapter với local (đã nghiệm thu chat12B) nhưng trỏ tới Authentik/Nextcloud thật: https, hoặc http tới tên dịch vụ Docker một nhãn.
+    const i = cfg.identityLifecycle;
+    if (!i.authentikToken || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlToken) {
+      throw new Error('Identity lifecycle remote cần đủ Authentik và Nextcloud configuration');
+    }
+    const rule = { production: cfg.nodeEnv === 'production', internalHttp: true };
+    checkServiceUrl('IDENTITY_AUTHENTIK_BASE_URL', i.authentikBaseUrl, rule);
+    checkServiceUrl('IDENTITY_NEXTCLOUD_BASE_URL', i.nextcloudBaseUrl, rule);
+    checkServiceUrl('IDENTITY_NEXTCLOUD_CONTROL_URL', i.nextcloudControlUrl, rule);
+  }
   if (cfg.identityLifecycle.mode === 'local') {
     const i = cfg.identityLifecycle;
     if (!i.authentikBaseUrl || !i.authentikToken || !i.nextcloudBaseUrl || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlUrl || !i.nextcloudControlToken) {
@@ -371,10 +435,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       throw new Error('Identity lifecycle chat12B chỉ được phép gọi local test endpoints');
     }
   }
-  if (!['fake', 'nextcloud'].includes(cfg.workspaceStorage.mode)) {
-    throw new Error('WORKSPACE_STORAGE_MODE phải là fake hoặc nextcloud');
+  if (!['fake', 'nextcloud', 'disabled'].includes(cfg.workspaceStorage.mode)) {
+    throw new Error('WORKSPACE_STORAGE_MODE phải là fake, nextcloud hoặc disabled');
   }
-  if (!['fake', 'stalwart'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake hoặc stalwart');
+  if (!['fake', 'stalwart', 'disabled'].includes(cfg.mailEngine.mode)) throw new Error('MAIL_ENGINE_MODE phải là fake, stalwart hoặc disabled');
+  // Trình soạn thảo đọc/ghi tệp qua kho Drive; kho tắt thì editor không có gì để mở.
+  if (cfg.documentEditor.enabled && cfg.workspaceStorage.mode === 'disabled') throw new Error('DOCUMENT_EDITOR_ENABLED cần WORKSPACE_STORAGE_MODE khác disabled');
+  if (cfg.workspaceStorage.mode === 'nextcloud') {
+    checkServiceUrl('WORKSPACE_STORAGE_BASE_URL', cfg.workspaceStorage.baseUrl, { production: cfg.nodeEnv === 'production' });
+    validateStorageCredentials(cfg.workspaceStorage, cfg.nodeEnv);
+  }
   validateFlowConfig(cfg.flow, cfg.nodeEnv);
   if (cfg.mailEngine.mode === 'stalwart' && !['127.0.0.1', 'localhost', '::1'].includes(cfg.mailEngine.host)) throw new Error('Mail engine chat07 chỉ được phép loopback');
   if (cfg.nodeEnv === 'production') {
@@ -386,6 +456,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     if (cfg.documentEditor.enabled && (cfg.documentEditor.jwtSecret === DEFAULT_EDITOR_SECRET || Buffer.byteLength(cfg.documentEditor.jwtSecret) < 32)) {
       throw new Error('DOCUMENT_EDITOR_JWT_SECRET phải đặt riêng, tối thiểu 32 byte ở production');
     }
+    if (cfg.documentEditor.enabled) validateEditorOrigins(cfg.documentEditor, env);
   }
   return cfg;
 }
