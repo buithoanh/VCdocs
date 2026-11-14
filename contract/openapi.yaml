@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: VCdocs API
-  version: 2.7.0-gd2
+  version: 2.8.0-gd2
   description: |
     Bản máy đọc của "Hợp đồng API VCdocs v1" (Claude Docs,
     https://claude.ai/artifact/V2S8WQZXaLeGBLEBJvQvfT). Phạm vi:
@@ -2595,7 +2595,7 @@ components:
     CodeStatus: { type: string, enum: [pending, approved, rejected, retired], x-gia-dinh: 'Hợp đồng chỉ nói pending' }
     HoldReasonType: { type: string, enum: [dispute, inspection, warranty, receivable, contract_open, board_request], description: 'Tranh chấp · Thanh tra, kiểm toán · Bảo hành · Công nợ · Hợp đồng chưa thanh lý · Ban Điều hành yêu cầu (BR-22, D5)' }
     HandoverStatus: { type: string, enum: [listing, open, received, verified, executing, done, cancelled], description: 'Đang liệt kê · Chờ người nhận · Người nhận đã nhận · HCNS đã kiểm tra · Đang chuyển quyền · Xong · Đã huỷ (E7)' }
-    HandoverItemKind: { type: string, enum: [document, record, approval_to_decide, approval_submitted, external_share, delegation, my_drive_file, group_membership] }
+    HandoverItemKind: { type: string, enum: [document, record, approval_to_decide, approval_submitted, external_share, delegation, my_drive_file, group_membership, workspace_space] }
     HandoverItemAction:
       type: string
       enum: [reassign, revoke, end, transfer, remove, keep]
@@ -2603,7 +2603,9 @@ components:
         Đổi người · Gỡ · Kết thúc · Chuyển sở hữu Google · Gỡ khỏi nhóm · Để nguyên (E5).
         Hợp kind: document, record, approval_to_decide, approval_submitted → reassign, keep;
         external_share → reassign (mặc định), revoke; delegation → end (mặc định), keep;
-        my_drive_file → transfer; group_membership → remove, keep.
+        my_drive_file → transfer; group_membership → remove, keep;
+        workspace_space (không gian cá nhân Drive VCworkspace còn tệp, từ 2.8.0) → reassign (mặc định: người nhận
+        được quyền chỉ đọc không gian đó), keep.
       x-gia-dinh: 'Hợp đồng chỉ ghi action mặc định; các action thay thế (keep, revoke) do file này chọn'
     HandoverItemStatus: { type: string, enum: [pending, done, skipped, failed] }
     AuditorAccessStatus: { type: string, enum: [active, expired, revoked] }
@@ -3440,7 +3442,7 @@ components:
       properties:
         id: { $ref: '#/components/schemas/Id' }
         kind: { $ref: '#/components/schemas/HandoverItemKind' }
-        objectType: { type: string, enum: [document, record, approval, external_share, delegation], description: 'Có với mọi kind trừ my_drive_file, group_membership' }
+        objectType: { type: string, enum: [document, record, approval, external_share, delegation, workspace_space], description: 'Có với mọi kind trừ my_drive_file, group_membership' }
         objectId: { $ref: '#/components/schemas/Id' }
         fileId: { type: string, description: 'Id Google của file (my_drive_file) hoặc file gắn với đối tượng' }
         groupEmail: { type: string, format: email, description: 'Chỉ group_membership', x-gia-dinh: 'Hợp đồng không ghi trường cho nhóm Google' }

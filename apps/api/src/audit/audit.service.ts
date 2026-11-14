@@ -82,6 +82,8 @@ export function auditHash(prevHash: string, row: any): string {
  * audit_logs chỉ thêm. Mỗi dòng có seq tăng dần theo công ty và hash nối với
  * dòng trước (prevHash) để phát hiện bị sửa, xoá, chèn.
  */
+const ACTOR_DEPARTMENT_TYPES = new Set(['workspace_mail_alias', 'workspace_shared_mailbox']);
+
 @Injectable()
 export class AuditService {
   private readonly log = new Logger('Audit');
@@ -108,7 +110,10 @@ export class AuditService {
   async write(actor: AuditActor, e: AuditEntry): Promise<string> {
     const M = this.db.m.AuditLog;
     const companyId = new Types.ObjectId(actor.companyId);
-    const departmentId = e.departmentId ?? (await this.departmentOf(actor.companyId, e.objectType, e.objectId));
+    const departmentId = e.departmentId ?? (await this.departmentOf(actor.companyId, e.objectType, e.objectId))
+      // Bí danh và hộp thư nhóm không thuộc phòng nào: gắn phòng của người thao tác để trưởng phòng thấy việc quản trị mail.
+      // Dòng nội dung thư (nháp, gửi, nhãn, bộ lọc) và Flow không gắn phòng: chỉ R1, R3, R9 xem.
+      ?? (e.objectType && ACTOR_DEPARTMENT_TYPES.has(e.objectType) && actor.userId ? await this.departmentOf(actor.companyId, 'user', actor.userId) : undefined);
     for (let attempt = 0; attempt < 20; attempt++) {
       const last = await M.findOne({ companyId }, { seq: 1, hash: 1 }).sort({ seq: -1 }).lean<any>();
       const prevHash = last?.hash ?? GENESIS;

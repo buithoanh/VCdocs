@@ -4,9 +4,10 @@ import { HandoversService } from './handovers.service';
 import { SchedulerService } from '../scheduler/scheduler.service';
 import { MailBasicModule } from '../mail-basic/mail-basic.module';
 import { DriveBasicModule } from '../drive-basic/drive-basic.module';
+import { M01Module } from '../m01-auth/m01.module';
 
 @Global()
-@Module({ imports: [MailBasicModule, DriveBasicModule], controllers: [HandoversController], providers: [HandoversService], exports: [HandoversService] })
+@Module({ imports: [MailBasicModule, DriveBasicModule, M01Module], controllers: [HandoversController], providers: [HandoversService], exports: [HandoversService] })
 export class M10Module implements OnModuleInit {
   constructor(private readonly scheduler: SchedulerService, private readonly handovers: HandoversService) {}
 

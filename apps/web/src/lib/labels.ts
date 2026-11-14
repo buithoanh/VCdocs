@@ -199,6 +199,7 @@ export const handoverItemKindLabel: Record<HandoverItemKind, string> = {
   delegation: 'Uỷ quyền',
   my_drive_file: 'File trong Drive của tôi',
   group_membership: 'Nhóm Google',
+  workspace_space: 'Không gian cá nhân VCworkspace',
 };
 
 export const handoverItemActionLabel: Record<HandoverItemAction, string> = {
@@ -220,6 +221,7 @@ export const handoverActionsByKind: Record<HandoverItemKind, HandoverItemAction[
   delegation: ['end', 'keep'],
   my_drive_file: ['transfer'],
   group_membership: ['remove', 'keep'],
+  workspace_space: ['reassign', 'keep'],
 };
 
 export const handoverItemStatusLabel: Record<HandoverItemStatus, string> = {

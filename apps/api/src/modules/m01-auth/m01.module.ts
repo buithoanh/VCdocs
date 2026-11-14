@@ -12,7 +12,7 @@ import { APP_CONFIG, AppConfig } from '../../config/config';
 import { MailBasicModule } from '../mail-basic/mail-basic.module';
 
 function lifecyclePort(cfg: AppConfig): IdentityLifecyclePort {
-  if (cfg.identityLifecycle.mode === 'local') return new LocalIdentityLifecyclePort(cfg.identityLifecycle);
+  if (cfg.identityLifecycle.mode === 'local' || cfg.identityLifecycle.mode === 'remote') return new LocalIdentityLifecyclePort(cfg.identityLifecycle);
   if (cfg.identityLifecycle.mode === 'fake' && cfg.nodeEnv !== 'production') return new FakeIdentityLifecyclePort();
   return new DisabledIdentityLifecyclePort();
 }
@@ -21,6 +21,6 @@ function lifecyclePort(cfg: AppConfig): IdentityLifecyclePort {
   imports: [MailBasicModule],
   controllers: [AuthController, MeController, UsersController, DrivesController, DevFakeGoogleController, IdentityLifecycleController],
   providers: [GoogleSyncService, OidcService, IdentityLifecycleService, { provide: IDENTITY_LIFECYCLE_PORT, inject: [APP_CONFIG], useFactory: lifecyclePort }],
-  exports: [GoogleSyncService],
+  exports: [GoogleSyncService, IdentityLifecycleService],
 })
 export class M01Module {}

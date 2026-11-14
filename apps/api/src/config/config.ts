@@ -26,7 +26,8 @@ export interface AppConfig {
   };
   identityLifecycle: {
     /** disabled: route lifecycle trả 503, không có cổng nào chạm Authentik/Nextcloud (mặc định production). */
-    mode: 'fake' | 'local' | 'disabled';
+    /** remote: Authentik/Nextcloud thật qua https (hoặc tên dịch vụ Docker); local: chỉ endpoint thử chat12B. */
+    mode: 'fake' | 'local' | 'remote' | 'disabled';
     authentikBaseUrl?: string;
     authentikToken?: string;
     nextcloudBaseUrl?: string;
@@ -304,7 +305,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       projectionMaxAgeSeconds: num(env.OIDC_PROJECTION_MAX_AGE_SECONDS, 300),
     },
     identityLifecycle: {
-      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'disabled',
+      mode: (env.IDENTITY_LIFECYCLE_MODE || (nodeEnv === 'production' ? 'disabled' : 'fake')) as 'fake' | 'local' | 'remote' | 'disabled',
       authentikBaseUrl: env.IDENTITY_AUTHENTIK_BASE_URL,
       authentikToken: env.IDENTITY_AUTHENTIK_TOKEN,
       nextcloudBaseUrl: env.IDENTITY_NEXTCLOUD_BASE_URL,
@@ -410,7 +411,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       throw new Error('OIDC production bắt buộc HTTPS cho issuer/API/web và COOKIE_SECURE=true');
     }
   }
-  if (!['fake', 'local', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local hoặc disabled');
+  if (!['fake', 'local', 'remote', 'disabled'].includes(cfg.identityLifecycle.mode)) throw new Error('IDENTITY_LIFECYCLE_MODE phải là fake, local, remote hoặc disabled');
+  if (cfg.identityLifecycle.mode === 'remote') {
+    // Cùng adapter với local (đã nghiệm thu chat12B) nhưng trỏ tới Authentik/Nextcloud thật: https, hoặc http tới tên dịch vụ Docker một nhãn.
+    const i = cfg.identityLifecycle;
+    if (!i.authentikToken || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlToken) {
+      throw new Error('Identity lifecycle remote cần đủ Authentik và Nextcloud configuration');
+    }
+    const rule = { production: cfg.nodeEnv === 'production', internalHttp: true };
+    checkServiceUrl('IDENTITY_AUTHENTIK_BASE_URL', i.authentikBaseUrl, rule);
+    checkServiceUrl('IDENTITY_NEXTCLOUD_BASE_URL', i.nextcloudBaseUrl, rule);
+    checkServiceUrl('IDENTITY_NEXTCLOUD_CONTROL_URL', i.nextcloudControlUrl, rule);
+  }
   if (cfg.identityLifecycle.mode === 'local') {
     const i = cfg.identityLifecycle;
     if (!i.authentikBaseUrl || !i.authentikToken || !i.nextcloudBaseUrl || !i.nextcloudAdminUser || !i.nextcloudAdminPassword || !i.nextcloudControlUrl || !i.nextcloudControlToken) {

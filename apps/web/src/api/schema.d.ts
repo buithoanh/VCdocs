@@ -7354,12 +7354,14 @@ export interface components {
          */
         HandoverStatus: "listing" | "open" | "received" | "verified" | "executing" | "done" | "cancelled";
         /** @enum {string} */
-        HandoverItemKind: "document" | "record" | "approval_to_decide" | "approval_submitted" | "external_share" | "delegation" | "my_drive_file" | "group_membership";
+        HandoverItemKind: "document" | "record" | "approval_to_decide" | "approval_submitted" | "external_share" | "delegation" | "my_drive_file" | "group_membership" | "workspace_space";
         /**
          * @description Đổi người · Gỡ · Kết thúc · Chuyển sở hữu Google · Gỡ khỏi nhóm · Để nguyên (E5).
          *     Hợp kind: document, record, approval_to_decide, approval_submitted → reassign, keep;
          *     external_share → reassign (mặc định), revoke; delegation → end (mặc định), keep;
-         *     my_drive_file → transfer; group_membership → remove, keep.
+         *     my_drive_file → transfer; group_membership → remove, keep;
+         *     workspace_space (không gian cá nhân Drive VCworkspace còn tệp, từ 2.8.0) → reassign (mặc định: người nhận
+         *     được quyền chỉ đọc không gian đó), keep.
          * @enum {string}
          */
         HandoverItemAction: "reassign" | "revoke" | "end" | "transfer" | "remove" | "keep";
@@ -8059,7 +8061,7 @@ export interface components {
              * @description Có với mọi kind trừ my_drive_file, group_membership
              * @enum {string}
              */
-            objectType?: "document" | "record" | "approval" | "external_share" | "delegation";
+            objectType?: "document" | "record" | "approval" | "external_share" | "delegation" | "workspace_space";
             objectId?: components["schemas"]["Id"];
             /** @description Id Google của file (my_drive_file) hoặc file gắn với đối tượng */
             fileId?: string;

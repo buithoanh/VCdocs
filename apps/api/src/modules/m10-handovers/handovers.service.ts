@@ -12,11 +12,12 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { GOOGLE, GooglePorts } from '../../google/ports';
 import { ApprovalsService } from '../m05-approvals/approvals.service';
 import { MailBasicService } from '../mail-basic/mail-basic.service';
+import { IdentityLifecycleService } from '../m01-auth/identity-lifecycle.service';
 import { StorageCredentialStore } from '../drive-basic/storage-credential.store';
 import { FoldersService } from '../m03-folders/folders.service';
 
 export type HandoverStatus = 'listing' | 'open' | 'received' | 'verified' | 'executing' | 'done' | 'cancelled';
-type Kind = 'document' | 'record' | 'approval_to_decide' | 'approval_submitted' | 'external_share' | 'delegation' | 'my_drive_file' | 'group_membership';
+type Kind = 'document' | 'record' | 'approval_to_decide' | 'approval_submitted' | 'external_share' | 'delegation' | 'my_drive_file' | 'group_membership' | 'workspace_space';
 
 /** action hợp kind (bảng HandoverItemAction); phần tử đầu là mặc định (E5) */
 export const KIND_ACTIONS: Record<Kind, string[]> = {
@@ -28,6 +29,7 @@ export const KIND_ACTIONS: Record<Kind, string[]> = {
   delegation: ['end', 'keep'],
   my_drive_file: ['transfer'],
   group_membership: ['remove', 'keep'],
+  workspace_space: ['reassign', 'keep'],
 };
 const KIND_LABEL: Record<Kind, string> = {
   document: 'Tài liệu',
@@ -38,6 +40,7 @@ const KIND_LABEL: Record<Kind, string> = {
   delegation: 'Uỷ quyền',
   my_drive_file: 'File Drive của tôi',
   group_membership: 'Nhóm Google',
+  workspace_space: 'Không gian cá nhân VCworkspace',
 };
 const ACTION_LABEL: Record<string, string> = { reassign: 'Đổi người', revoke: 'Gỡ', end: 'Kết thúc', transfer: 'Chuyển sở hữu Google', remove: 'Gỡ khỏi nhóm', keep: 'Để nguyên' };
 const STATUS_LABEL: Record<string, string> = { listing: 'Đang liệt kê', open: 'Chờ người nhận', received: 'Người nhận đã nhận', verified: 'HCNS đã kiểm tra', executing: 'Đang chuyển quyền', done: 'Xong', cancelled: 'Đã huỷ' };
@@ -87,6 +90,7 @@ export class HandoversService {
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
     private readonly mail: MailBasicService,
     private readonly storageCredentials: StorageCredentialStore,
+    private readonly lifecycle: IdentityLifecycleService,
   ) {
     jobs.register('handover.list', {
       title: 'Liệt kê việc cần bàn giao',
@@ -446,6 +450,12 @@ export class HandoversService {
     const dels = await m.Delegation.find({ companyId: cid, delegateId: u, $or: [{ to: { $exists: false } }, { to: null }, { to: { $gte: today } }] }).lean<any[]>();
     const rtNames = new Map((await m.RecordType.find({ companyId: cid, _id: { $in: dels.map((d) => d.recordTypeId) } }, { name: 1 }).lean<any[]>()).map((r) => [String(r._id), r.name]));
     for (const d of dels) out.push({ key: `delegation:${d._id}`, kind: 'delegation', objectType: 'delegation', objectId: d._id, name: d.task || rtNames.get(String(d.recordTypeId)) || 'Uỷ quyền phê duyệt', detail: `từ ${d.from}${d.to ? ` đến ${d.to}` : ''}` });
+    // Không gian cá nhân Drive VCworkspace còn tệp: mặc định cho người nhận quyền chỉ đọc
+    if (this.cfg.workspaceStorage.mode !== 'disabled') {
+      const space = await m.WorkspaceSpace.findOne({ companyId: cid, kind: 'personal', ownerUserId: u }).lean<any>();
+      const count = space ? await m.WorkspaceDriveItem.countDocuments({ companyId: cid, spaceId: space._id, trashedAt: null }) : 0;
+      if (count) out.push({ key: `workspace_space:${space._id}`, kind: 'workspace_space', objectType: 'workspace_space', objectId: space._id, name: space.name, detail: `${count} mục · người nhận được quyền chỉ đọc` });
+    }
     return out;
   }
 
@@ -696,6 +706,12 @@ export class HandoversService {
         await m.Delegation.updateOne({ _id: d._id, companyId: cid }, { $set: { to: h.lastWorkingDay < d.from ? d.from : h.lastWorkingDay, updatedBy: actor } });
         return;
       }
+      case 'workspace_space': {
+        const space = await m.WorkspaceSpace.findOne({ companyId: cid, _id: i.objectId, kind: 'personal', ownerUserId: user._id }).lean<any>();
+        if (!space) return 'skipped';
+        await m.WorkspaceSpace.updateOne({ _id: space._id, companyId: cid }, { $addToSet: { handoverReaderIds: to }, $set: { updatedBy: actor } });
+        return;
+      }
       default:
         return 'skipped';
     }
@@ -801,6 +817,16 @@ export class HandoversService {
         await failed('workspace_mail.user.offboard_failed', e);
       }
     }
+    if (this.cfg.identityLifecycle.mode !== 'disabled') {
+      try {
+        const ctx = await this.systemCtx(companyId, u);
+        const op = ctx && (await this.lifecycle.disableLeftUser(ctx, u));
+        if (op) await this.audit.write({ companyId, userId: ctx!.user.id }, { action: 'identity.lifecycle.offboard', objectType: 'user', objectId: String(u._id), after: { operationId: op.id, status: op.status, source: 'handover.markLeft' } });
+      } catch (e: any) {
+        // Operation dở (partial) chạy lại bằng POST /identity/lifecycle-operations/{id}/reconcile, hoặc tự chạy tiếp ở lần gọi sau cùng khoá
+        await failed('identity.lifecycle.offboard_failed', e);
+      }
+    }
     if (this.cfg.workspaceStorage.mode !== 'disabled') {
       try {
         if (await this.storageCredentials.revoke(companyId, String(u._id))) {
@@ -810,6 +836,26 @@ export class HandoversService {
         await failed('workspace_storage.credential.revoke_failed', e);
       }
     }
+  }
+
+  /**
+   * Việc định kỳ không có người gọi: lifecycle cần một người chịu trách nhiệm trong nhật ký. Lấy người đã chuyển quyền,
+   * kiểm tra hoặc lập biên bản gần nhất của người nghỉ; không có thì một quản trị hệ thống (R9) đang làm.
+   */
+  private async systemCtx(companyId: string, leaver: any): Promise<Ctx | null> {
+    const cid = this.cid(companyId);
+    const h = await this.db.m.Handover.findOne({ companyId: cid, userId: leaver._id, status: { $ne: 'cancelled' } }).sort({ createdAt: -1 }).lean<any>();
+    const candidates = [h?.execution?.by, h?.verification?.by, h?.createdBy, ...(await this.usersWithRoles(companyId, ['R9']))].filter(Boolean).map(String);
+    for (const id of candidates) {
+      const a = await this.db.m.User.findOne({ companyId: cid, _id: new Types.ObjectId(id), status: { $ne: 'left' } }).lean<any>();
+      if (!a) continue;
+      return {
+        requestId: `handover-left-${leaver._id}`, ip: '', device: 'job:handovers.markLeft', companyId,
+        user: { id: String(a._id), email: a.email, name: a.name, departmentId: a.departmentId ? String(a.departmentId) : undefined, systemRoles: a.systemRoles ?? [] },
+        driveRoles: new Map(), visibleDriveIds: [], query: {}, auditIds: [],
+      };
+    }
+    return null;
   }
 
   /** Còn ≤ 2 ngày làm việc tới ngày cuối mà chưa kiểm tra → nhắc R3 (handover_verify_due) */

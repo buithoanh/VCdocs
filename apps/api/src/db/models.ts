@@ -267,6 +267,8 @@ const WorkspaceSpace = mk({
   // Khoá nhận diện không gian theo ID, không theo tên hiển thị (trùng tên ≠ cùng không gian)
   ownerUserId: OID,
   departmentId: OID,
+  // Bàn giao (M10): người nhận được đọc không gian cá nhân của người đã nghỉ. Đây là nguồn quyền, ghi bởi handover.execute.
+  handoverReaderIds: [OID],
 });
 WorkspaceSpace.index({ companyId: 1, ownerUserId: 1 }, { unique: true, partialFilterExpression: { kind: 'personal' } });
 WorkspaceSpace.index({ companyId: 1, departmentId: 1 }, { unique: true, partialFilterExpression: { kind: 'department' } });

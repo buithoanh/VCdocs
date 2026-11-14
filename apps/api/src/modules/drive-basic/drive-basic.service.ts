@@ -39,7 +39,11 @@ export class DriveBasicService {
   // Quyền suy từ phòng ban và R4 hiện tại của user; dòng WorkspaceSpaceMember chỉ là bản đối soát,
   // không phải nguồn quyền (đổi phòng hoặc mất R4 phải có hiệu lực ngay, kể cả với vé editor và link).
   private roleIn(space: any, user: { id: string; departmentId?: string; systemRoles: string[] }): 'manager' | 'reader' | undefined {
-    if (space.kind === 'personal') return space.ownerUserId && String(space.ownerUserId) === user.id ? 'manager' : undefined;
+    if (space.kind === 'personal') {
+      if (space.ownerUserId && String(space.ownerUserId) === user.id) return 'manager';
+      // Không gian cá nhân của người đã nghỉ, bàn giao (M10) cho người nhận ở quyền chỉ đọc.
+      return (space.handoverReaderIds ?? []).some((id: any) => String(id) === user.id) ? 'reader' : undefined;
+    }
     if (space.kind !== 'department' || !space.departmentId || !user.departmentId
       || String(space.departmentId) !== String(user.departmentId)) return undefined;
     return user.systemRoles.includes('R4') ? 'manager' : 'reader';
@@ -105,6 +109,12 @@ export class DriveBasicService {
       { upsert: true });
       await this.storage.ensureFolder(space.rootStorageKey, this.actor(ctx));
     }
+    const handed = await this.db.m.WorkspaceSpace.find({ companyId: this.cid(ctx), kind: 'personal', handoverReaderIds: this.uid(ctx) }, { _id: 1 }).lean<any[]>();
+    for (const space of handed) {
+      current.push(space._id);
+      await this.db.m.WorkspaceSpaceMember.updateOne({ companyId: this.cid(ctx), spaceId: space._id, userId: this.uid(ctx) },
+        { $set: { role: 'reader', updatedBy: this.uid(ctx) }, $setOnInsert: { createdBy: this.uid(ctx) } }, { upsert: true });
+    }
     // Đối soát: bỏ dòng thành viên của không gian không còn khớp phòng ban/chủ sở hữu hiện tại.
     await this.db.m.WorkspaceSpaceMember.deleteMany({ companyId: this.cid(ctx), userId: this.uid(ctx), spaceId: { $nin: current } });
   }
@@ -114,7 +124,7 @@ export class DriveBasicService {
     const spaces = await this.db.m.WorkspaceSpace.find({ companyId: this.cid(ctx), _id: { $in: memberships.map((m) => m.spaceId) } }).lean<any[]>();
     return { items: spaces.flatMap((s) => {
       const role = this.roleIn(s, ctx.user);
-      return role ? [{ ...toApi(s, ['rootStorageKey']), rootFolderId: String(s._id), role, allowedActions: this.actions('space', role) }] : [];
+      return role ? [{ ...toApi(s, ['rootStorageKey', 'handoverReaderIds']), rootFolderId: String(s._id), role, allowedActions: this.actions('space', role) }] : [];
     }) };
   }
   async items(ctx: Ctx, spaceId: string, parentId?: string) {
