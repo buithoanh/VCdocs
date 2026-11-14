@@ -124,6 +124,11 @@ Lưu ý khi chạy local:
 
 ## 5. Trạng thái nhánh: việc đầu tiên của team
 
+> **Cập nhật 2026-11-14:** cả bảy nhánh dưới đây (và nhánh tài liệu này) đã được gộp sẵn vào
+> `claude/tich-hop-dev`, xung đột đã gỡ, `pnpm ai:check:full` PASS 2026-11-14 (guard, lint hợp đồng, typecheck, BE 466 đạt/10 skip, hợp đồng 169/169, FE 137/137, build production). Việc còn lại là đẩy nhánh đó,
+> mở **một** PR vào `dev` (nội dung: [PR tích hợp](ke-hoach/vcworkspace-pr-tich-hop.md)) rồi `dev` → `main`.
+> Bảng bên dưới giữ lại để tra từng nhánh con chứa gì.
+
 `dev` đang đứng ở 6656766. Bảy nhánh có việc đã xong, đã qua gate local, **chưa vào `dev`**.
 Đề xuất gộp theo thứ tự dưới (đã thử gộp khô bằng `git merge-tree` ngày 2026-11-06; cột cuối là file
 xung đột nếu gộp theo đúng thứ tự này):
@@ -169,11 +174,13 @@ Ghi chú:
 
 **P1 — đưa mã đã xong vào `dev`**
 
-3. Gộp #2 → #7 theo bảng mục 5.
-4. Nối M10 Bàn giao với vòng đời VCworkspace: `handover.execute` chưa gọi offboard hộp thư
-   (`/mail/offboarding`), lifecycle Authentik/Nextcloud hay chuyển quyền Drive; dòng audit drive/mail/flow
-   chưa có `departmentId`.
-5. FE nhỏ: chi tiết bàn giao hiện chữ máy `drafting`; chuyển nốt các trang còn lớp cũ sang antd
+3. ~~Gộp #2 → #7 theo bảng mục 5~~ — đã gộp trên `claude/tich-hop-dev` (2026-11-14), chờ PR.
+4. Nối M10 Bàn giao với vòng đời VCworkspace — **đã làm phần hộp thư** (chuyển người quản lý hộp thư nhóm khi
+   chuyển quyền; thu hồi hộp thư, alias, credential kho tệp khi khoá tài khoản; nhật ký Drive phòng ban gắn phòng).
+   Thêm: khoá danh tính IdP/Nextcloud (`IDENTITY_LIFECYCLE_MODE=remote`), dòng bàn giao `workspace_space` (người nhận đọc
+   không gian cá nhân), nhật ký bí danh/hộp thư nhóm gắn phòng. Còn: thử `remote` với Authentik/Nextcloud thật trên staging;
+   đọc tệp của người khác trên Nextcloud thật phụ thuộc O13.
+5. FE: ~~chi tiết bàn giao hiện chữ máy `drafting`~~ (đã sửa); chuyển nốt các trang còn lớp cũ sang antd
    (`/bo-nho`, `/chia-se`, `/thong-bao`, `/danh-muc*`, `/bang-ma`, `/nhan-su`, `/tra-cuu`, `/viec-nen`,
    `/ban-giao`, `/nhat-ky`, đăng nhập) — chờ chủ dự án đồng ý phạm vi.
 
