@@ -24,6 +24,20 @@ export function useUnreadCount() {
   });
 }
 
+/** Khoá cache số thư mới chưa mở; trang Email làm mới khoá này khi người dùng mở thư. */
+export const MAIL_UNREAD_KEY = ['mail-unread-count'] as const;
+
+/** Số thư mới chưa mở (việc nền phía server tạo thông báo); hỏi lại mỗi phút, lỗi thì coi như 0. */
+export function useMailUnreadCount() {
+  return useQuery({
+    queryKey: MAIL_UNREAD_KEY,
+    queryFn: () => unwrap(api.GET('/mail/unread-count')).then((r) => r.count),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
 export function usePendingApprovals() {
   return useQuery({
     queryKey: ['approvals', 'inbox-count'],
@@ -49,6 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const unread = useUnreadCount();
   const pending = usePendingApprovals();
+  const mailUnread = useMailUnreadCount().data ?? 0;
   const toast = useToast();
   useEffect(() => setOpen(false), [pathname]);
 
@@ -62,7 +77,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         type: 'group',
         key: g,
         label: NAV_GROUP_LABEL[g],
-        children: gi.map((i) => ({ key: i.href, label: <Link href={i.href}>{i.label}</Link> })),
+        children: gi.map((i) => ({
+          key: i.href,
+          label: i.href === '/email' && mailUnread > 0
+            ? <Link href={i.href} aria-label={`Email, ${mailUnread} thư mới`}>{i.label} <Badge count={mailUnread} overflowCount={99} size="small" /></Link>
+            : <Link href={i.href}>{i.label}</Link>,
+        })),
       });
     }
   }

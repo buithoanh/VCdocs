@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
+import { MAIL_UNREAD_KEY } from '@/components/AppShell';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { mailBodyQuery, MessageBody, type MailBodyAttachment } from './MessageBody';
 import { quotedReplyHtml, replyRecipients, replySubject, threadHeaders } from './reply';
@@ -10,7 +11,9 @@ import { RichTextEditor } from './RichTextEditor';
 import { cleanHtml, htmlToPlainText, parseAddressList, textToHtml } from './rich-text';
 
 type Folder = 'inbox' | 'sent';
-type Message = { id: string; mailboxOwner?: string; threadId: string; from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string };
+type Message = { id: string; mailboxOwner?: string; threadId: string; from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; sentAt: string; deliveryStatus: string; labels?: string[]; folder?: string; unread?: boolean };
+/** Danh sách tự làm mới để thư mới hiện ra mà không cần bấm Làm mới (server chỉ đọc UID mới nên rẻ). */
+const MAIL_REFRESH_MS = 60_000;
 type Label = { id: string; name: string; color?: string };
 type SharedMailbox = { id: string; address: string; name: string; currentRoles: string[]; members: { email: string; roles: string[] }[] };
 type IconName = 'compose' | 'inbox' | 'sent' | 'search' | 'refresh' | 'paperclip' | 'download' | 'close' | 'reply' | 'replyAll';
@@ -74,9 +77,20 @@ export default function EmailPage() {
   const labels = useQuery({ queryKey: ['mail-labels', mailbox], queryFn: () => json(`/mail/labels${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`).then((value) => value.items as Label[]) });
   const aliases = useQuery({ queryKey: ['mail-aliases'], queryFn: () => json('/mail/aliases').then((value) => value.items as { id: string; address: string }[]) });
   const shared = useQuery({ queryKey: ['mail-shared'], queryFn: () => json('/mail/shared-mailboxes').then((value) => value.items as SharedMailbox[]) });
-  const messages = useQuery({ queryKey: ['mail', folder, mailbox, searchQuery], queryFn: () => json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}&scope=all` : ''}`).then((value) => value.items as Message[]) });
+  const messagesKey = ['mail', folder, mailbox, searchQuery];
+  const messages = useQuery({ queryKey: messagesKey, refetchInterval: MAIL_REFRESH_MS, queryFn: () => json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}&scope=all` : ''}`).then((value) => value.items as Message[]) });
   const filtered = useMemo(() => messages.data ?? [], [messages.data]);
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
+  // Ghim thư đang đọc: danh sách tự làm mới có thư mới ở đầu thì khung đọc không tự nhảy sang thư đó.
+  const firstId = filtered[0]?.id ?? '';
+  useEffect(() => { if (!selectedId && firstId) setSelectedId(firstId); }, [selectedId, firstId]);
+  const unreadInList = filtered.filter((item) => item.unread).length;
+  /** Nội dung thư đã tải = server đã đánh dấu đã đọc: bỏ dấu chưa đọc tại chỗ và hỏi lại số thư mới của menu. */
+  function markRead(id: string) {
+    if (!filtered.some((item) => item.id === id && item.unread)) return;
+    queryClient.setQueryData<Message[]>(messagesKey, (rows) => rows?.map((item) => item.id === id ? { ...item, unread: false } : item));
+    void queryClient.invalidateQueries({ queryKey: MAIL_UNREAD_KEY });
+  }
   const headers = (idempotent = false) => ({ 'Content-Type': 'application/json', 'X-Request-Id': newId(), ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}), ...(idempotent ? { 'Idempotency-Key': newId() } : {}) });
 
   /** To/Cc/Bcc tách theo dấu phẩy hoặc chấm phẩy như Gmail/Outlook; server kiểm địa chỉ và bỏ trùng giữa các ô. */
@@ -192,13 +206,13 @@ export default function EmailPage() {
         <div className="mail-account"><span className="mail-avatar">VC</span><div><strong>Nội bộ</strong><small>@vcworkspace.test</small></div></div>
       </nav>
       <section className="mail-list-pane" aria-label={folder === 'inbox' ? 'Hộp thư đến' : 'Thư đã gửi'}>
-        <div className="mail-list-header"><div><h2>{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</h2><p>{filtered.length} thư</p></div></div>
+        <div className="mail-list-header"><div><h2>{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</h2><p>{filtered.length} thư{unreadInList > 0 ? ` · ${unreadInList} chưa đọc` : ''}</p></div></div>
         {messages.isLoading && <div className="mail-state"><span className="spinner"/>Đang tải thư…</div>}
         {messages.error && <div className="mail-state is-error"><p>Không tải được danh sách thư.</p><button className="btn btn-secondary" onClick={() => void messages.refetch()}>Thử lại</button></div>}
         {!messages.isLoading && !messages.error && filtered.length === 0 && <div className="mail-state"><Icon name="inbox"/><strong>Chưa có thư</strong><p>{search ? 'Không tìm thấy kết quả phù hợp.' : 'Thư mới sẽ xuất hiện tại đây.'}</p></div>}
-        <div className="mail-message-list">{filtered.map((message) => <button key={message.id} className={`mail-message-row ${selected?.id === message.id && !composing ? 'is-selected' : ''}`} type="button" onClick={() => { setSelectedId(message.id); setComposing(false); }}>
+        <div className="mail-message-list">{filtered.map((message) => <button key={message.id} className={`mail-message-row ${selected?.id === message.id && !composing ? 'is-selected' : ''} ${message.unread ? 'is-unread' : ''}`} type="button" onClick={() => { setSelectedId(message.id); setComposing(false); }}>
           <span className="mail-avatar is-small">{(folder === 'inbox' ? message.from : message.to[0] || '?').slice(0, 2).toUpperCase()}</span>
-          <span className="mail-message-copy"><span className="mail-message-meta"><strong>{folder === 'inbox' ? message.from : `Đến: ${message.to.join(', ')}`}</strong><time>{new Date(message.sentAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</time></span><span className="mail-message-subject">{message.subject || '(Không có tiêu đề)'}</span><span className="mail-message-preview">{message.deliveryStatus === 'accepted' ? 'Mail server đã nhận thư' : 'Chưa gửi thành công'}</span></span>
+          <span className="mail-message-copy"><span className="mail-message-meta"><strong>{folder === 'inbox' ? message.from : `Đến: ${message.to.join(', ')}`}</strong><time>{new Date(message.sentAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</time></span><span className="mail-message-subject">{message.unread && <span className="mail-unread-dot"><span className="sr-only">Chưa đọc: </span></span>}{message.subject || '(Không có tiêu đề)'}</span><span className="mail-message-preview">{message.deliveryStatus === 'accepted' ? 'Mail server đã nhận thư' : 'Chưa gửi thành công'}</span></span>
         </button>)}</div>
       </section>
       <main className="mail-reading-pane">
@@ -231,7 +245,7 @@ export default function EmailPage() {
           <div className="mail-pane-toolbar"><div><p className="mail-eyebrow">{folder === 'inbox' ? 'Hộp thư đến' : 'Đã gửi'}</p><h2>{selected.subject || '(Không có tiêu đề)'}</h2></div><div className="mail-reader-actions"><button className="mail-download-button" type="button" onClick={() => void run(() => replySelected(false))}><Icon name="reply"/>Trả lời</button><button className="mail-download-button" type="button" onClick={() => void run(() => replySelected(true))}><Icon name="replyAll"/>Trả lời tất cả</button><button className="mail-download-button" type="button" onClick={() => void run(forwardSelected)}><Icon name="sent"/>Chuyển tiếp</button><a className="mail-download-button" href={`${API_BASE}/mail/messages/${selected.id}/raw${mailbox ? `?mailbox=${encodeURIComponent(mailbox)}` : ''}`}><Icon name="download"/>Tải MIME</a></div></div>
           <div className="mail-sender"><span className="mail-avatar">{selected.from.slice(0, 2).toUpperCase()}</span><div><strong>{selected.from}</strong><p>Đến {selected.to.join(', ')}</p>{selected.cc?.length ? <p>Cc {selected.cc.join(', ')}</p> : null}{selected.bcc?.length ? <p>Bcc {selected.bcc.join(', ')}</p> : null}</div><time>{new Date(selected.sentAt).toLocaleString('vi-VN')}</time></div>
           {selected.labels?.length || selected.deliveryStatus !== 'accepted' ? <div className="mail-chips mail-reader-labels">{selected.labels?.map((label) => <span key={label}>{label}</span>)}{selected.deliveryStatus !== 'accepted' && <span className="mail-delivery is-error">Gửi chưa thành công</span>}</div> : null}
-          <MessageBody key={`${selected.id}:${mailbox}`} messageId={selected.id} mailbox={mailbox} onSaveAttachment={(item) => void run(() => saveAttachmentToDrive(item))}/>
+          <MessageBody key={`${selected.id}:${mailbox}`} messageId={selected.id} mailbox={mailbox} onRead={() => markRead(selected.id)} onSaveAttachment={(item) => void run(() => saveAttachmentToDrive(item))}/>
           {(notice || error) && <p className={`mail-notice ${error ? 'is-error' : ''}`} role="status">{error || notice}</p>}
         </article> : <div className="mail-empty-reader"><div className="mail-empty-illustration"><Icon name="inbox"/></div><h2>Chọn một thư để đọc</h2><p>Hoặc bắt đầu cuộc trò chuyện mới với đồng nghiệp.</p><button className="mail-compose-button" type="button" onClick={() => { setManaging(false); setReplyRefs(null); setComposing(true); }}><Icon name="compose"/>Thư mới</button></div>}
       </main>

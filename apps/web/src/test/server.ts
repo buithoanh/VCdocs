@@ -11,6 +11,7 @@ export const handlers = [
   http.get(`${API}/codes`, () => HttpResponse.json(codes)),
   http.get(`${API}/record-types`, () => HttpResponse.json({ items: recordTypes })),
   http.get(`${API}/notifications`, () => HttpResponse.json(notifications)),
+  http.get(`${API}/mail/unread-count`, () => HttpResponse.json({ count: 0 })),
   http.get(`${API}/approvals`, () => HttpResponse.json({ page: 1, limit: 50, total: 1, items: [approval], people })),
   http.get(`${API}/approvals/:id`, () => HttpResponse.json(approval)),
   http.get(`${API}/documents/:id`, () => HttpResponse.json(doc)),
