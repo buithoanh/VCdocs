@@ -1,0 +1,95 @@
+{
+  "runId": "eurooffice-mvozxus4",
+  "engine": "eurooffice",
+  "container": "vcworkspace-office-load-eurooffice",
+  "startedAt": "2026-10-26T08:30:17.094Z",
+  "sessions": 12,
+  "docs": 3,
+  "usersPerDoc": 4,
+  "typeSeconds": 20,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 150,
+  "sharedContext": true,
+  "leanClient": true,
+  "processLimit": 6,
+  "abortReason": null,
+  "hostFreeMinGiB": 4.93,
+  "ready": 12,
+  "editMode": 12,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 0,
+  "openMs": {
+    "p50": 541,
+    "p95": 1539,
+    "max": 1539
+  },
+  "typeBurstMs": {
+    "p50": 1223,
+    "p95": 1232,
+    "max": 1238
+  },
+  "markersTyped": 48,
+  "markersMissing": 1,
+  "markersMissingClientSide": 1,
+  "viewsCaptured": 12,
+  "docsConverged": 3,
+  "docsSaved": 3,
+  "saveAfterCloseMs": {
+    "p50": 6950,
+    "max": 6961
+  },
+  "docFetches": 3,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 1.5,
+      "dsCpuP95": 2.1,
+      "dsCpuMax": 2.1,
+      "dsMemMaxMiB": 1812,
+      "dsPidsMax": 129,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 12,
+      "dsCpuAvg": 25.5,
+      "dsCpuP95": 92.1,
+      "dsCpuMax": 92.1,
+      "dsMemMaxMiB": 1881,
+      "dsPidsMax": 130,
+      "clientRssMaxMiB": 3422,
+      "clientCpuAvg": 46.9,
+      "samples": 24
+    },
+    "edit": {
+      "seconds": 25,
+      "dsCpuAvg": 15,
+      "dsCpuP95": 42.1,
+      "dsCpuMax": 58.8,
+      "dsMemMaxMiB": 1816,
+      "dsPidsMax": 129,
+      "clientRssMaxMiB": 4183,
+      "clientCpuAvg": 89.7,
+      "samples": 50
+    },
+    "save": {
+      "seconds": 7,
+      "dsCpuAvg": 54.1,
+      "dsCpuP95": 295.1,
+      "dsCpuMax": 295.1,
+      "dsMemMaxMiB": 2351,
+      "dsPidsMax": 165,
+      "clientRssMaxMiB": 214,
+      "clientCpuAvg": 2.7,
+      "samples": 14
+    }
+  }
+}

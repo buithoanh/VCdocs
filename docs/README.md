@@ -11,6 +11,10 @@ Bản lưu trong kho mã của các tài liệu gốc. **Bản gốc nằm trên
 
 Hồ sơ đối chiếu từng luận điểm, nguyên văn câu gốc, nguồn đã đọc và giới hạn: [Kiểm chứng VCworkspace 2026-10-23](nghien-cuu/vcworkspace-kiem-chung-2026-10-23.md).
 
+Đo tải 48 người sửa đồng thời, so ONLYOFFICE 9.4 với Euro-Office 9.3.7: [Engine soạn thảo 2026-10-26](nghien-cuu/office-engine-tai-48-2026-10-26.md) (harness: `poc/office-load/`).
+
+Thử công cụ REA (Reverse Engineer Anything) trên ONLYOFFICE 9.4 trong lab Docker cô lập, so với mã nguồn AGPL công khai: [REA × ONLYOFFICE 2026-10-26](nghien-cuu/rea-onlyoffice-2026-10-26.md) (lab: `poc/rea-lab/`).
+
 Ghi chú:
 
 - Bản máy đọc của hợp đồng là [`contract/openapi.yaml`](../contract/openapi.yaml), viết tay theo hợp đồng; [`contract/NGUON.md`](../contract/NGUON.md) ghi rev hợp đồng đã đưa vào OpenAPI.
