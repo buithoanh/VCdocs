@@ -299,6 +299,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-11-14 · Bộ nhớ dài hạn bằng graphify + Obsidian
+- Đã làm: dùng graphifyy 0.9.108 (đã cài qua `uv tool`) quét repo trên nhánh `claude/office-engine-onlyoffice` (chưa có mã các nhánh B1, O1–O15, M10/M15). Phạm vi chủ dự án chọn: mã + tài liệu, bỏ bằng chứng PoC (`poc/**/evidence`), `*.json`, ảnh, PDF; tôn trọng `.gitignore` (nên bỏ qua `.claude/worktrees`, `.env`). 512 file mã quét AST, 63 tài liệu do 9 subagent trích xuất (đọc đủ mọi dòng, khoảng 1,47 triệu token). Kết quả: 6.463 nút, 16.389 cạnh, 268 cụm; vault Obsidian 6.731 ghi chú ở `graphify-out/obsidian/`, `graphify-out/graph.html` (dạng gộp theo cụm vì > 5.000 nút), `GRAPH_REPORT.md`, `graph.json`.
+- `graphify-out/` chỉ nằm ở local: đã thêm vào `.git/info/exclude`, không commit. Cấu hình loại trừ lưu ở `graphify-out/.graphify_build.json`.
+- Lưu ý: hook repo chặn `python -c` và heredoc nên các bước của skill graphify phải viết thành file `.py` có `if __name__ == '__main__'` (AST chạy song song nạp lại module). Cập nhật sau khi đổi nhánh/mã: `graphify update` cho phần mã; tài liệu đổi thì chạy lại `/graphify . --update`.
+
 ### 2026-10-26 · Sửa ONLYOFFICE PoC và đo tải 48 phiên: ONLYOFFICE 9.4 vs Euro-Office 9.3.7
 
 - Chủ dự án chốt ONLYOFFICE Docs CE 9.4 (mục 2). Commit báo cáo, harness và tài liệu phiên trên nhánh `claude/office-engine-onlyoffice` (cắt từ `vcworkspace/antd-ho-so`), chưa push/PR.
