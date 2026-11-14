@@ -3,22 +3,23 @@ import type { Response } from 'express';
 import { CurrentCtx, Ctx } from '../../common/context';
 import { Errors } from '../../common/errors';
 import { WorkspaceInteropService } from './workspace-interop.service';
+import { RequiresWorkspace } from '../../common/workspace-modules';
 
 @Controller()
 export class WorkspaceInteropController {
   constructor(private readonly interop: WorkspaceInteropService) {}
-  @Post('mail/messages/:messageId/attachments/:part/save-to-drive') @HttpCode(201)
+  @Post('mail/messages/:messageId/attachments/:part/save-to-drive') @HttpCode(201) @RequiresWorkspace('mail', 'drive')
   save(@CurrentCtx() ctx: Ctx, @Param('messageId') messageId: string, @Param('part') part: string,
     @Query('mailbox') mailbox: string | undefined, @Body() body: any, @Headers('idempotency-key') key?: string) {
     if (!key) throw Errors.validation('Thiếu Idempotency-Key');
     return this.interop.saveAttachment(ctx, messageId, Number(part), mailbox, body, key);
   }
-  @Post('mail/send-drive-file') @HttpCode(201)
+  @Post('mail/send-drive-file') @HttpCode(201) @RequiresWorkspace('mail', 'drive')
   send(@CurrentCtx() ctx: Ctx, @Body() body: any, @Headers('idempotency-key') key?: string) {
     if (!key) throw Errors.validation('Thiếu Idempotency-Key');
     return this.interop.sendDriveFile(ctx, body, key);
   }
-  @Get('drive/shared-links/:token') @Header('Cache-Control', 'private, no-store')
+  @Get('drive/shared-links/:token') @RequiresWorkspace('drive') @Header('Cache-Control', 'private, no-store')
   async download(@CurrentCtx() ctx: Ctx, @Param('token') token: string, @Res() res: Response) {
     const output = await this.interop.downloadLink(ctx, token);
     res.type(output.mimeType).setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(output.name)}`);

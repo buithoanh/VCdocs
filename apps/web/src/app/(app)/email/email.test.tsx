@@ -107,6 +107,42 @@ describe('Email workspace', () => {
     expect(sent.text).not.toMatch(/</);
   });
 
+  it('review O11: bấm Gửi lại sau lỗi dùng cùng Idempotency-Key; sửa nội dung thì key mới', async () => {
+    const keys: string[] = []; let fail = 2;
+    server.use(...mailboxHandlers(), http.post(`${API}/mail/send`, async ({ request }) => {
+      keys.push(request.headers.get('Idempotency-Key') ?? '');
+      const body: any = await request.json();
+      if (fail-- > 0) return HttpResponse.json({ error: { code: 'STORAGE_UNAVAILABLE', message: 'x', requestId: 'r' } }, { status: 503 });
+      return HttpResponse.json({ id: 'sent-1', mailboxOwner: 'tp.mkt@vcworkspace.test', threadId: 't', from: 'tp.mkt@vcworkspace.test', to: body.to, subject: body.subject, sentAt: '2026-10-25T08:00:00.000Z', folder: 'sent', deliveryStatus: 'accepted' }, { status: 201 });
+    }));
+    renderApp(<EmailPage />);
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Thư mới' }))[0]);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Đến' }), 'nv.mkt@vcworkspace.test');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Tiêu đề' }), 'Một lần');
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    expect(await screen.findByText('Mail server chưa xác nhận gửi.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[1]).toBe(keys[0]);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Tiêu đề' }), ' đã sửa');
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }));
+    await waitFor(() => expect(keys).toHaveLength(3));
+    expect(keys[2]).not.toBe(keys[0]);
+    // Gửi xong thì khung soạn đóng.
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Tiêu đề' })).not.toBeInTheDocument());
+  });
+
+  it('review O7: ô tìm thư chỉ gọi danh sách khi ngừng gõ, không gọi theo từng phím', async () => {
+    const queries: string[] = [];
+    server.use(...mailboxHandlers().slice(2), http.get(`${API}/mail/messages/:id/body`, () => HttpResponse.json({ text: '', hasRemoteContent: false, truncated: false, attachments: [] })),
+      http.get(`${API}/mail/messages`, ({ request }) => { queries.push(new URL(request.url).searchParams.get('q') ?? ''); return HttpResponse.json({ items: [] }); }));
+    renderApp(<EmailPage />);
+    await waitFor(() => expect(queries).toEqual(['']));
+    await userEvent.type(screen.getByPlaceholderText('Tìm trong thư'), 'báo cáo');
+    await waitFor(() => expect(queries).toContain('báo cáo'));
+    expect(queries).toEqual(['', 'báo cáo']);
+  });
+
   it('phím tắt Ctrl+I in nghiêng và bản nháp gửi kèm Cc/Bcc', async () => {
     let draft: any;
     server.use(...mailboxHandlers(), http.post(`${API}/mail/drafts`, async ({ request }) => {

@@ -1,5 +1,7 @@
 # Tài liệu dự án VCworkspace
 
+**Người mới vào dự án đọc trước:** [Bàn giao cho team DEV](BAN_GIAO_DEV.md).
+
 Bản lưu trong kho mã của các tài liệu gốc. **Bản gốc nằm trên Claude (artifact); khi hai bản lệch, bản gốc đúng.** Sửa tài liệu thì sửa bản gốc rồi xuất lại vào đây.
 
 | Tài liệu | Bản trong repo | Bản gốc (artifact) | Bản đã xuất |
@@ -10,6 +12,10 @@ Bản lưu trong kho mã của các tài liệu gốc. **Bản gốc nằm trên
 | Nghiên cứu khả thi VCworkspace (thay Google Workspace) | [nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md](nghien-cuu/vcworkspace-nghien-cuu-kha-thi.md) | (bản gốc là file trong repo) | cập nhật kiểm chứng 48 ID, 2026-10-23 |
 
 Hồ sơ đối chiếu từng luận điểm, nguyên văn câu gốc, nguồn đã đọc và giới hạn: [Kiểm chứng VCworkspace 2026-10-23](nghien-cuu/vcworkspace-kiem-chung-2026-10-23.md).
+
+Đo tải 48 người sửa đồng thời, so ONLYOFFICE 9.4 với Euro-Office 9.3.7: [Engine soạn thảo 2026-10-26](nghien-cuu/office-engine-tai-48-2026-10-26.md) (harness: `poc/office-load/`).
+
+Thử công cụ REA (Reverse Engineer Anything) trên ONLYOFFICE 9.4 trong lab Docker cô lập, so với mã nguồn AGPL công khai: [REA × ONLYOFFICE 2026-10-26](nghien-cuu/rea-onlyoffice-2026-10-26.md) (lab: `poc/rea-lab/`).
 
 Ghi chú:
 

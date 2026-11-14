@@ -16,8 +16,8 @@ Internet ──443──► caddy (HTTPS tự động)
 | `api.Dockerfile`, `web.Dockerfile` | Image cho `apps/api` và `apps/web` (build từ gốc repo) |
 | `docker-compose.prod.yml` | 4 dịch vụ: caddy, web, api, mongo |
 | `Caddyfile` | HTTPS, chia `/api/*` sang api |
-| `.env.example` → `.env` | Tên miền, thư mục dữ liệu, mật khẩu Mongo, bucket sao lưu |
-| `api.env.example` → `api.env` | Biến môi trường của api (Google thật, OAuth, cookie Secure) |
+| `.env.example` → `.env` | Tên miền, thư mục dữ liệu, mật khẩu Mongo, bucket sao lưu, phân hệ hiện trên web |
+| `api.env.example` → `api.env` | Biến môi trường của api (Google thật, OAuth, cookie Secure, bật/tắt phân hệ VCworkspace) |
 | `secrets/vcdocs-sa.json` | Khoá JSON service account `vcdocs-backend` (chỉ có trên máy chủ) |
 | `backup.sh` | Sao lưu Mongo + kho PDF lên Cloud Storage |
 
@@ -197,6 +197,13 @@ client ID → Web application, tên `VCworkspace web (production)`:
 - Authorized JavaScript origins: `https://vcdocs.vcprosperous.com`
 - Authorized redirect URIs: `https://vcdocs.vcprosperous.com/api/v1/auth/google/callback`
 
+**Phân hệ VCworkspace (Drive/Office/Email/SSO/Flow):** production hiện chưa có Nextcloud,
+ONLYOFFICE, Stalwart, Authentik thật nên để **tắt** như trong `api.env.example`
+(`WORKSPACE_STORAGE_MODE=disabled`, `MAIL_ENGINE_MODE=disabled`, `DOCUMENT_EDITOR_ENABLED=false`,
+`AUTH_MODE=google`, `IDENTITY_LIFECYCLE_MODE=disabled`, `FLOW_ENABLED=false`). Trong `.env` để
+`WORKSPACE_MODULES=` trống để web ẩn menu Bộ nhớ/Email. Đặt `fake` cho bất kỳ phân hệ nào thì api
+dừng ngay khi khởi động. Hai phương án bật sau này: `docs/ke-hoach/vcworkspace-20-production-phuong-an.md`.
+
 Sửa `api.env` (`nano api.env`): điền `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` của client mới, và
 `GOOGLE_ADMIN_SUBJECT` (email quản trị Workspace, giống `apps/api/.env` ở máy local).
 `MAIL_FROM` để `vcdocs@vcprosperous.com` khi đã có hộp thư đó. Trước đó tạm dùng mail chủ dự án,
@@ -244,6 +251,10 @@ Console → Monitoring → Uptime checks → Create:
 ---
 
 ## Cập nhật phiên bản mới
+
+Trước khi kéo bản mới, so `api.env.example` và `.env.example` với file thật trên máy chủ để bổ
+sung biến mới (`git diff <bản cũ>..HEAD -- deploy/*.example`). Bản VCworkspace đầu tiên (từ VCdocs
+`39e02f7`) cần thêm khối "Phân hệ VCworkspace" trong `api.env` và 3 biến cuối của `.env`.
 
 ```bash
 cd /srv/vcdocs && git pull

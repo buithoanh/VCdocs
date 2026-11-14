@@ -12,6 +12,7 @@ import { AuditService } from '../../audit/audit.service';
 import { JobsService } from '../../jobs/jobs.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { GoogleSyncService } from './google-sync.service';
+import { HandoversService } from '../m10-handovers/handovers.service';
 
 export const USER_PRIVATE = ['groupRoles', 'manualRoles', 'groupEmails', 'driveRoles', 'isSuspended', 'lastLoginAt', 'notificationSettings'];
 /** allowedActions của User (D9): R9 đổi vai trò người khác; R3 ghi ngày nghỉ */
@@ -39,6 +40,7 @@ export class MeController {
       .map((d) => ({ driveId: d.driveId, departmentId: d.id, name: `${d.number} ${d.code}`, role: ctx.driveRoles.get(d.driveId)!, securityLevel: d.securityLevel }));
     const block = await this.db.m.Block.findOne({ companyId: new Types.ObjectId(ctx.companyId), directorId: new Types.ObjectId(ctx.user.id) }).lean<any>();
     const r = this.cfg.rules;
+    const auditor = await this.access.auditorScope(ctx.companyId, ctx.user.id);
     return {
       user: userToApi(ctx, u),
       systemRoles: ctx.user.systemRoles,
@@ -46,7 +48,16 @@ export class MeController {
       ...(block ? { blockId: String(block._id) } : {}),
       drives,
       // Con số cấu hình để FE báo trước; BE vẫn là nơi quyết định (D12)
-      limits: { shareMaxDays: r.shareMaxDays, backdateWorkingDays: r.backdateMaxWorkingDays, approvalDueDays: r.approvalDueDays, minorUnlockDays: r.minorUnlockDays, uploadMaxMb: 100 },
+      limits: {
+        shareMaxDays: r.shareMaxDays,
+        backdateWorkingDays: r.backdateMaxWorkingDays,
+        approvalDueDays: r.approvalDueDays,
+        minorUnlockDays: r.minorUnlockDays,
+        uploadMaxMb: 100,
+        auditorMaxDays: r.auditorMaxDays,
+        evidencePackDays: r.evidencePackDays,
+      },
+      ...(auditor ? { auditorAccess: { id: auditor.primaryId, departmentIds: auditor.departmentIds, expiresAt: auditor.expiresAt.toISOString() } } : {}),
       csrfToken: ctx.csrfToken,
       sessionExpiresAt: ctx.sessionExpiresAt?.toISOString(),
     };
@@ -62,6 +73,7 @@ export class UsersController {
     private readonly audit: AuditService,
     private readonly jobs: JobsService,
     private readonly notifications: NotificationsService,
+    private readonly handovers: HandoversService,
     sync: GoogleSyncService,
   ) {
     jobs.register('google.sync', {
@@ -145,8 +157,12 @@ export class UsersController {
       set.manualRoles = wanted.filter((r) => !fromGroups.includes(r));
       set.systemRoles = wanted;
     }
+    let plan: Awaited<ReturnType<HandoversService['planForLastWorkingDay']>> | undefined;
     if (body.lastWorkingDay !== undefined) {
       if (!this.access.hasRole(ctx, 'R3')) throw Errors.forbidden('Chỉ HCNS (R3) ghi ngày nghỉ việc');
+      if (u.status === 'left') throw Errors.state('Người này đã nghỉ việc');
+      // Kiểm biên bản bàn giao trước khi ghi (E4): đang chuyển quyền, đã xong → 409
+      plan = await this.handovers.planForLastWorkingDay(ctx, u);
       set.lastWorkingDay = body.lastWorkingDay;
       if (u.status === 'active') set.status = 'leaving';
     }
@@ -159,15 +175,16 @@ export class UsersController {
       before: { systemRoles: u.systemRoles, lastWorkingDay: u.lastWorkingDay, status: u.status },
       after: { systemRoles: after.systemRoles, lastWorkingDay: after.lastWorkingDay, status: after.status },
     });
-    if (body.lastWorkingDay !== undefined) {
-      // Bàn giao (M10) thuộc giai đoạn 2: tạm nhắc HCNS lập biên bản
+    if (body.lastWorkingDay !== undefined && plan) {
+      // Từ giai đoạn 2 (E4): tự lập biên bản (isAuto) hoặc cập nhật ngày của biên bản đang có
+      const { handover } = await this.handovers.applyLastWorkingDay(ctx, { ...u, ...set }, body.lastWorkingDay, plan);
       const r3 = await this.db.m.User.find({ companyId: u.companyId, systemRoles: 'R3', status: { $ne: 'left' } }, { _id: 1 }).lean<any[]>();
       await this.notifications.notify(ctx.companyId, r3.map((x) => String(x._id)), {
         type: 'handover_needed',
         title: `Cần bàn giao: ${u.name} nghỉ việc ngày ${body.lastWorkingDay}`,
-        link: `/nhan-su/${id}`,
-        objectType: 'user',
-        objectId: id,
+        link: `/ban-giao/${handover._id}`,
+        objectType: 'handover',
+        objectId: String(handover._id),
       });
     }
     return userToApi(ctx, after);

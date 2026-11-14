@@ -18,7 +18,8 @@ export interface MailPort {
   provisionShared(address: string): Promise<void>;
   setSharedMember(address: string, member: string, enabled: boolean): Promise<void>;
   offboardUser(address: string): Promise<void>;
-  listFolder(accessOwner: string, folder?: string, engineMailbox?: string): Promise<EngineMail[]>;
+  /** `known(engineId)` đúng thì bỏ qua thư đó (đã có trong CSDL), không tải lại nội dung. */
+  listFolder(accessOwner: string, folder?: string, engineMailbox?: string, known?: (engineId: string) => Promise<boolean>): Promise<EngineMail[]>;
 }
 export type MailFilterRule = { field: 'from'|'to'|'subject'|'body'; operator: 'equals'|'contains'; value: string; addLabels: string[]; moveToFolder?: string; stop: boolean };
 export const MAIL_PORT = Symbol('MAIL_PORT');
@@ -64,7 +65,7 @@ export class FakeMailPort implements MailPort {
   async provisionShared() {}
   async setSharedMember() {}
   async offboardUser() {}
-  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string){this.listFolderCount++;const owner=(engineMailbox??accessOwner).toLowerCase();return [...this.messages.values()].filter(x=>x.owner===owner&&x.folder===folder&&(x.visibleAfterList??0)<=this.listFolderCount).map(x=>({engineId:x.engineId,raw:Buffer.from(x.raw)}));}
+  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string,known?:(engineId:string)=>Promise<boolean>){this.listFolderCount++;const owner=(engineMailbox??accessOwner).toLowerCase(),rows=[...this.messages.values()].filter(x=>x.owner===owner&&x.folder===folder&&(x.visibleAfterList??0)<=this.listFolderCount),items:EngineMail[]=[];for(const x of rows){if(known&&await known(x.engineId))continue;items.push({engineId:x.engineId,raw:Buffer.from(x.raw)});}return items;}
   inject(owner:string,folder:string,raw:Buffer,engineId:string=randomUUID()){const keyOwner=owner.toLowerCase();this.messages.set(`${keyOwner}:${engineId}`,{engineId,owner:keyOwner,raw:Buffer.from(raw),acceptedAt:new Date(),folder});return engineId;}
 }
 export const attachmentHash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');

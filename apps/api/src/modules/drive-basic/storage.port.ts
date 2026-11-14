@@ -4,7 +4,8 @@ import { sha256 } from '../../common/util';
 
 export const WORKSPACE_STORAGE = Symbol('WORKSPACE_STORAGE');
 export interface StoredObject { key: string; size: number; sha256: string; bytes?: Buffer }
-export interface StorageActor { email: string }
+/** companyId bắt buộc khi credential lưu trong CSDL (nguồn store). */
+export interface StorageActor { email: string; companyId?: string }
 export interface WorkspaceStoragePort {
   ensureFolder(key: string, actor: StorageActor): Promise<void>;
   createFolder(key: string, actor: StorageActor): Promise<void>;

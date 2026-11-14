@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Db } from '../../db/db.service';
 import { APP_CONFIG, AppConfig } from '../../config/config';
-import { GOOGLE, GooglePorts } from '../../google/ports';
+import { GOOGLE, GooglePorts, VAULT, VaultPort } from '../../google/ports';
 import { AccessService } from '../../access/access.service';
 import { AuditService } from '../../audit/audit.service';
 import { JobsService, JobContext } from '../../jobs/jobs.service';
@@ -34,6 +34,7 @@ export class DocumentsService {
     private readonly ops: DriveOpsService,
     @Inject(GOOGLE) private readonly google: GooglePorts,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    @Inject(VAULT) private readonly vault: VaultPort,
   ) {}
 
   cid(companyId: string) {
@@ -93,6 +94,11 @@ export class DocumentsService {
     const omit = opts.summary ? [...PRIVATE, 'versions', 'lock', 'external', 'relatedIds', 'replacesId', 'replacedById', 'folderId', 'fileId'] : PRIVATE;
     const o: any = toApi(d, omit);
     if (o.current) delete o.current.pdfMd5;
+    // Chỗ lưu PDF trong kho riêng chỉ máy chủ dùng (gói bằng chứng)
+    for (const v of o.versions ?? []) {
+      delete v.vaultKey;
+      delete v.pdfFileId;
+    }
     return { ...o, isRestricted: false, allowedActions: this.allowedActions(ctx, d, heads) };
   }
 
@@ -215,7 +221,10 @@ export class DocumentsService {
         await this.google.drive.setDownloadRestriction(d.fileId, true);
         await this.google.drive.setDownloadRestriction(pdfFile.fileId, true);
       }
-      return { revisionId: rev.revisionId, pdfFileId: pdfFile.fileId, pdfSha256: sha256(pdf), pdfMd5: md5(pdf) };
+      // Bản PDF từng phiên bản ban hành giữ ở kho riêng để lập gói bằng chứng (E17)
+      const vaultKey = `documents/${job.companyId}/${d._id}/v${n}.pdf`;
+      await this.vault.put(vaultKey, pdf);
+      return { revisionId: rev.revisionId, pdfFileId: pdfFile.fileId, pdfSha256: sha256(pdf), pdfMd5: md5(pdf), vaultKey };
     });
     if (d.current?.fileId && d.current.fileId !== d.fileId) {
       await job.step('Cho bản cũ hết hiệu lực', async () => {
@@ -234,7 +243,7 @@ export class DocumentsService {
     await job.step('Cập nhật danh mục', async () => {
       const current = { number: n, fileId: d.fileId, revisionId: sealed.revisionId, pdfFileId: sealed.pdfFileId, pdfSha256: sealed.pdfSha256, pdfMd5: sealed.pdfMd5, effectiveFrom, issuedBy: new Types.ObjectId(job.userId), approvalId: approvalId ? new Types.ObjectId(approvalId) : undefined };
       const versions = [...(d.versions ?? [])];
-      const entry = { number: n, kind: 'major', changeNote, approvedBy: approval?.approverId, effectiveFrom, revisionId: sealed.revisionId, pdfSha256: sealed.pdfSha256 };
+      const entry = { number: n, kind: 'major', changeNote, approvedBy: approval?.approverId, effectiveFrom, revisionId: sealed.revisionId, pdfSha256: sealed.pdfSha256, pdfFileId: sealed.pdfFileId, vaultKey: sealed.vaultKey };
       const idx = versions.findIndex((v: any) => v.number === n && v.kind === 'major');
       if (idx >= 0) versions[idx] = { ...versions[idx], ...entry };
       else versions.push(entry);

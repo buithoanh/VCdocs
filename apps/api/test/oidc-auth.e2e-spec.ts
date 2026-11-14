@@ -100,6 +100,23 @@ describe('OIDC ứng dụng thật', () => {
     expect((await agent.get('/api/v1/me')).status).toBe(401);
   });
 
+  it('review O15: cùng subject đổi sang email đã thuộc user khác thì báo identity, không 500, không đổi user nào', async () => {
+    const agent = require('supertest').agent(t.app.getHttpServer());
+    let location = await begin(agent); let now = Math.floor(Date.now() / 1000);
+    tokenClaims = { iss: issuer, sub: 'subject-o15', aud: clientId, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: 'o15.first@vcprosperous.com', email_verified: true, groups: [] };
+    expect((await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=o15-first`)).headers.location).toBe('http://localhost:3000/bo-nho');
+    const taken = t.ids.emails['tp.mkt'];
+    location = await begin(agent); now = Math.floor(Date.now() / 1000);
+    tokenClaims = { ...tokenClaims, exp: now + 300, iat: now, nonce: location.searchParams.get('nonce'), email: taken };
+    const conflict = await agent.get(`/api/v1/auth/oidc/callback?state=${location.searchParams.get('state')}&code=o15-conflict`);
+    expect(conflict.status).toBe(302);
+    expect(conflict.headers.location).toBe('http://localhost:3000/dang-nhap?loi=identity');
+    const binding = await t.db.m.OidcIdentity.findOne({ companyId: t.ids.companyId, issuer, subject: 'subject-o15' }).lean<any>();
+    expect((await t.db.m.User.findOne({ _id: binding.userId, companyId: t.ids.companyId }).lean<any>()).email).toBe('o15.first@vcprosperous.com');
+    expect(await t.db.m.User.countDocuments({ companyId: t.ids.companyId, email: taken })).toBe(1);
+    expect(await t.db.m.AuditLog.exists({ companyId: t.ids.companyId, action: 'auth.oidc.email_conflict' })).toBeTruthy();
+  });
+
   it('lần đầu đăng nhập với email verified ngoài tên miền công ty bị chặn, không tạo user hay binding', async () => {
     const agent = require('supertest').agent(t.app.getHttpServer());
     const location = await begin(agent);

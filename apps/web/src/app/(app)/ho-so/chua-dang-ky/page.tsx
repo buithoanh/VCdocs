@@ -1,12 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Col, Row } from 'antd';
 import { useState } from 'react';
 import { api, idem, unwrap } from '@/api/client';
 import { useApprovedCodes, useDrives, useRecordTypes } from '@/api/queries';
 import type { DriveFile } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
 import { DataTable } from '@/components/DataTable';
+import { MonthField } from '@/components/dates';
 import { useJobs } from '@/components/jobs';
 import { Button, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
 import { currentMonth, formatDateTime } from '@/lib/format';
@@ -24,9 +26,11 @@ export default function UnregisteredPage() {
   return (
     <>
       <PageHeader title="File chưa đăng ký" subtitle="File tạo thẳng trên Drive, chưa có trong sổ VCdocs. Đăng ký để có số hồ sơ; tên sai thì phần mềm đổi cho đúng." back={{ href: '/ho-so', label: 'Hồ sơ' }} />
-      <div className="filters">
-        <SelectField label="Drive" value={driveId} onChange={setDrive} placeholder="Tất cả drive" options={(drives.data ?? []).map((d) => ({ value: d.driveId, label: d.name }))} />
-      </div>
+      <Row gutter={[12, 0]} className="vc-filters">
+        <Col xs={24} sm={12} lg={8}>
+          <SelectField label="Drive" value={driveId} onChange={setDrive} placeholder="Tất cả drive" options={(drives.data ?? []).map((d) => ({ value: d.driveId, label: d.name }))} />
+        </Col>
+      </Row>
       <QueryState q={q}>
         <DataTable
           rows={q.data ?? []}
@@ -36,7 +40,7 @@ export default function UnregisteredPage() {
             { key: 'name', header: 'Tên file', render: (f) => (f.webViewLink ? <a href={f.webViewLink} target="_blank" rel="noreferrer">{f.name}</a> : f.name) },
             { key: 'owner', header: 'Người tạo', render: (f) => f.ownerEmail ?? '—', hideOnMobile: true },
             { key: 'time', header: 'Tạo lúc', render: (f) => formatDateTime(f.createdTime), hideOnMobile: true },
-            { key: 'act', header: '', render: (f) => <Button variant="primary" onClick={() => setClaiming(f)}>Đăng ký</Button> },
+            { key: 'act', header: '', render: (f) => <Button variant="primary" size="small" onClick={() => setClaiming(f)}>Đăng ký</Button> },
           ]}
         />
       </QueryState>
@@ -60,7 +64,7 @@ function ClaimDialog({ file, onClose }: { file: DriveFile; onClose: () => void }
     <ActionDialog
       open
       title="Đăng ký file vào sổ hồ sơ"
-      description={<p className="mono small">{file.name}</p>}
+      description={<span className="mono small">{file.name}</span>}
       confirmLabel="Đăng ký"
       canConfirm={valid}
       run={(_, key) =>
@@ -84,7 +88,7 @@ function ClaimDialog({ file, onClose }: { file: DriveFile; onClose: () => void }
       <SelectField label="Mã chức năng" value={functionCode} onChange={setCode} required disabled={!type} options={(codes.data ?? []).map((c) => ({ value: c.code, label: `${c.code} – ${c.meaning}` }))} />
       <TextField label="Nội dung ngắn" value={subject} onChange={setSubject} required />
       {type?.kind === 'OPS' && <TextField label="Số định danh" value={identifier} onChange={setIdentifier} required />}
-      <TextField label="Tháng công việc" type="month" value={workMonth} onChange={setMonth} required />
+      <MonthField label="Tháng công việc" value={workMonth} onChange={setMonth} required disabledFuture />
     </ActionDialog>
   );
 }

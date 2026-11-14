@@ -26,6 +26,11 @@ services:
     build:
       context: ..
       dockerfile: deploy/web.Dockerfile
+      # Nhúng lúc build (xem deploy/.env.example); đổi giá trị phải build lại web
+      args:
+        NEXT_PUBLIC_WORKSPACE_MODULES: ${WORKSPACE_MODULES:-}
+        NEXT_PUBLIC_DOCUMENT_SERVER_ORIGINS: ${DOCUMENT_SERVER_ORIGINS:-}
+        NEXT_PUBLIC_AUTH_PROVIDER: ${AUTH_PROVIDER:-google}
     image: vcdocs-web:latest
     restart: unless-stopped
     depends_on:

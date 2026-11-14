@@ -91,4 +91,26 @@ describe('Email durability và đa tiến trình',()=>{
     const b=await t.login('nv.mkt');const result=await b.get('/mail/messages?folder=inbox&q=message-id%2012&scope=subject');
     expect(result.status).toBe(200);expect(result.body.items.map((x:any)=>x.subject)).toEqual(['Có Message-ID 12']);
   });
+
+  it('review O7: đồng bộ Đã gửi không xếp thư người khác gửi đến vào Đã gửi (Stalwart để bản gửi trong INBOX)',async()=>{
+    const mime=(from:string,subject:string,id:string)=>Buffer.from([`From: ${from}`,'To: nv.kd@vcworkspace.test',`Subject: ${subject}`,`Message-ID: <${id}@vcworkspace.test>`,'','x',''].join('\r\n'));
+    // Giả lập ánh xạ của Stalwart: thư mục logic 'sent' đọc từ INBOX, nơi có cả thư nhận lẫn bản gửi của chính mình.
+    fake.inject('nv.kd@vcworkspace.test','sent',mime('tp.mkt@vcworkspace.test','O7 thư nhận','o7-received'),'o7-received-engine');
+    fake.inject('nv.kd@vcworkspace.test','sent',mime('nv.kd@vcworkspace.test','O7 thư tự gửi','o7-own'),'o7-own-engine');
+    const c=await t.login('nv.kd');const sent=await c.get('/mail/messages?folder=sent&q=O7&scope=subject');
+    expect(sent.status).toBe(200);expect(sent.body.items.map((x:any)=>x.subject)).toEqual(['O7 thư tự gửi']);
+    expect(await t.db.m.WorkspaceMailMessage.countDocuments({companyId:t.ids.companyId,mailboxOwner:'nv.kd@vcworkspace.test',folder:'sent',subject:'O7 thư nhận'})).toBe(0);
+  });
+
+  it('review O7: thư đã đồng bộ không bị tải lại nội dung ở lần mở danh sách sau',async()=>{
+    const c=await t.login('nv.kd');
+    fake.inject('nv.kd@vcworkspace.test','inbox',Buffer.from(['From: tp.mkt@vcworkspace.test','To: nv.kd@vcworkspace.test','Subject: O7 lần đầu','Message-ID: <o7-first@vcworkspace.test>','','x',''].join('\r\n')),'o7-first-engine');
+    const seen:string[]=[];const list=fake.listFolder.bind(fake);
+    jest.spyOn(fake,'listFolder').mockImplementation(async(...args:any[])=>{const items=await (list as any)(...args);seen.push(...items.map((x:any)=>x.engineId));return items;});
+    expect((await c.get('/mail/messages?folder=inbox')).status).toBe(200);
+    expect(seen).toContain('o7-first-engine');seen.length=0;
+    expect((await c.get('/mail/messages?folder=inbox&q=O7')).body.items.map((x:any)=>x.subject)).toContain('O7 lần đầu');
+    expect(seen).toEqual([]);
+    jest.restoreAllMocks();
+  });
 });

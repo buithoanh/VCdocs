@@ -83,6 +83,8 @@ p { margin: .4rem 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .vc-card { margin-bottom: 1rem; }
 .vc-card-title { font-size: 1rem; font-weight: 600; margin: 0; }
+/* Khung xem file tài liệu nhúng trong trang chi tiết */
+.doc-preview { display: block; width: 100%; height: min(80vh, 900px); border: 1px solid #E8EDF3; border-radius: 4px; background: #fff; }
 .card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 1rem; margin-bottom: 1rem;
@@ -204,15 +206,8 @@ p { margin: .4rem 0; }
 .list-item-head { display: flex; justify-content: space-between; gap: .5rem; align-items: flex-start; flex-wrap: wrap; }
 .list-item .actions { margin-top: .6rem; }
 
-/* ── Cây thư mục ── */
-.tree { list-style: none; margin: 0; padding-left: 0; }
-.tree .tree { padding-left: 1.1rem; border-left: 1px dashed var(--border); margin-left: .55rem; }
-.tree-row { display: flex; align-items: center; gap: .35rem; padding: .25rem .35rem; border-radius: 6px; }
-.tree-row.is-selected { background: var(--accent-soft); }
-.tree-toggle { width: 24px; height: 24px; border: 0; background: none; cursor: pointer; color: var(--muted); flex-shrink: 0; }
-.tree-name { background: none; border: 0; padding: 0; font: inherit; text-align: left; cursor: pointer; color: var(--text); }
-.layout-split { display: grid; grid-template-columns: minmax(260px, 1fr) 1.3fr; gap: 1rem; align-items: start; }
-@media (max-width: 900px) { .layout-split { grid-template-columns: 1fr; } }
+/* ── Cây thư mục (antd Tree) ── */
+.vc-tree .ant-tree-node-content-wrapper { white-space: normal; }
 
 /* ── Duyệt nhanh trên điện thoại ── */
 .sticky-decide { position: sticky; bottom: 0; background: var(--bg); padding: .75rem 0; display: flex; gap: .5rem; border-top: 1px solid var(--border); }
@@ -265,7 +260,7 @@ p { margin: .4rem 0; }
 .mail-pane-toolbar { min-height: 73px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--mail-line); }
 .mail-pane-toolbar h2 { max-width: 680px; font-size: 1.2rem; line-height: 1.35; }
 .mail-download-button { display: inline-flex; align-items: center; gap: .4rem; flex: 0 0 auto; padding: .45rem .65rem; color: #334155; border: 1px solid var(--mail-line); border-radius: 6px; font-size: .82rem; }
-.mail-reader-actions { display: flex; align-items: center; gap: .4rem; }
+.mail-reader-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .4rem; min-width: 0; }
 button.mail-download-button { background: #fff; font: inherit; cursor: pointer; }
 .mail-download-button:hover { background: #f8fafc; text-decoration: none; }
 .mail-sender { display: flex; align-items: center; gap: .75rem; padding: 1.2rem 1.4rem; }
@@ -409,11 +404,20 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
   .drive-space-name small { display: none; }
   .drive-shell .mail-reading-pane { max-height: none; }
 }
-@media (max-width: 1100px) { .mail-shell { grid-template-columns: 180px 310px minmax(360px, 1fr); } .mail-account { display: none; } }
-@media (max-width: 850px) {
+/* Bố cục theo bề rộng thật của vùng Email (container), không theo màn hình: thanh bên 240px làm vùng nội dung
+   hẹp hơn màn hình nên lưới ba cột từng bị cắt cột đọc ở màn 850–1215px (review O15). */
+.mail-page { container-type: inline-size; }
+@container (max-width: 940px) { .mail-shell { grid-template-columns: 180px minmax(260px, 310px) minmax(0, 1fr); } .mail-account { display: none; } }
+@container (max-width: 1180px) {
+  /* Cột đọc hẹp: tiêu đề thư ở trên, hàng nút xuống dòng dưới tiêu đề thay vì tràn ra ngoài khung. */
+  .mail-reader > .mail-pane-toolbar { flex-wrap: wrap; align-items: flex-start; }
+  .mail-reader > .mail-pane-toolbar > div:first-child { flex: 1 1 100%; min-width: 0; }
+  .mail-reader-actions { justify-content: flex-start; }
+}
+@container (max-width: 800px) {
   .mail-titlebar { grid-template-columns: 1fr auto; }
   .mail-search { grid-row: 2; grid-column: 1 / -1; }
-  .mail-shell { grid-template-columns: 72px minmax(260px, 40%) 1fr; min-height: calc(100vh - 220px); }
+  .mail-shell { grid-template-columns: 72px minmax(240px, 40%) minmax(0, 1fr); min-height: calc(100vh - 220px); }
   .mail-folders { padding: .75rem .55rem; align-items: center; }
   .mail-compose-button { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
   .mail-nav-label, .mail-folder-button span { display: none; }
@@ -437,3 +441,43 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
   .mail-compose-actions { flex-wrap: wrap; }
   .mail-management-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Bộ lọc danh sách (antd Form, Row/Col) ── */
+.vc-filters { margin-bottom: 12px; }
+.vc-filters .ant-form-item { margin-bottom: 8px; }
+.vc-check-list { display: flex; flex-direction: column; gap: 4px; }
+.vc-decide-bar { display: flex; gap: 8px; padding: 12px 0; background: var(--bg); border-top: 1px solid var(--border); }
+.vc-decide-bar .ant-btn { flex: 1; }
+
+/* ── Email trên antd: nút điều hướng, dòng thư, soạn thư ── */
+.mail-nav-btn.ant-btn, .mail-compose-btn.ant-btn { justify-content: flex-start; margin-top: 4px; }
+.mail-folders .mail-nav-label + .mail-nav-btn { margin-top: 0; }
+.mail-message-row.ant-btn { height: auto; padding: .85rem .9rem; border-radius: 0; border-bottom: 1px solid #eef0f3; justify-content: flex-start; align-items: flex-start; text-align: left; white-space: normal; gap: .7rem; }
+.mail-message-row.ant-btn .mail-message-copy { flex: 1; }
+.mail-compose-fields .ant-form-item { margin-bottom: 8px; }
+.mail-attachment-box { padding: 0 1.25rem .5rem; }
+.mail-notice-box { margin: 0 1.25rem .75rem; }
+.mail-reader .mail-notice-box { margin-top: .5rem; }
+.mail-body-state { padding: .5rem 1.4rem 1rem 4.1rem; }
+.mail-empty-reader .ant-empty { margin: auto; }
+@media (max-width: 850px) {
+  .mail-folders .mail-nav-text { display: none; }
+  .mail-nav-btn.ant-btn, .mail-compose-btn.ant-btn { justify-content: center; }
+}
+@media (max-width: 640px) {
+  .mail-folders .mail-nav-text { display: inline; }
+  .mail-nav-btn.ant-btn, .mail-compose-btn.ant-btn { width: auto; margin-top: 0; }
+  .mail-body-state { padding-left: 1rem; padding-right: 1rem; }
+}
+@media (max-width: 1200px) {
+  /* Cột đọc co theo chỗ còn lại thay vì tối thiểu 360px, tránh cắt nội dung ở khổ 1024. */
+  .mail-shell:not(.drive-shell) { grid-template-columns: 180px minmax(240px, 300px) minmax(0, 1fr); }
+}
+.mail-reader .mail-pane-toolbar, .mail-compose .mail-pane-toolbar { flex-wrap: wrap; }
+.mail-sender { flex-wrap: wrap; }
+
+/* ── Giai đoạn 2: bàn giao, nhật ký ── */
+.break { word-break: break-all; }
+.json-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: .75rem 0; }
+.json-box { background: var(--grey-soft); border-radius: 6px; padding: .5rem .6rem; margin: 0; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 1rem; max-height: 240px; overflow-y: auto; }
