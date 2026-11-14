@@ -95,7 +95,11 @@ describe('Review chat01–12B: đăng nhập Google tắt khi AUTH_MODE=oidc', (
 
 describe('Review chat01–12B: cấu hình production', () => {
   const base = { NODE_ENV: 'production', GOOGLE_MODE: 'real', WORKSPACE_STORAGE_MODE: 'nextcloud', MAIL_ENGINE_MODE: 'stalwart',
-    DOCUMENT_EDITOR_ENABLED: 'true', DOCUMENT_EDITOR_JWT_SECRET: 'x'.repeat(40) };
+    DOCUMENT_EDITOR_ENABLED: 'true', DOCUMENT_EDITOR_JWT_SECRET: 'x'.repeat(40),
+    // B1: production nextcloud/editor cần URL https tường minh và keyring credential.
+    WORKSPACE_CREDENTIAL_KEYS: 'k1:' + Buffer.alloc(32, 1).toString('base64'),
+    WORKSPACE_STORAGE_BASE_URL: 'https://cloud.example.com', DOCUMENT_EDITOR_PUBLIC_ORIGIN: 'https://office.example.com',
+    DOCUMENT_EDITOR_INTERNAL_ORIGIN: 'http://onlyoffice', DOCUMENT_EDITOR_API_ORIGIN: 'http://api:4000' };
 
   it('chặn kho tệp và mail giả; không khai báo thì tắt chứ không rơi về bản giả', () => {
     expect(() => loadConfig({ ...base, WORKSPACE_STORAGE_MODE: 'fake' } as any)).toThrow('WORKSPACE_STORAGE_MODE=fake');

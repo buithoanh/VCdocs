@@ -336,6 +336,25 @@ const WorkspaceEditorSave = mk({
 });
 WorkspaceEditorSave.index({ companyId: 1, fileId: 1, callbackFingerprint: 1 }, { unique: true });
 
+// App password Nextcloud theo người dùng, chỉ lưu bản mã AES-GCM (common/credential-cipher.ts).
+// Thu hồi thì xoá bản mã, giữ dòng để audit; một dòng mỗi người.
+const WorkspaceStorageCredential = mk({
+  userId: { type: OID, required: true },
+  email: { type: String, required: true, lowercase: true },
+  ncUid: { type: String, required: true },
+  status: { type: String, enum: ['active', 'revoked'], required: true },
+  kid: String,
+  iv: String,
+  ciphertext: String,
+  tag: String,
+  rotateAfter: Date,
+  lastUsedAt: Date,
+  revokedAt: Date,
+});
+WorkspaceStorageCredential.index({ companyId: 1, userId: 1 }, { unique: true });
+WorkspaceStorageCredential.index({ companyId: 1, email: 1 });
+WorkspaceStorageCredential.index({ companyId: 1, status: 1, rotateAfter: 1 });
+
 const WorkspaceDriveShareLink = mk({
   fileId: { type: OID, required: true },
   versionId: { type: OID, required: true },
@@ -784,6 +803,7 @@ export const MODEL_DEFS = {
   UploadAttempt: { schema: UploadAttempt, collection: 'upload_attempts' },
   WorkspaceEditorSave: { schema: WorkspaceEditorSave, collection: 'workspace_editor_saves' },
   WorkspaceDriveShareLink: { schema: WorkspaceDriveShareLink, collection: 'workspace_drive_share_links' },
+  WorkspaceStorageCredential: { schema: WorkspaceStorageCredential, collection: 'workspace_storage_credentials' },
   WorkspaceMailMessage: { schema: WorkspaceMailMessage, collection: 'workspace_mail_messages' },
   WorkspaceMailDraft: { schema: WorkspaceMailDraft, collection: 'workspace_mail_drafts' },
   WorkspaceMailSend: { schema: WorkspaceMailSend, collection: 'workspace_mail_sends' },
