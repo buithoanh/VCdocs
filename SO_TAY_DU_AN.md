@@ -64,6 +64,7 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 3. Việc đang làm / cần làm
 
+- [ ] **Bàn giao cho team DEV (2026-11-06):** điểm vào `docs/BAN_GIAO_DEV.md` (sản phẩm, chạy local, quy trình, thứ tự gộp 7 nhánh, việc P0–P3, quyết định chờ, bẫy, thứ ngoài repo). Nhánh `claude/ban-giao-dev` (từ `dev` 6656766), chỉ tài liệu; chờ chủ dự án đẩy lên GitHub và mở PR vào `dev`. Mỗi khi gộp một nhánh trong bảng mục 5 của trang đó thì cập nhật bảng.
 - [x] **Engine soạn thảo đã chốt ONLYOFFICE Docs CE 9.4 (2026-10-26, xem mục 2):** báo cáo `docs/nghien-cuu/office-engine-tai-48-2026-10-26.md`, harness `poc/office-load/`. Cả hai mở 48/48 phiên ở chế độ sửa. ONLYOFFICE CE 9.4: 2/2 lần không mất ký tự, lưu và hội tụ đủ, CPU TB ~1,3 lõi, RAM ≤1,5 GB (giả lập amd64, giới hạn 4 CPU/4 GB). Euro-Office 9.3.7: ~3 lần CPU, RAM tới 3,5 GB, mất ký tự đầu ở 9/182 phiên (ONLYOFFICE 0/158), 1/4 lần lỗi máy chủ `duplicate key` → 452 marker mất, 3/12 tài liệu không lưu. Đã commit trên `claude/office-engine-onlyoffice`; chưa đo trên máy thật x86, chưa thử 10.0, XLSX/PPTX.
 - [ ] **Container `vcworkspace-onlyoffice-chat04` đã sửa (2026-10-26), còn chạy lại tích hợp:** ba tệp cấu hình rỗng 0 byte từ 2026-10-24 23:09 UTC (`local.json`, `log4js/production.json`, example `local.json`), entrypoint sửa tại chỗ nên không tự hồi phục. Đã chép bản gốc từ image rồi restart; healthy từ 07:55 UTC. Chưa chạy `poc/onlyoffice/run-integration.mjs` (cần JWT trong shell cô lập của chủ dự án).
 - [ ] **Thử REA trên ONLYOFFICE đã xong (2026-10-26), chờ chủ dự án đọc `docs/nghien-cuu/rea-onlyoffice-2026-10-26.md` và trả lời câu hỏi ở mục 4:** kết luận không cần code ngược vì mã AGPL công khai, REA chỉ xác nhận bundle = nguồn tag `v9.4.0.129`. Tệp mới chưa commit: báo cáo, `poc/rea-lab/`, `poc/onlyoffice/evidence/rea-2026-10-26/`, dòng ở `docs/README.md`.
@@ -318,6 +319,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 - Hook guard chặn cả chuỗi con trong lệnh Bash: `base64`, `sh -c`, `node -e`, `dropDatabase(`, tên file chứa `sa…json` (vd `samples.json`), từ `mongo` đứng riêng (vd thư mục `.runtime/mongo`). Viết script ra file rồi chạy.
 
 ## 6. Nhật ký các phiên
+
+### 2026-11-06 · Soạn tài liệu bàn giao cho team DEV
+- Đã làm: đọc sổ tay, rà `origin/dev`, PR #1–#15 và mọi nhánh local chưa gộp; thử gộp khô (`git merge-tree`, không đổi ref) bảy nhánh theo thứ tự đề xuất để ghi file xung đột. Viết `docs/BAN_GIAO_DEV.md`, thêm link ở `README.md` và `docs/README.md`. Nhánh `claude/ban-giao-dev` (worktree `.claude/worktrees/ban-giao-dev`). Không đọc `.env`, không chạm máy chủ, không đẩy lên GitHub.
+- Phát hiện: `origin/vcworkspace/antd-ho-so` thiếu commit gộp ca04977 (PR #12 chưa có check CI); `main`/`dev` chưa bật branch protection; hai worktree còn việc chưa commit (`phuong-an-b-chi-tiet`: tài liệu phương án B chi tiết; `chay-dev-local`: seed `qa-review-data.spec.ts`) — đã ghi vào trang bàn giao, không đụng.
+- Còn dở: chủ dự án đẩy nhánh + mở PR; ba link trong trang (trang 20, trang 21 B1, báo cáo engine) chỉ sống sau khi gộp nhánh chứa chúng.
 
 ### 2026-11-14 · Bộ nhớ dài hạn bằng graphify + Obsidian
 - Đã làm: dùng graphifyy 0.9.108 (đã cài qua `uv tool`) quét repo trên nhánh `claude/office-engine-onlyoffice` (chưa có mã các nhánh B1, O1–O15, M10/M15). Phạm vi chủ dự án chọn: mã + tài liệu, bỏ bằng chứng PoC (`poc/**/evidence`), `*.json`, ảnh, PDF; tôn trọng `.gitignore` (nên bỏ qua `.claude/worktrees`, `.env`). 512 file mã quét AST, 63 tài liệu do 9 subagent trích xuất (đọc đủ mọi dòng, khoảng 1,47 triệu token). Kết quả: 6.463 nút, 16.389 cạnh, 268 cụm; vault Obsidian 6.731 ghi chú ở `graphify-out/obsidian/`, `graphify-out/graph.html` (dạng gộp theo cụm vì > 5.000 nút), `GRAPH_REPORT.md`, `graph.json`.
