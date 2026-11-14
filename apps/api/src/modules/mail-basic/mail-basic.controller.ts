@@ -9,6 +9,8 @@ import { MailBasicService } from './mail-basic.service';
 export class MailBasicController {
   constructor(private readonly service: MailBasicService) {}
   @Get('messages') list(@CurrentCtx() ctx: Ctx, @Query('folder') folder?: string, @Query('mailbox') mailbox?: string, @Query('q') q?: string, @Query('scope') scope?: string, @Query('label') label?: string) { return this.service.list(ctx, { folder, mailbox, q, scope, label }); }
+  /** Số thư mới chưa mở (huy hiệu mục Email); không gọi mail server. */
+  @Get('unread-count') unreadCount(@CurrentCtx() ctx: Ctx) { return this.service.unreadCount(ctx); }
   @Get('threads/:id') thread(@CurrentCtx() ctx: Ctx, @Param('id') id: string, @Query('mailbox') mailbox?: string) { return this.service.thread(ctx, id, mailbox); }
   @Post('drafts') @HttpCode(201) draft(@CurrentCtx() ctx: Ctx, @Body() body: any) { return this.service.createDraft(ctx, body); }
   @Get('drafts/:id') getDraft(@CurrentCtx() ctx: Ctx, @Param('id') id: string) { return this.service.draft(ctx, id); }

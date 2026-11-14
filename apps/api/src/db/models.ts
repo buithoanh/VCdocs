@@ -373,6 +373,8 @@ const WorkspaceMailMessage = mk({
   searchText: { type: String, default: '' },
   searchBody: { type: String, default: '' },
   deliveryStatus: { type: String, enum: ['accepted', 'failed'], required: true },
+  /** Việc nền đã xét báo "thư mới" cho dòng này (đặt nguyên tử để không báo lặp). */
+  notifiedAt: Date,
 });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, engineId: 1 }, { unique: true });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, threadId: 1, sentAt: 1 });
