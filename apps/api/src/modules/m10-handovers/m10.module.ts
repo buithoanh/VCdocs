@@ -2,9 +2,11 @@ import { Global, Module, OnModuleInit } from '@nestjs/common';
 import { HandoversController } from './handovers.controller';
 import { HandoversService } from './handovers.service';
 import { SchedulerService } from '../scheduler/scheduler.service';
+import { MailBasicModule } from '../mail-basic/mail-basic.module';
+import { DriveBasicModule } from '../drive-basic/drive-basic.module';
 
 @Global()
-@Module({ controllers: [HandoversController], providers: [HandoversService], exports: [HandoversService] })
+@Module({ imports: [MailBasicModule, DriveBasicModule], controllers: [HandoversController], providers: [HandoversService], exports: [HandoversService] })
 export class M10Module implements OnModuleInit {
   constructor(private readonly scheduler: SchedulerService, private readonly handovers: HandoversService) {}
 

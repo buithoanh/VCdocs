@@ -11,6 +11,8 @@ import { JobContext, JobsService } from '../../jobs/jobs.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { GOOGLE, GooglePorts } from '../../google/ports';
 import { ApprovalsService } from '../m05-approvals/approvals.service';
+import { MailBasicService } from '../mail-basic/mail-basic.service';
+import { StorageCredentialStore } from '../drive-basic/storage-credential.store';
 import { FoldersService } from '../m03-folders/folders.service';
 
 export type HandoverStatus = 'listing' | 'open' | 'received' | 'verified' | 'executing' | 'done' | 'cancelled';
@@ -83,6 +85,8 @@ export class HandoversService {
     private readonly folders: FoldersService,
     @Inject(GOOGLE) private readonly google: GooglePorts,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    private readonly mail: MailBasicService,
+    private readonly storageCredentials: StorageCredentialStore,
   ) {
     jobs.register('handover.list', {
       title: 'Liệt kê việc cần bàn giao',
@@ -91,7 +95,7 @@ export class HandoversService {
     });
     jobs.register('handover.execute', {
       title: 'Chuyển quyền bàn giao',
-      steps: ['Liệt kê lại', 'Đổi người trong VCdocs', 'Chuyển Drive của tôi sang người nhận', 'Gỡ khỏi nhóm Google', 'Hoàn tất biên bản'],
+      steps: ['Liệt kê lại', 'Đổi người trong VCdocs', 'Chuyển Drive của tôi sang người nhận', 'Gỡ khỏi nhóm Google', 'Chuyển quyền quản lý hộp thư nhóm', 'Hoàn tất biên bản'],
       handler: (j) => this.runExecute(j),
     });
     jobs.register('handover.export', {
@@ -599,6 +603,13 @@ export class HandoversService {
       await save();
     });
 
+    // Hộp thư nhóm VCworkspace mà người nghỉ là người quản lý duy nhất → người nhận quản lý tiếp.
+    // Lỗi mail server thì việc lỗi, biên bản về "HCNS đã kiểm tra" và gọi lại được (bước này tự bỏ qua hộp đã chuyển).
+    await job.step('Chuyển quyền quản lý hộp thư nhóm', async () => {
+      if (this.cfg.mailEngine.mode === 'disabled') return;
+      await this.mail.handoverSharedMailboxes(actor, user.email, receiver.email);
+    });
+
     const failed = items.filter((i) => i.status === 'failed').length;
     if (failed) {
       throw new AppError(502, 'DRIVE_ERROR', `${failed} dòng chưa chuyển được; biên bản về "HCNS đã kiểm tra", gọi chuyển quyền lại để chạy tiếp các dòng lỗi`);
@@ -760,6 +771,7 @@ export class HandoversService {
         await this.db.m.User.updateOne({ _id: u._id, companyId: cid, status: 'leaving' }, { $set: { status: 'left' } });
         await this.db.m.Session.deleteMany({ companyId: cid, userId: u._id });
         await this.audit.write({ companyId }, { action: 'user.left', objectType: 'user', objectId: String(u._id), before: { status: 'leaving' }, after: { status: 'left', lastWorkingDay: u.lastWorkingDay } });
+        await this.offboardWorkspace(companyId, u);
       }
       const overdue = await this.db.m.Handover.find({ companyId: cid, status: { $in: UNFINISHED }, lastWorkingDay: { $lt: today }, overdueNotifiedAt: { $in: [null] } }).lean<any[]>();
       if (!overdue.length) continue;
@@ -768,6 +780,34 @@ export class HandoversService {
         const leaver = await this.db.m.User.findOne({ companyId: cid, _id: h.userId }, { name: 1 }).lean<any>();
         await this.notifications.notify(companyId, to, { type: 'handover_overdue', title: `Quá hạn bàn giao: ${leaver?.name ?? ''} đã qua ngày làm việc cuối ${h.lastWorkingDay} mà biên bản chưa xong`, link: `/ban-giao/${h._id}`, objectType: 'handover', objectId: String(h._id) });
         await this.db.m.Handover.updateOne({ _id: h._id, companyId: cid }, { $set: { overdueNotifiedAt: new Date() } });
+      }
+    }
+  }
+
+  /**
+   * Người vừa bị khoá: thu hồi hộp thư VCworkspace (engine, alias, quyền hộp nhóm) và credential kho tệp.
+   * Lỗi không chặn việc khoá tài khoản; ghi nhật ký để R3/R9 chạy lại bằng POST /mail/offboarding/{userId}.
+   */
+  private async offboardWorkspace(companyId: string, u: any) {
+    const actor = { companyId };
+    const failed = async (action: string, e: any) => {
+      this.log.warn(`Offboard VCworkspace của ${u._id} lỗi (${action}): ${e?.message ?? e}`);
+      await this.audit.write(actor, { action, objectType: 'user', objectId: String(u._id), after: { error: e?.message ?? String(e) } });
+    };
+    if (this.cfg.mailEngine.mode !== 'disabled') {
+      try {
+        await this.mail.offboardLeftUser(actor, u);
+      } catch (e: any) {
+        await failed('workspace_mail.user.offboard_failed', e);
+      }
+    }
+    if (this.cfg.workspaceStorage.mode !== 'disabled') {
+      try {
+        if (await this.storageCredentials.revoke(companyId, String(u._id))) {
+          await this.audit.write(actor, { action: 'workspace_storage.credential.revoke', objectType: 'user', objectId: String(u._id), after: { source: 'handover.markLeft' } });
+        }
+      } catch (e: any) {
+        await failed('workspace_storage.credential.revoke_failed', e);
       }
     }
   }

@@ -179,6 +179,12 @@ export class AuditService {
           return idOf((await m.User.findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
         case 'handover':
           return idOf((await m.Handover.findOne({ companyId: cid, _id }, { departmentId: 1 }).lean<any>())?.departmentId);
+        case 'workspace_drive_item': {
+          // Không gian cá nhân không gắn phòng: chỉ R1/R3/R9 xem được dòng đó.
+          const item = await m.WorkspaceDriveItem.findOne({ companyId: cid, _id }, { spaceId: 1 }).lean<any>();
+          const space = item && (await m.WorkspaceSpace.findOne({ companyId: cid, _id: item.spaceId, kind: 'department' }, { departmentId: 1 }).lean<any>());
+          return idOf(space?.departmentId);
+        }
         case 'department':
           return objectId;
         default:

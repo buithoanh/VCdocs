@@ -14,6 +14,6 @@ import { disabledPort } from '../../common/workspace-modules';
       useFactory: (cfg: AppConfig, fake: FakeWorkspaceStorage, credentials: StorageCredentialStore) => cfg.workspaceStorage.mode === 'nextcloud'
         ? new NextcloudWorkspaceStorage(cfg.workspaceStorage, { production: cfg.nodeEnv === 'production', credentials })
         : cfg.workspaceStorage.mode === 'disabled' ? disabledPort<WorkspaceStoragePort>('drive') : fake }],
-  exports: [DriveBasicService],
+  exports: [DriveBasicService, StorageCredentialStore],
 })
 export class DriveBasicModule {}
