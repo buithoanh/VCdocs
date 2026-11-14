@@ -1,0 +1,36 @@
+# Stalwart chạy độc lập cho một tên miền thư (ví dụ vcparts.vn) – không qua API/giao diện Email của VCworkspace.
+# Người dùng nối thẳng bằng Outlook/điện thoại (IMAP 993, SMTP 465). Chạy từ thư mục deploy/mail/:
+#   docker compose up -d
+# Cần file .env cạnh file này (chép từ .env.example; git bỏ qua). Hướng dẫn đầy đủ: deploy/mail/README.md
+name: vcmail
+
+services:
+  stalwart:
+    # Cùng bản đã dùng ở các PoC của dự án (0.16.27). Ghim theo digest trong .env khi đã chốt bản chạy thật.
+    image: ${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}
+    init: true
+    restart: unless-stopped
+    hostname: ${MAIL_HOSTNAME:?Thiếu MAIL_HOSTNAME trong deploy/mail/.env}
+    environment:
+      # Chỉ dùng khi gửi ra qua trạm chuyển tiếp (Amazon SES…); route đọc mật khẩu từ biến này. Để trống nếu gửi thẳng cổng 25.
+      SMARTHOST_PASSWORD: ${SMARTHOST_PASSWORD:-}
+    ports:
+      - "25:25"     # nhận thư từ máy chủ khác (và gửi ra nếu không dùng trạm chuyển tiếp)
+      - "465:465"   # người dùng gửi thư (SMTP, TLS ngay khi nối)
+      - "993:993"   # người dùng đọc thư (IMAP, TLS ngay khi nối)
+      - "443:443"   # trang quản trị, JMAP, lịch/danh bạ, xin chứng chỉ TLS (ACME TLS-ALPN-01)
+      # Trang cài đặt/khôi phục: không có chống dò mật khẩu nên chỉ mở trên loopback, vào bằng SSH tunnel.
+      - "127.0.0.1:8080:8080"
+      # Stalwart còn nghe sẵn hai cổng dưới; chỉ mở khi thật sự cần. (Bản 0.16.27 không tạo sẵn cổng 587/143.)
+      # - "4190:4190" # ManageSieve (người dùng tự quản bộ lọc từ client)
+      # - "995:995"   # POP3 (TLS)
+    volumes:
+      - stalwart-etc:/etc/stalwart        # config.json do trang cài đặt ghi; mất file này là phải cài lại
+      - stalwart-data:/var/lib/stalwart   # hộp thư, hàng đợi, khoá DKIM, chứng chỉ
+    # Mỗi kết nối và mỗi tệp CSDL tốn một file descriptor; mặc định của Docker đời mới có thể chỉ là 1024.
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+
+volumes:
+  stalwart-etc:
+  stalwart-data:

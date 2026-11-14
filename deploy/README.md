@@ -23,6 +23,9 @@ Internet ──443──► caddy (HTTPS tự động)
 
 `.env`, `api.env`, `secrets/` bị git bỏ qua — **không commit**.
 
+Máy chủ thư Stalwart chạy độc lập (thư tên miền riêng, không qua phân hệ Email) nằm ở `deploy/mail/`,
+có hướng dẫn riêng: `deploy/mail/README.md`.
+
 Chi phí dự kiến khoảng 35–45 USD/tháng: máy e2-medium, đĩa 20 GB + 50 GB, IP tĩnh, snapshot và
 bucket.
 
