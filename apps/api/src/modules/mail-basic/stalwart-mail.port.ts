@@ -1,7 +1,7 @@
 import * as net from 'net';
 import * as tls from 'tls';
 import { IMAP_LITERAL_MARK, tlsConnect, type ImapResponse } from './tls-client';
-import { MailDeliveryError, headerMessageId, type EngineMail, type FolderSyncState, type MailEnvelope, type MailFilterRule, type MailPort } from './mail.port';
+import { MailDeliveryError, headerMessageId, isSyntheticMessageId, syntheticMessageId, type EngineMail, type FolderSyncState, type MailEnvelope, type MailFilterRule, type MailPort } from './mail.port';
 
 type ReadableSocket = net.Socket | tls.TLSSocket;
 type MailIo = Awaited<ReturnType<typeof tlsConnect>>;
@@ -71,11 +71,15 @@ export class StalwartMailPort implements MailPort {
   private async imapCommand(io:MailIo,tag:string,command:string){io.write(`${tag} ${command}\r\n`);const done=await io.readImap(tag);if(done.status!=='OK')throw new Error(`MAIL_IMAP_${done.status}:${tag}`);return done.untagged;}
   /** Mở phiên IMAP đã LOGIN và luôn đóng socket, kể cả khi lỗi. */
   private async withImap<T>(owner:string,work:(io:MailIo)=>Promise<T>){const c=this.credential(owner),io=await tlsConnect(this.cfg.host,this.cfg.imapPort);try{await io.readImapGreeting();await this.imapCommand(io,'a1',`LOGIN ${imapQuote(c.username)} ${imapQuote(c.password)}`);return await work(io);}finally{io.close();}}
-  /** UID của thư có Message-ID (đọc bằng parser header) đúng engineId; thư thiếu Message-ID không khớp thư nào. */
+  /**
+   * UID của thư có Message-ID (đọc bằng parser header) đúng engineId. engineId dạng khoá băm (thư thiếu Message-ID)
+   * chỉ so với các thư không có Message-ID, bằng cách băm nguyên văn từng thư đó.
+   */
   private async uid(io:MailIo,engineId:string,folder?:string,engineMailbox?:string,accessOwner?:string){
     await this.imapCommand(io,'a2',`SELECT "${this.engineFolder(folder,engineMailbox,accessOwner)}"`);
-    const rows=fetchedLiterals(await this.imapCommand(io,'a3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/),target=engineId.toLowerCase();
-    for(const row of rows)if((await headerMessageId(row.literal))?.toLowerCase()===target)return row.uid;
+    const rows=fetchedLiterals(await this.imapCommand(io,'a3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/),target=engineId.toLowerCase(),synthetic=isSyntheticMessageId(target),bare:string[]=[];
+    for(const row of rows){const id=(await headerMessageId(row.literal))?.toLowerCase();if(!id)bare.push(row.uid);else if(!synthetic&&id===target)return row.uid;}
+    if(synthetic){let index=1;for(const uid of bare){const fetched=fetchedLiterals(await this.imapCommand(io,`h${index++}`,`UID FETCH ${uid} BODY.PEEK[]`),/BODY\[\]/).find(x=>x.uid===uid);if(fetched&&syntheticMessageId(fetched.literal)===target)return uid;}}
     throw new Error('MAIL_NOT_FOUND');
   }
   private keyword(label:string){return `VC-${Buffer.from(label,'utf8').toString('hex')}`;}
@@ -136,12 +140,13 @@ export class StalwartMailPort implements MailPort {
       let index=4;
       for(const uid of uids){
         const head=heads.get(uid);
-        if(known&&(!head||await known(head)))continue;
+        if(known&&head&&await known(head))continue;
         const fetched=fetchedLiterals(await this.imapCommand(io,`s${index++}`,`UID FETCH ${uid} BODY.PEEK[]`),/BODY\[\]/).find(x=>x.uid===uid);
         if(!fetched)continue;
-        // Thư thiếu Message-ID ở header không có khoá engine ổn định nên bị bỏ qua, không làm hỏng cả danh sách.
-        const engineId=await headerMessageId(fetched.literal);
-        if(engineId)items.push({engineId,raw:fetched.literal,uid:Number(uid)});
+        // Thư thiếu Message-ID ở header dùng khoá băm nội dung: vẫn vào chỉ mục và không nhân đôi qua các lượt đồng bộ.
+        const engineId=await headerMessageId(fetched.literal)??syntheticMessageId(fetched.literal);
+        if(known&&!head&&await known(engineId))continue;
+        items.push({engineId,raw:fetched.literal,uid:Number(uid)});
       }
       return finish(Math.max(from,...uids.map(Number)));
     });

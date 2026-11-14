@@ -5,6 +5,7 @@
  */
 import { Duplex } from 'stream';
 import { StalwartMailPort } from '../src/modules/mail-basic/stalwart-mail.port';
+import { syntheticMessageId } from '../src/modules/mail-basic/mail.port';
 
 const OWNER = 'tp.mkt@vcworkspace.test';
 type Handler = (tag: string, command: string) => string | undefined;
@@ -96,6 +97,23 @@ describe('StalwartMailPort tách phản hồi IMAP theo literal {N}', () => {
   it('listFolder: thư không có Message-ID ở header không lấy Message-ID từ thân thư', async () => {
     connectWith(mailbox({ '1': message2, '3': message3 }));
     const items = await port().listFolder(OWNER, 'inbox');
+    // Thư 3 không còn bị bỏ qua: nhận khoá băm nội dung, không phải Message-ID nằm trong thân thư.
+    expect(items.map(x => x.engineId)).toEqual(['m2@vcworkspace.test', syntheticMessageId(message3)]);
+    expect(items[1].engineId).toMatch(/^nomid-[0-9a-f]{64}@vcworkspace\.invalid$/);
+    expect(items[1].raw.equals(message3)).toBe(true);
+  });
+
+  it('thư thiếu Message-ID: raw() tìm đúng thư bằng khoá băm, không nhầm thư tự khai Message-ID dạng khoá băm', async () => {
+    const spoof = mail([`Message-ID: <${syntheticMessageId(message3)}>`, 'Subject: Mạo khoá', '', 'giả']);
+    const sockets = connectWith(mailbox({ '1': spoof, '2': message2, '3': message3 }));
+    const raw = await port().raw(OWNER, syntheticMessageId(message3), 'inbox');
+    expect(raw.equals(message3)).toBe(true);
+    expect(sockets[0].commands.map((x) => x.replace(/^\S+ /, '')).filter((x) => /BODY\.PEEK\[\]$/.test(x))).not.toContain('UID FETCH 2 BODY.PEEK[]');
+  });
+
+  it('thư thiếu Message-ID: listFolder không trả lại thư đã có trong CSDL (known theo khoá băm)', async () => {
+    connectWith(mailbox({ '1': message2, '3': message3 }));
+    const items = await port().listFolder(OWNER, 'inbox', undefined, async (engineId) => engineId === syntheticMessageId(message3));
     expect(items.map(x => x.engineId)).toEqual(['m2@vcworkspace.test']);
   });
 

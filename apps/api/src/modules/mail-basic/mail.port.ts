@@ -12,15 +12,22 @@ export type FolderCursor = { uidValidity: string; lastUid: number };
 /** Trạng thái đồng bộ gia tăng: người gọi đưa `cursor` đã lưu, adapter ghi `next` khi đọc xong thư mục. */
 export type FolderSyncState = { cursor?: FolderCursor; next?: FolderCursor };
 /**
+ * Khoá ổn định cho thư thiếu Message-ID: băm nguyên văn thư. Cùng một thư luôn ra cùng khoá qua mọi lượt đồng bộ,
+ * kể cả khi UIDVALIDITY đổi (khoá theo UID thì không). Hai thư giống nhau từng byte gộp làm một.
+ */
+export const syntheticMessageId = (raw: Buffer) => `nomid-${createHash('sha256').update(raw).digest('hex')}@vcworkspace.invalid`;
+export const isSyntheticMessageId = (id: string) => /^nomid-[0-9a-f]{64}@vcworkspace\.invalid$/i.test(id);
+/**
  * Message-ID đọc bằng cùng parser với metadata (mailparser, chỉ phần header):
  * dòng giống header trong thân thư không được tính, thư thiếu Message-ID trả undefined.
+ * Message-ID tự khai theo dạng khoá băm cũng coi như thiếu, để người gửi không mạo khoá của thư khác.
  */
 export async function headerMessageId(raw: Buffer) {
   const text = raw.toString('latin1'), blank = /\r?\n\r?\n/.exec(text);
   const head = Buffer.from(blank ? text.slice(0, blank.index + blank[0].length) : text, 'latin1');
   const parsed = await simpleParser(head, { skipHtmlToText: true, skipTextToHtml: true, skipTextLinks: true });
   const id = String(parsed.messageId ?? '').replace(/[<>]/g, '').trim();
-  return id || undefined;
+  return id && !isSyntheticMessageId(id) ? id : undefined;
 }
 export class MailDeliveryError extends Error { constructor(message:string,public readonly accepted:'no'|'unknown'){super(message);} }
 export interface MailPort {
