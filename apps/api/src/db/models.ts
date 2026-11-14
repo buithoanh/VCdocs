@@ -142,6 +142,8 @@ const AuditLog = new Schema(
     action: { type: String, required: true },
     objectType: String,
     objectId: String,
+    /** Phòng của đối tượng lúc ghi (E14, từ v1.5); dòng cũ không có */
+    departmentId: OID,
     before: Mixed,
     after: Mixed,
     result: { type: String, enum: ['ok', 'denied'], default: 'ok' },
@@ -155,6 +157,7 @@ const AuditLog = new Schema(
 );
 AuditLog.index({ companyId: 1, seq: 1 }, { unique: true });
 AuditLog.index({ companyId: 1, objectType: 1, objectId: 1 });
+AuditLog.index({ companyId: 1, departmentId: 1, seq: -1 });
 // Nhật ký chỉ thêm: chặn sửa, xoá ở tầng mô hình
 for (const op of ['updateOne', 'updateMany', 'findOneAndUpdate', 'deleteOne', 'deleteMany', 'findOneAndDelete', 'replaceOne']) {
   AuditLog.pre(op as any, function () {
@@ -264,6 +267,8 @@ const WorkspaceSpace = mk({
   // Khoá nhận diện không gian theo ID, không theo tên hiển thị (trùng tên ≠ cùng không gian)
   ownerUserId: OID,
   departmentId: OID,
+  // Bàn giao (M10): người nhận được đọc không gian cá nhân của người đã nghỉ. Đây là nguồn quyền, ghi bởi handover.execute.
+  handoverReaderIds: [OID],
 });
 WorkspaceSpace.index({ companyId: 1, ownerUserId: 1 }, { unique: true, partialFilterExpression: { kind: 'personal' } });
 WorkspaceSpace.index({ companyId: 1, departmentId: 1 }, { unique: true, partialFilterExpression: { kind: 'department' } });
@@ -275,6 +280,8 @@ const WorkspaceSpaceMember = mk({
 });
 WorkspaceSpaceMember.index({ companyId: 1, spaceId: 1, userId: 1 }, { unique: true });
 
+export const WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'workspace_drive_item_live_name';
+export const LEGACY_WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'companyId_1_spaceId_1_parentId_1_name_1';
 const WorkspaceDriveItem = mk({
   spaceId: { type: OID, required: true },
   parentId: OID,
@@ -290,7 +297,9 @@ const WorkspaceDriveItem = mk({
   trashedFromParentId: OID,
   trashedRootId: OID,
 });
-WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1 }, { unique: true });
+// Tên chỉ duy nhất trong các mục chưa bỏ thùng rác: mục đang dùng có trashedAt null, mục trong thùng rác mang
+// thời điểm bỏ nên không chặn tên mới. Index cũ (không có trashedAt) được Db.ready() gỡ.
+WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1, trashedAt: 1 }, { unique: true, name: WORKSPACE_DRIVE_ITEM_NAME_INDEX });
 
 const WorkspaceDriveVersion = mk({
   fileId: { type: OID, required: true },
@@ -310,6 +319,9 @@ const UploadAttempt = mk({
   fingerprint: { type: String, required: true },
   state: { type: String, enum: ['pending', 'done', 'failed'], required: true },
   itemId: OID,
+  // Lượt pending đang có request giữ; hết hạn thì retry cùng key được nhận lại.
+  leaseToken: String,
+  leaseUntil: Date,
   errorCode: String,
 });
 UploadAttempt.index({ companyId: 1, userId: 1, idempotencyKey: 1 }, { unique: true });
@@ -320,9 +332,30 @@ const WorkspaceEditorSave = mk({
   callbackFingerprint: { type: String, required: true },
   status: { type: String, enum: ['saving', 'saved', 'failed'], required: true },
   versionId: OID,
+  // Mã trạng thái callback ONLYOFFICE đã tạo version: 6 = forcesave (phiên soạn còn mở, key giữ nguyên), 2 = đóng phiên.
+  callbackStatus: Number,
   errorCode: String,
 });
 WorkspaceEditorSave.index({ companyId: 1, fileId: 1, callbackFingerprint: 1 }, { unique: true });
+
+// App password Nextcloud theo người dùng, chỉ lưu bản mã AES-GCM (common/credential-cipher.ts).
+// Thu hồi thì xoá bản mã, giữ dòng để audit; một dòng mỗi người.
+const WorkspaceStorageCredential = mk({
+  userId: { type: OID, required: true },
+  email: { type: String, required: true, lowercase: true },
+  ncUid: { type: String, required: true },
+  status: { type: String, enum: ['active', 'revoked'], required: true },
+  kid: String,
+  iv: String,
+  ciphertext: String,
+  tag: String,
+  rotateAfter: Date,
+  lastUsedAt: Date,
+  revokedAt: Date,
+});
+WorkspaceStorageCredential.index({ companyId: 1, userId: 1 }, { unique: true });
+WorkspaceStorageCredential.index({ companyId: 1, email: 1 });
+WorkspaceStorageCredential.index({ companyId: 1, status: 1, rotateAfter: 1 });
 
 const WorkspaceDriveShareLink = mk({
   fileId: { type: OID, required: true },
@@ -331,8 +364,10 @@ const WorkspaceDriveShareLink = mk({
   recipients: { type: [String], required: true },
   idempotencyKey: { type: String, required: true },
   fingerprint: { type: String, required: true },
-  token: { type: String, required: true },
+  // Token rõ chỉ giữ tới khi thư chứa link gửi xong (retry cần đúng nội dung thư); sau đó chỉ còn tokenHash.
+  token: String,
   tokenHash: { type: String, required: true },
+  sentMessageId: OID,
   expiresAt: { type: Date, required: true },
   revokedAt: Date,
 });
@@ -663,6 +698,89 @@ const ExternalShare = mk({
 });
 ExternalShare.index({ companyId: 1, status: 1, expiresAt: 1 });
 
+// ── M10 ──
+const HandoverItem = new Schema(
+  {
+    kind: { type: String, required: true },
+    objectType: String,
+    objectId: OID,
+    fileId: String,
+    groupEmail: String,
+    /** Khoá so khớp khi liệt kê lại (kind + id đối tượng / file / nhóm) */
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    detail: String,
+    action: { type: String, required: true },
+    toUserId: OID,
+    status: { type: String, required: true, default: 'pending' },
+    error: String,
+    note: String,
+  },
+  { _id: true },
+);
+const Handover = mk({
+  userId: { type: OID, required: true },
+  departmentId: OID,
+  lastWorkingDay: { type: String, required: true },
+  receiverId: { type: OID, required: true },
+  status: { type: String, required: true },
+  isAuto: { type: Boolean, default: false },
+  items: { type: [HandoverItem], default: [] },
+  receipt: Mixed,
+  verification: Mixed,
+  execution: Mixed,
+  listJobId: OID,
+  exportFileId: String,
+  cancelledAt: Date,
+  cancelledBy: OID,
+  cancelReason: String,
+  note: String,
+  /** Đã nhắc HCNS kiểm tra (handover_verify_due) / đã báo quá hạn (handover_overdue) */
+  verifyDueNotifiedAt: Date,
+  overdueNotifiedAt: Date,
+});
+Handover.index({ companyId: 1, userId: 1, status: 1 });
+Handover.index({ companyId: 1, receiverId: 1, status: 1 });
+
+// ── M15 ──
+const AuditorAccess = mk({
+  email: { type: String, required: true, lowercase: true },
+  userId: { type: OID, required: true },
+  departmentIds: { type: [OID], required: true },
+  expiresAt: { type: Date, required: true },
+  reason: String,
+  grantedBy: { type: OID, required: true },
+  status: { type: String, required: true, default: 'active' },
+  revokedAt: Date,
+  revokedBy: OID,
+  lastUsedAt: Date,
+});
+AuditorAccess.index({ companyId: 1, userId: 1, status: 1 });
+
+/** Kết quả kiểm chuỗi và lần neo gần nhất của công ty (một dòng mỗi công ty) */
+const AuditState = new Schema(
+  {
+    companyId: { type: OID, required: true, unique: true },
+    verification: Mixed,
+    latestAnchor: Mixed,
+    /** File Sheets "Mỏ neo nhật ký VCdocs" ở drive 01 BĐH */
+    anchorFileId: String,
+  },
+  opts,
+);
+
+const EvidencePack = mk({
+  targetType: { type: String, required: true },
+  targetId: { type: OID, required: true },
+  files: { type: [{ _id: false, path: String, sha256: String, sizeBytes: Number }], default: [] },
+  sha256: { type: String, required: true },
+  sizeBytes: { type: Number, required: true },
+  expiresAt: { type: Date, required: true },
+  storageKey: { type: String, required: true },
+  fileName: String,
+  purgedAt: Date,
+});
+
 export const MODEL_DEFS = {
   Company: { schema: Company, collection: 'companies' },
   User: { schema: User, collection: 'users' },
@@ -687,6 +805,7 @@ export const MODEL_DEFS = {
   UploadAttempt: { schema: UploadAttempt, collection: 'upload_attempts' },
   WorkspaceEditorSave: { schema: WorkspaceEditorSave, collection: 'workspace_editor_saves' },
   WorkspaceDriveShareLink: { schema: WorkspaceDriveShareLink, collection: 'workspace_drive_share_links' },
+  WorkspaceStorageCredential: { schema: WorkspaceStorageCredential, collection: 'workspace_storage_credentials' },
   WorkspaceMailMessage: { schema: WorkspaceMailMessage, collection: 'workspace_mail_messages' },
   WorkspaceMailDraft: { schema: WorkspaceMailDraft, collection: 'workspace_mail_drafts' },
   WorkspaceMailSend: { schema: WorkspaceMailSend, collection: 'workspace_mail_sends' },
@@ -707,6 +826,10 @@ export const MODEL_DEFS = {
   RecordType: { schema: RecordType, collection: 'record_types' },
   Record: { schema: RecordM, collection: 'records' },
   ExternalShare: { schema: ExternalShare, collection: 'external_shares' },
+  Handover: { schema: Handover, collection: 'handovers' },
+  AuditorAccess: { schema: AuditorAccess, collection: 'auditor_access' },
+  AuditState: { schema: AuditState, collection: 'audit_state' },
+  EvidencePack: { schema: EvidencePack, collection: 'evidence_packs' },
 } as const;
 
 export type ModelName = keyof typeof MODEL_DEFS;

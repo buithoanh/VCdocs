@@ -1,48 +1,77 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Col, DatePicker, Form, Input, Row, Select } from 'antd';
+import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, idem, unwrap } from '@/api/client';
 import { useAction } from '@/api/queries';
 import type { DocumentLevel, DocumentType } from '@/api/types';
-import { DeptSelect, UserPicker } from '@/components/pickers';
+import { toISODate } from '@/components/dates';
+import { DeptSelectInput, UserSelectInput } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Badge, Button, Card, ErrorBox, Notice, PageHeader, SelectField, TextField } from '@/components/ui';
+import { Badge, Button, Card, ErrorBox, Notice, PageHeader } from '@/components/ui';
 import { docLevelLabel, docStatusLabel, docTypeLabel } from '@/lib/labels';
 import { validateDocumentRegistration, type DocumentRegistration } from './validate';
 
 const TYPES: DocumentType[] = ['QD', 'QT', 'HD', 'BM'];
+const LEVELS: DocumentLevel[] = ['VCPV', 'DEPT'];
+
+/** Giá trị trong antd Form: ô chọn để undefined khi trống (hiện placeholder), hạn soạn là dayjs. */
+type FormValues = {
+  type?: DocumentType;
+  level?: DocumentLevel;
+  title: string;
+  departmentId?: string;
+  drafterId?: string;
+  checkerId?: string;
+  dueDate: Dayjs | null;
+};
+
+function toRegistration(v: Partial<FormValues>): DocumentRegistration {
+  return {
+    type: v.type ?? '',
+    level: v.level ?? '',
+    title: v.title ?? '',
+    departmentId: v.departmentId ?? '',
+    drafterId: v.drafterId ?? '',
+    checkerId: v.checkerId ?? '',
+    dueDate: toISODate(v.dueDate),
+  };
+}
 
 export default function RegisterDocumentPage() {
   const { me } = useAuth();
   const router = useRouter();
   const toast = useToast();
-  const [f, setF] = useState<DocumentRegistration>({ type: '', level: '', title: '', departmentId: me.departmentId ?? '', drafterId: '', checkerId: '', dueDate: '' });
-  const [touched, setTouched] = useState(false);
-  const set = <K extends keyof DocumentRegistration>(k: K) => (v: DocumentRegistration[K]) => setF((x) => ({ ...x, [k]: v }));
-
-  // BR-02: Quy định chỉ đăng ký ở cấp VCPV.
-  useEffect(() => {
-    if (f.type === 'QD' && f.level !== 'VCPV') setF((x) => ({ ...x, level: 'VCPV' }));
-  }, [f.type, f.level]);
+  const [form] = Form.useForm<FormValues>();
+  const type = Form.useWatch('type', form);
+  const title = Form.useWatch('title', form) ?? '';
 
   const [debouncedTitle, setDebounced] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(f.title.trim()), 400);
+    const t = setTimeout(() => setDebounced(title.trim()), 400);
     return () => clearTimeout(t);
-  }, [f.title]);
+  }, [title]);
   const similar = useQuery({
     queryKey: ['documents', 'similar', debouncedTitle],
     enabled: debouncedTitle.length >= 4,
     queryFn: () => unwrap(api.GET('/documents/similar', { params: { query: { title: debouncedTitle } } })).then((r) => r.items),
   });
 
-  const errors = validateDocumentRegistration(f);
+  /** Mỗi ô kiểm bằng validateDocumentRegistration để quy tắc (BR-02…) và thông điệp chỉ có một nơi. */
+  const ruleFor = (key: keyof DocumentRegistration) => ({
+    validator: () => {
+      const err = validateDocumentRegistration(toRegistration(form.getFieldsValue(true)))[key];
+      return err ? Promise.reject(new Error(err)) : Promise.resolve();
+    },
+  });
+
   const save = useAction(
-    (_: void, key: string) =>
+    (f: DocumentRegistration, key: string) =>
       unwrap(
         api.POST('/documents', {
           body: {
@@ -70,28 +99,38 @@ export default function RegisterDocumentPage() {
     <>
       <PageHeader title="Đăng ký tài liệu" subtitle="Đăng ký để được cấp mã và giao người soạn." back={{ href: '/tai-lieu', label: 'Tài liệu' }} />
       <Card>
-        <form
-          className="form"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (Object.keys(errors).length === 0) save.mutate();
+        <Form<FormValues>
+          form={form}
+          layout="vertical"
+          style={{ maxWidth: 640 }}
+          initialValues={{ title: '', departmentId: me.departmentId || undefined, dueDate: null }}
+          onValuesChange={(changed, all) => {
+            // BR-02: Quy định chỉ đăng ký ở cấp VCPV.
+            if (changed.type === 'QD' && all.level !== 'VCPV') form.setFieldValue('level', 'VCPV');
           }}
+          onFinish={(v) => save.mutate(toRegistration(v))}
         >
-          <div className="form-row">
-            <SelectField label="Loại tài liệu" value={f.type} onChange={set('type')} required error={touched ? errors.type : undefined} options={TYPES.map((t) => ({ value: t, label: docTypeLabel[t] }))} />
-            <SelectField
-              label="Cấp"
-              value={f.level}
-              onChange={set('level')}
-              required
-              error={touched ? errors.level : undefined}
-              hint={f.type === 'QD' ? 'Quy định chỉ ban hành ở cấp công ty.' : 'Liên quan từ 2 phòng trở lên thì chọn cấp công ty.'}
-              options={(['VCPV', 'DEPT'] as DocumentLevel[]).map((l) => ({ value: l, label: docLevelLabel[l], disabled: f.type === 'QD' && l === 'DEPT' }))}
-            />
-          </div>
-          <TextField label="Tên tài liệu" value={f.title} onChange={set('title')} required error={touched ? errors.title : undefined} />
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="type" label="Loại tài liệu" required rules={[ruleFor('type')]}>
+                <Select placeholder="— Chọn —" options={TYPES.map((t) => ({ value: t, label: docTypeLabel[t] }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="level"
+                label="Cấp"
+                required
+                rules={[ruleFor('level')]}
+                extra={type === 'QD' ? 'Quy định chỉ ban hành ở cấp công ty.' : 'Liên quan từ 2 phòng trở lên thì chọn cấp công ty.'}
+              >
+                <Select placeholder="— Chọn —" options={LEVELS.map((l) => ({ value: l, label: docLevelLabel[l], disabled: type === 'QD' && l === 'DEPT' }))} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="title" label="Tên tài liệu" required rules={[ruleFor('title')]}>
+            <Input maxLength={200} />
+          </Form.Item>
           {similar.data && similar.data.length > 0 && (
             <Notice tone="warn">
               <div>
@@ -109,19 +148,23 @@ export default function RegisterDocumentPage() {
               </div>
             </Notice>
           )}
-          <DeptSelect label="Phòng soạn" value={f.departmentId} onChange={set('departmentId')} required />
-          {touched && errors.departmentId && <p className="field-error">{errors.departmentId}</p>}
-          <UserPicker label="Người soạn" value={f.drafterId} onChange={set('drafterId')} required />
-          {touched && errors.drafterId && <p className="field-error">{errors.drafterId}</p>}
-          <UserPicker label="Người kiểm tra" value={f.checkerId} onChange={set('checkerId')} hint="Không bắt buộc" />
-          <TextField label="Hạn soạn" type="date" value={f.dueDate} onChange={set('dueDate')} />
+          <Form.Item name="departmentId" label="Phòng soạn" required rules={[ruleFor('departmentId')]}>
+            <DeptSelectInput required />
+          </Form.Item>
+          <Form.Item name="drafterId" label="Người soạn" required rules={[ruleFor('drafterId')]}>
+            <UserSelectInput required />
+          </Form.Item>
+          <Form.Item name="checkerId" label="Người kiểm tra" extra="Không bắt buộc" rules={[ruleFor('checkerId')]}>
+            <UserSelectInput />
+          </Form.Item>
+          <Form.Item name="dueDate" label="Hạn soạn">
+            <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+          </Form.Item>
           <ErrorBox error={save.error} />
-          <div className="form-actions">
-            <Button type="submit" variant="primary" loading={save.isPending}>
-              Đăng ký
-            </Button>
-          </div>
-        </form>
+          <Button type="submit" variant="primary" loading={save.isPending}>
+            Đăng ký
+          </Button>
+        </Form>
       </Card>
     </>
   );

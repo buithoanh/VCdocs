@@ -17,6 +17,9 @@ import { canonical } from '../../audit/audit.service';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+// Lease của một lượt tải: đủ cho tệp 10 MiB qua kho chậm; quá hạn thì retry cùng key được nhận lại lượt.
+const UPLOAD_LEASE_MS = 2 * 60_000;
+const UPLOAD_MIME = ['text/plain', 'application/octet-stream', DOCX, XLSX, PPTX, 'application/pdf'];
 type EditorTicket = { fileId: string; companyId: string; userId: string; email: string; exp: number; mode: 'edit' | 'view';
   purpose: 'content' | 'callback' };
 // Token API tự ký (cấu hình trình duyệt, converter) mang iss này; callback từ chối mọi token có iss này.
@@ -32,11 +35,15 @@ export class DriveBasicService {
 
   private cid(ctx: Ctx) { return new Types.ObjectId(ctx.companyId); }
   private uid(ctx: Ctx) { return new Types.ObjectId(ctx.user.id); }
-  private actor(ctx: Ctx) { return { email: ctx.user.email }; }
+  private actor(ctx: Ctx) { return { email: ctx.user.email, companyId: ctx.companyId }; }
   // Quyền suy từ phòng ban và R4 hiện tại của user; dòng WorkspaceSpaceMember chỉ là bản đối soát,
   // không phải nguồn quyền (đổi phòng hoặc mất R4 phải có hiệu lực ngay, kể cả với vé editor và link).
   private roleIn(space: any, user: { id: string; departmentId?: string; systemRoles: string[] }): 'manager' | 'reader' | undefined {
-    if (space.kind === 'personal') return space.ownerUserId && String(space.ownerUserId) === user.id ? 'manager' : undefined;
+    if (space.kind === 'personal') {
+      if (space.ownerUserId && String(space.ownerUserId) === user.id) return 'manager';
+      // Không gian cá nhân của người đã nghỉ, bàn giao (M10) cho người nhận ở quyền chỉ đọc.
+      return (space.handoverReaderIds ?? []).some((id: any) => String(id) === user.id) ? 'reader' : undefined;
+    }
     if (space.kind !== 'department' || !space.departmentId || !user.departmentId
       || String(space.departmentId) !== String(user.departmentId)) return undefined;
     return user.systemRoles.includes('R4') ? 'manager' : 'reader';
@@ -102,6 +109,12 @@ export class DriveBasicService {
       { upsert: true });
       await this.storage.ensureFolder(space.rootStorageKey, this.actor(ctx));
     }
+    const handed = await this.db.m.WorkspaceSpace.find({ companyId: this.cid(ctx), kind: 'personal', handoverReaderIds: this.uid(ctx) }, { _id: 1 }).lean<any[]>();
+    for (const space of handed) {
+      current.push(space._id);
+      await this.db.m.WorkspaceSpaceMember.updateOne({ companyId: this.cid(ctx), spaceId: space._id, userId: this.uid(ctx) },
+        { $set: { role: 'reader', updatedBy: this.uid(ctx) }, $setOnInsert: { createdBy: this.uid(ctx) } }, { upsert: true });
+    }
     // Đối soát: bỏ dòng thành viên của không gian không còn khớp phòng ban/chủ sở hữu hiện tại.
     await this.db.m.WorkspaceSpaceMember.deleteMany({ companyId: this.cid(ctx), userId: this.uid(ctx), spaceId: { $nin: current } });
   }
@@ -111,7 +124,7 @@ export class DriveBasicService {
     const spaces = await this.db.m.WorkspaceSpace.find({ companyId: this.cid(ctx), _id: { $in: memberships.map((m) => m.spaceId) } }).lean<any[]>();
     return { items: spaces.flatMap((s) => {
       const role = this.roleIn(s, ctx.user);
-      return role ? [{ ...toApi(s, ['rootStorageKey']), rootFolderId: String(s._id), role, allowedActions: this.actions('space', role) }] : [];
+      return role ? [{ ...toApi(s, ['rootStorageKey', 'handoverReaderIds']), rootFolderId: String(s._id), role, allowedActions: this.actions('space', role) }] : [];
     }) };
   }
   async items(ctx: Ctx, spaceId: string, parentId?: string) {
@@ -130,15 +143,20 @@ export class DriveBasicService {
     const space = await this.db.m.WorkspaceSpace.findOne({ _id: spaceId, companyId: this.cid(ctx) }).lean<any>();
     if (!space) throw Errors.notFound('Không tìm thấy không gian');
     if (!parentId) return space.rootStorageKey + '/' + leaf;
-    const parent = await this.db.m.WorkspaceDriveItem.findOne({ _id: parentId, companyId: this.cid(ctx),
-      spaceId: new Types.ObjectId(spaceId), kind: 'folder' }).lean<any>();
-    if (!parent) throw Errors.notFound('Không tìm thấy thư mục cha');
+    const parent = await this.activeParent(ctx, spaceId, parentId);
     return parent.storageKey + '/' + leaf;
+  }
+  /** Thư mục cha phải cùng không gian, là thư mục và chưa bỏ thùng rác. */
+  private async activeParent(ctx: Ctx, spaceId: string, parentId: string) {
+    const parent = Types.ObjectId.isValid(parentId) && await this.db.m.WorkspaceDriveItem.findOne({ _id: parentId, companyId: this.cid(ctx),
+      spaceId: new Types.ObjectId(spaceId), kind: 'folder', trashedAt: { $exists: false } }).lean<any>();
+    if (!parent) throw Errors.notFound('Không tìm thấy thư mục cha');
+    return parent;
   }
   private async assertNameAvailable(ctx: Ctx, spaceId: string, parentId: string | undefined, name: string, excludeId?: Types.ObjectId) {
     const exists = await this.db.m.WorkspaceDriveItem.exists({ companyId: this.cid(ctx),
       spaceId: new Types.ObjectId(spaceId), parentId: parentId ? new Types.ObjectId(parentId) : { $exists: false }, name,
-      ...(excludeId ? { _id: { $ne: excludeId } } : {}) });
+      trashedAt: { $exists: false }, ...(excludeId ? { _id: { $ne: excludeId } } : {}) });
     if (exists) throw Errors.storageConflict();
   }
   async createFolder(ctx: Ctx, input: { spaceId: string; parentId?: string; name: string }) {
@@ -165,23 +183,16 @@ export class DriveBasicService {
     await this.assertManager(ctx, input.spaceId);
     if (!file) throw Errors.validation('Thiếu tệp');
     if (file.size > 10 * 1024 * 1024) throw Errors.tooLarge('Tệp Drive cơ bản tối đa 10 MiB');
-    if (!['text/plain', 'application/octet-stream', DOCX, XLSX, PPTX, 'application/pdf'].includes(file.mimetype)) throw Errors.unsupportedMedia();
+    if (!UPLOAD_MIME.includes(file.mimetype)) throw Errors.unsupportedMedia();
     const fingerprint = sha256([input.spaceId, input.parentId || '', file.originalname, file.mimetype,
       String(file.size), sha256(file.buffer), canonical(input.provenance ?? {})].join('|'));
-    const existing = await this.db.m.UploadAttempt.findOne({ companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key }).lean<any>();
-    if (existing) {
-      if (existing.fingerprint !== fingerprint) throw Errors.state('Idempotency-Key đã dùng cho nội dung khác');
-      if (existing.state === 'done') return this.file(ctx, String(existing.itemId));
-    }
+    if (input.parentId) await this.activeParent(ctx, input.spaceId, input.parentId);
+    const attempt = await this.claimUpload(ctx, input.spaceId, key, fingerprint);
+    if (attempt.done) return this.file(ctx, String(attempt.done));
+    const { existing, leaseToken } = attempt;
     if (!existing) await this.assertNameAvailable(ctx, input.spaceId, input.parentId, file.originalname);
-    const id = existing?.itemId ? new Types.ObjectId(existing.itemId) : new Types.ObjectId();
-    if (!existing) {
-      await this.db.m.UploadAttempt.create({ companyId: this.cid(ctx), userId: this.uid(ctx),
-        spaceId: new Types.ObjectId(input.spaceId), idempotencyKey: key, fingerprint, state: 'pending', itemId: id });
-    } else {
-      await this.db.m.UploadAttempt.updateOne({ _id: existing._id, companyId: this.cid(ctx) },
-        { $set: { state: 'pending' }, $unset: { errorCode: 1 } });
-    }
+    const id = existing?.itemId ? new Types.ObjectId(existing.itemId) : attempt.itemId;
+    const owned = { companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key, leaseToken };
     try {
       // Blob phiên bản nằm ở khóa bất biến ngoài cây tên/cha. Vì vậy rename/move
       // metadata không làm mất khả năng đọc lại một phiên bản cũ.
@@ -202,28 +213,69 @@ export class DriveBasicService {
         }
       }
       if (stored.sha256 !== sha256(file.buffer)) throw Errors.storageIntegrity();
-      const row = await this.db.m.WorkspaceDriveItem.create({ _id: id, companyId: this.cid(ctx),
+      // Lượt trước có thể đã tạo item/version rồi lỗi ở bước sau: dùng lại thay vì tạo trùng _id (409 vĩnh viễn).
+      let row = existing ? await this.db.m.WorkspaceDriveItem.findOne({ _id: id, companyId: this.cid(ctx),
+        spaceId: new Types.ObjectId(input.spaceId) }) : null;
+      if (!row) row = await this.db.m.WorkspaceDriveItem.create({ _id: id, companyId: this.cid(ctx),
         spaceId: new Types.ObjectId(input.spaceId), parentId: input.parentId ? new Types.ObjectId(input.parentId) : undefined,
         kind: 'file', name: file.originalname, mimeType: file.mimetype, size: file.size,
         contentSha256: stored.sha256, storageKey: stored.key, versionNumber: 1,
         createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
-      const version = await this.db.m.WorkspaceDriveVersion.create({ companyId: this.cid(ctx), fileId: id,
-        number: 1, storageKey: stored.key, mimeType: file.mimetype, size: file.size,
-        contentSha256: stored.sha256, provenance: input.provenance, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
-      row.currentVersionId = version._id;
-      await row.save();
-      await this.db.m.UploadAttempt.updateOne({ companyId: this.cid(ctx), userId: this.uid(ctx),
-        idempotencyKey: key, itemId: id }, { $set: { state: 'done' } });
+      const version = (existing && await this.db.m.WorkspaceDriveVersion.findOne({ companyId: this.cid(ctx), fileId: id, number: 1 }))
+        || await this.db.m.WorkspaceDriveVersion.create({ companyId: this.cid(ctx), fileId: id,
+          number: 1, storageKey: stored.key, mimeType: file.mimetype, size: file.size,
+          contentSha256: stored.sha256, provenance: input.provenance, createdBy: this.uid(ctx), updatedBy: this.uid(ctx) });
+      if (!row.currentVersionId) {
+        row.currentVersionId = version._id;
+        await row.save();
+      }
+      const finished = await this.db.m.UploadAttempt.updateOne(owned, { $set: { state: 'done' }, $unset: { leaseToken: 1, leaseUntil: 1 } });
+      if (finished.matchedCount !== 1) throw Errors.state('Lượt tải cùng Idempotency-Key đang được request khác xử lý');
       await this.audit.record(ctx, { action: 'workspace_drive.file.upload', objectType: 'workspace_drive_item',
         objectId: id.toHexString(), after: { spaceId: input.spaceId, name: file.originalname,
           mimeType: file.mimetype, size: file.size, contentSha256: stored.sha256 } });
       return { ...toApi(row.toObject()), allowedActions: ['download'] };
     } catch (error: any) {
-      await this.db.m.UploadAttempt.updateOne({ companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key }, { $set: { state: 'failed', errorCode: error?.code || 'INTERNAL' } });
+      await this.db.m.UploadAttempt.updateOne(owned, { $set: { state: 'failed', errorCode: error?.code || 'INTERNAL' },
+        $unset: { leaseToken: 1, leaseUntil: 1 } });
       if (error?.code === 11000) throw Errors.storageConflict();
       throw error;
     }
   }
+  /**
+   * Giữ lượt tải theo Idempotency-Key: tạo mới hoặc nhận lại lượt failed/pending đã hết lease bằng một thao tác
+   * nguyên tử, để hai request cùng key không cùng ghi. Lượt đang chạy (lease còn hạn) trả 409, client thử lại sau.
+   */
+  private async claimUpload(ctx: Ctx, spaceId: string, key: string, fingerprint: string):
+    Promise<{ done?: Types.ObjectId; existing?: any; leaseToken: string; itemId: Types.ObjectId }> {
+    const filter = { companyId: this.cid(ctx), userId: this.uid(ctx), idempotencyKey: key };
+    const leaseToken = new Types.ObjectId().toHexString(), itemId = new Types.ObjectId();
+    const leaseUntil = () => new Date(Date.now() + UPLOAD_LEASE_MS);
+    let existing = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+    if (!existing) {
+      try {
+        await this.db.m.UploadAttempt.create({ ...filter, spaceId: new Types.ObjectId(spaceId), fingerprint, state: 'pending',
+          itemId, leaseToken, leaseUntil: leaseUntil() });
+        return { leaseToken, itemId };
+      } catch (error: any) {
+        if (error?.code !== 11000) throw error;
+        existing = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+        if (!existing) throw Errors.state('Lượt tải cùng Idempotency-Key chưa thể đối soát');
+      }
+    }
+    if (existing.fingerprint !== fingerprint) throw Errors.state('Idempotency-Key đã dùng cho nội dung khác');
+    if (existing.state === 'done') return { done: existing.itemId, leaseToken, itemId };
+    const claimed = await this.db.m.UploadAttempt.findOneAndUpdate({ _id: existing._id, companyId: this.cid(ctx), state: { $ne: 'done' },
+      $or: [{ state: 'failed' }, { leaseUntil: { $lte: new Date() } }, { leaseUntil: { $exists: false } }] },
+    { $set: { state: 'pending', leaseToken, leaseUntil: leaseUntil() }, $unset: { errorCode: 1 } }, { new: true }).lean<any>();
+    if (!claimed) {
+      const latest = await this.db.m.UploadAttempt.findOne(filter).lean<any>();
+      if (latest?.state === 'done') return { done: latest.itemId, leaseToken, itemId };
+      throw Errors.state('Lượt tải cùng Idempotency-Key đang được request khác xử lý');
+    }
+    return { existing: claimed, leaseToken, itemId };
+  }
+
   async file(ctx: Ctx, fileId: string) {
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: fileId, companyId: this.cid(ctx), kind: 'file',
       trashedAt: { $exists: false } }).lean<any>();
@@ -299,7 +351,10 @@ export class DriveBasicService {
     if (member.role !== 'manager') throw Errors.forbidden('Không gian này chỉ cho phép đọc');
     if (!file) throw Errors.validation('Thiếu tệp');
     if (file.size > 10 * 1024 * 1024) throw Errors.tooLarge('Tệp Drive tối đa 10 MiB');
-    if (!['text/plain', 'application/octet-stream', DOCX, 'application/pdf'].includes(file.mimetype)) throw Errors.unsupportedMedia();
+    // Phiên bản mới giữ đúng loại tệp: không đổi DOCX thành PDF, và gói Office phải hợp lệ như bản do editor lưu.
+    if (!UPLOAD_MIME.includes(file.mimetype) || file.mimetype !== row.mimeType) throw Errors.unsupportedMedia();
+    const kind = officeKind(file.mimetype, row.name);
+    if (kind && !validOfficePackage(file.buffer, kind)) throw Errors.validation('Gói Office không hợp lệ');
     const number = Number(row.versionNumber || 1) + 1;
     const key = await this.itemStorageKey(ctx, String(row.spaceId), undefined,
       `version-${fileId}-v${number}-${new Types.ObjectId().toHexString()}`);
@@ -390,9 +445,16 @@ export class DriveBasicService {
         companyId: this.cid(ctx), trashedAt: { $exists: false } });
       if (!parent) throw Errors.state('Thư mục cha cũ không còn hoạt động');
     }
-    await this.db.m.WorkspaceDriveItem.updateMany({ companyId: this.cid(ctx), trashedRootId: row._id }, {
-      $unset: { trashedAt: 1, trashedFromParentId: 1, trashedRootId: 1 }, $set: { updatedBy: this.uid(ctx) },
-    });
+    // Tên cũ có thể đã được mục khác dùng sau khi bỏ thùng rác: báo trùng tên, đổi tên rồi khôi phục.
+    await this.assertNameAvailable(ctx, String(row.spaceId), row.parentId ? String(row.parentId) : undefined, row.name, row._id);
+    try {
+      await this.db.m.WorkspaceDriveItem.updateMany({ companyId: this.cid(ctx), trashedRootId: row._id }, {
+        $unset: { trashedAt: 1, trashedFromParentId: 1, trashedRootId: 1 }, $set: { updatedBy: this.uid(ctx) },
+      });
+    } catch (error: any) {
+      if (error?.code === 11000) throw Errors.storageConflict();
+      throw error;
+    }
     await this.audit.record(ctx, { action: 'workspace_drive.item.restore', objectType: 'workspace_drive_item', objectId: itemId,
       after: { parentId: row.parentId || null } });
     const restored = await this.db.m.WorkspaceDriveItem.findOne({ _id: row._id, companyId: this.cid(ctx) }).lean<any>();
@@ -442,6 +504,18 @@ export class DriveBasicService {
     return `${header}.${body}.${this.sign(`${header}.${body}`)}`;
   }
 
+  /**
+   * Key phiên ONLYOFFICE của version hiện tại. Forcesave (status 6) tạo version mới nhưng Document Server
+   * vẫn giữ phiên và key cũ, nên khi version hiện tại do forcesave của key K tạo ra thì phiên K vẫn là phiên
+   * hiện hành: người mở sau nhận K để vào chung phiên, callback sau của K vẫn được lưu. Status 2 đóng phiên;
+   * tải version, khôi phục hay lưu khi đóng đều làm version hiện tại không còn gắn với phiên mở nào.
+   */
+  private async editorSessionKey(companyId: string, fileId: string, file: { versionNumber?: number; currentVersionId?: unknown }) {
+    const open = file.currentVersionId && await this.db.m.WorkspaceEditorSave.findOne({ companyId, fileId,
+      versionId: file.currentVersionId, status: 'saved', callbackStatus: 6 }).lean<any>();
+    return open?.editorKey || `vcw-${fileId}-v${file.versionNumber}`;
+  }
+
   async editorConfig(ctx: Ctx, fileId: string) {
     if (!this.cfg.documentEditor.enabled) throw Errors.state('Trình soạn thảo đang tắt');
     const file: any = await this.file(ctx, fileId);
@@ -456,7 +530,7 @@ export class DriveBasicService {
     const api = this.cfg.documentEditor.apiOriginForEditor.replace(/\/$/, '');
     const config: any = {
       documentType: kind === 'document' ? 'word' : kind === 'spreadsheet' ? 'cell' : 'slide',
-      document: { fileType: kind === 'document' ? 'docx' : kind === 'spreadsheet' ? 'xlsx' : 'pptx', key: `vcw-${fileId}-v${file.versionNumber}`, title: file.name,
+      document: { fileType: kind === 'document' ? 'docx' : kind === 'spreadsheet' ? 'xlsx' : 'pptx', key: await this.editorSessionKey(ctx.companyId, fileId, file), title: file.name,
         url: `${api}/api/v1/drive/editor/content?ticket=${encodeURIComponent(contentTicket)}`,
         permissions: { edit: mode === 'edit', download: true, print: true, comment: mode === 'edit' },
         referenceData: { fileKey: fileId, instanceId: api } },
@@ -506,7 +580,7 @@ export class DriveBasicService {
     const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId,
       kind: 'file', trashedAt: { $exists: false } }).lean<any>();
     if (!row || !await this.ticketRole(ticket, row.spaceId)) throw Errors.notFound('Không tìm thấy văn bản');
-    const stored = await this.storage.get(row.storageKey, { email: ticket.email });
+    const stored = await this.storage.get(row.storageKey, { email: ticket.email, companyId: ticket.companyId });
     if (stored.sha256 !== row.contentSha256) throw Errors.storageIntegrity();
     return { row, bytes: stored.bytes! };
   }
@@ -540,12 +614,14 @@ export class DriveBasicService {
     const save = existing || await this.db.m.WorkspaceEditorSave.create({ companyId: ticket.companyId,
       createdBy: ticket.userId, updatedBy: ticket.userId, fileId: ticket.fileId, editorKey, callbackFingerprint: fingerprint, status: 'saving' });
     try {
-      const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file' }).lean<any>();
+      // Tệp trong thùng rác không nhận bản lưu mới; khôi phục rồi phiên cũ (cùng key) lưu tiếp được.
+      const row = await this.db.m.WorkspaceDriveItem.findOne({ _id: ticket.fileId, companyId: ticket.companyId, kind: 'file',
+        trashedAt: { $exists: false } }).lean<any>();
       if (!row) throw new Error('NOT_FOUND');
       if (await this.ticketRole(ticket, row.spaceId) !== 'manager') throw new Error('EDITOR_FORBIDDEN');
-      // Hai phiên cùng version dùng chung key. Sau khi một callback đã tạo version
-      // mới, callback khác mang key cũ không được ghi đè currentVersion.
-      if (editorKey !== `vcw-${ticket.fileId}-v${row.versionNumber}`) throw new Error('EDITOR_STALE_VERSION');
+      // Chỉ phiên hiện hành được ghi. Phiên đã đóng (status 2) hoặc bị version khác (tải lên, khôi phục)
+      // vượt qua thì callback mang key cũ không được ghi đè currentVersion.
+      if (editorKey !== await this.editorSessionKey(ticket.companyId, ticket.fileId, row)) throw new Error('EDITOR_STALE_VERSION');
       const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error('EDITOR_DOWNLOAD_FAILED');
       const bytes = Buffer.from(await response.arrayBuffer());
@@ -553,7 +629,7 @@ export class DriveBasicService {
       if (!kind || bytes.length > 10 * 1024 * 1024 || !validOfficePackage(bytes, kind)) throw new Error('EDITOR_INVALID_OOXML');
       const number = Number(row.versionNumber || 1) + 1;
       const key = `${String(row.storageKey).split('/').slice(0, -1).join('/')}/version-${ticket.fileId}-v${number}-${new Types.ObjectId().toHexString()}`;
-      const stored = await this.storage.put(key, bytes, { email: ticket.email });
+      const stored = await this.storage.put(key, bytes, { email: ticket.email, companyId: ticket.companyId });
       if (stored.sha256 !== sha256(bytes)) throw new Error('STORAGE_INTEGRITY_MISMATCH');
       const version = await this.db.m.WorkspaceDriveVersion.create({ companyId: ticket.companyId, fileId: row._id,
         number, storageKey: key, mimeType: row.mimeType, size: bytes.length, contentSha256: stored.sha256,
@@ -561,7 +637,7 @@ export class DriveBasicService {
       await this.db.m.WorkspaceDriveItem.updateOne({ _id: row._id, companyId: ticket.companyId }, { $set: {
         storageKey: key, currentVersionId: version._id, versionNumber: number, mimeType: row.mimeType, size: bytes.length,
         contentSha256: stored.sha256, updatedBy: new Types.ObjectId(ticket.userId) } });
-      await this.db.m.WorkspaceEditorSave.updateOne({ _id: save._id, companyId: ticket.companyId }, { $set: { status: 'saved', versionId: version._id } });
+      await this.db.m.WorkspaceEditorSave.updateOne({ _id: save._id, companyId: ticket.companyId }, { $set: { status: 'saved', versionId: version._id, callbackStatus: status } });
       const auditId = await this.audit.write({ companyId: ticket.companyId, userId: ticket.userId, email: ticket.email }, {
         action: 'workspace_drive.editor.save', objectType: 'workspace_drive_item', objectId: ticket.fileId,
         after: { editorKey, status, versionId: String(version._id), number, size: bytes.length, contentSha256: stored.sha256 },

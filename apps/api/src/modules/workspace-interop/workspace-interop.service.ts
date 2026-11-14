@@ -11,6 +11,7 @@ import { DriveBasicService } from '../drive-basic/drive-basic.service';
 import { officeKind, validOfficePackage } from '../drive-basic/ooxml';
 import { MailBasicService } from '../mail-basic/mail-basic.service';
 import { APP_CONFIG, AppConfig } from '../../config/config';
+import { toApi } from '../../common/util';
 
 const MAX = 10 * 1024 * 1024;
 const ALLOWED = new Set(['application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation','application/pdf','text/plain','application/octet-stream']);
@@ -67,8 +68,17 @@ export class WorkspaceInteropService {
     let link=await this.db.m.WorkspaceDriveShareLink.findOne({companyId:this.cid(ctx),createdBy:new Types.ObjectId(ctx.user.id),idempotencyKey:key}).lean<any>();
     if(link&&link.fingerprint!==fingerprint)throw Errors.state('Idempotency-Key đã dùng cho tệp, version hoặc người nhận khác');
     if(!link){const token=randomBytes(24).toString('base64url'),tokenHash=createHash('sha256').update(token).digest('hex');try{link=(await this.db.m.WorkspaceDriveShareLink.create({companyId:this.cid(ctx),fileId:selected.meta.id,versionId:selected.version.id,contentSha256:selected.version.contentSha256,recipients,idempotencyKey:key,fingerprint,token,tokenHash,expiresAt:new Date(Date.now()+7*24*60*60*1000),createdBy:new Types.ObjectId(ctx.user.id),updatedBy:new Types.ObjectId(ctx.user.id)})).toObject();}catch(error:any){if(error?.code!==11000)throw error;link=await this.db.m.WorkspaceDriveShareLink.findOne({companyId:this.cid(ctx),createdBy:new Types.ObjectId(ctx.user.id),idempotencyKey:key}).lean<any>();if(!link)throw Errors.state('Lượt tạo link đồng thời chưa thể đối soát');if(link.fingerprint!==fingerprint)throw Errors.state('Idempotency-Key đã dùng cho tệp, version hoặc người nhận khác');}}
+    // Thư đã gửi: token rõ đã bị xoá, trả lại đúng thư cũ thay vì gửi thư mới.
+    if(!link.token){
+      const message=link.sentMessageId&&await this.db.m.WorkspaceMailMessage.findOne({_id:link.sentMessageId,companyId:this.cid(ctx)}).lean<any>();
+      if(!message)throw Errors.state('Link đã tạo nhưng không còn đối soát được thư đã gửi');
+      return toApi(message,['companyId','engineId','engineOwner','searchText','searchBody']);
+    }
     const url=`${this.cfg.webOrigin}/bo-nho/lien-ket#${link.token}`;
-    return this.mail.send(ctx, { to, subject:body.subject, text:`${String(body.text||'')}\n\n${url}`, fromIdentity:body.fromIdentity }, `drive-link:${key}`);
+    const sent:any=await this.mail.send(ctx, { to, subject:body.subject, text:`${String(body.text||'')}\n\n${url}`, fromIdentity:body.fromIdentity }, `drive-link:${key}`);
+    // Review O14: CSDL không giữ token dùng được sau khi người nhận đã có link trong thư.
+    await this.db.m.WorkspaceDriveShareLink.updateOne({_id:link._id,companyId:this.cid(ctx)},{$unset:{token:1},$set:{sentMessageId:new Types.ObjectId(String(sent.id))}});
+    return sent;
   }
   async downloadLink(ctx: Ctx, token: string) {
     const tokenHash=createHash('sha256').update(String(token)).digest('hex'), row=await this.db.m.WorkspaceDriveShareLink.findOne({ companyId:this.cid(ctx), tokenHash, expiresAt:{$gt:new Date()}, revokedAt:{$exists:false} }).lean<any>();

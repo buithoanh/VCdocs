@@ -174,9 +174,13 @@ describe('Identity lifecycle coordinator sản phẩm', () => {
     });
     try {
       const fenced = await r9.post('/identity/lifecycle-operations', { subject, email: 'fenced-commit@vcprosperous.com', groups: [], active: true }, { idem: 'commit-fence-12b' });
-      expect(fenced).toMatchObject({ status: 201, body: expect.objectContaining({ status: 'superseded' }) });
+      // Review O12: lease bị process khác lấy mà không có revision mới là LEASE_LOST (partial, retry được),
+      // không còn superseded vĩnh viễn. Binding vẫn giữ pending-deny của revision này.
+      expect(fenced.status).toBe(503);
+      const row = await t.db.m.IdentityLifecycleOperation.findOne({ companyId: t.ids.companyId, idempotencyKey: 'commit-fence-12b' }).lean<any>();
+      expect(row).toMatchObject({ status: 'partial', lastError: 'LIFECYCLE_LEASE_LOST' });
       const binding = await t.db.m.OidcIdentity.findOne({ companyId: t.ids.companyId, subject }).lean<any>();
-      expect(binding).toMatchObject({ active: false, projectionPendingRevision: fenced.body.subjectRevision });
+      expect(binding).toMatchObject({ active: false, projectionPendingRevision: row.subjectRevision });
     } finally { spy.mockRestore(); }
     const restored = await r9.post('/identity/lifecycle-operations', { subject, email: 'fenced-commit@vcprosperous.com', groups: [], active: true }, { idem: 'commit-fence-recovery-12b' });
     expect(restored).toMatchObject({ status: 201, body: expect.objectContaining({ status: 'done' }) });
@@ -236,5 +240,27 @@ describe('Identity lifecycle coordinator sản phẩm', () => {
     expect([403, 404]).toContain(outsiderList.status);
     const outsiderWrite = await outsider.patch(`/api/v1/drive/items/${folder.body.id}`).set('Cookie', `vcdocs_sid=${outsiderSid.sid}`).set('X-CSRF-Token', outsiderSid.csrfToken).send({ name: 'leak.txt' });
     expect([403, 404]).toContain(outsiderWrite.status);
+  });
+
+  it('review O12: bước upstream chậm hơn lease 30 giây vẫn hoàn tất khi không có revision mới', async () => {
+    const r9 = await t.login('it'), port = t.app.get(IDENTITY_LIFECYCLE_PORT) as FakeIdentityLifecyclePort;
+    port.holdNextMs = 200;
+    // Trong lúc Authentik chậm, lease của subject quá hạn nhưng không process nào nhận lại (token giữ nguyên).
+    port.onHold = () => { void t.db.m.IdentityLifecycleSubject.updateOne({ companyId: t.ids.companyId, subject }, { $set: { leaseUntil: new Date(Date.now() - 1_000) } }).exec(); };
+    const slow = await r9.post('/identity/lifecycle-operations', { subject, email: 'slow-step@vcprosperous.com', groups: [], active: true }, { idem: 'review-o12-slow-step' });
+    expect(slow).toMatchObject({ status: 201, body: expect.objectContaining({ status: 'done' }) });
+    expect((await t.db.m.OidcIdentity.findOne({ companyId: t.ids.companyId, subject }).lean<any>())).toMatchObject({ email: 'slow-step@vcprosperous.com', active: true });
+  });
+
+  it('review O12: process khác đã nhận lại lease thì operation cũ thành partial (retry được), không superseded', async () => {
+    const r9 = await t.login('it'), port = t.app.get(IDENTITY_LIFECYCLE_PORT) as FakeIdentityLifecyclePort;
+    port.holdNextMs = 200;
+    port.onHold = () => { void t.db.m.IdentityLifecycleSubject.updateOne({ companyId: t.ids.companyId, subject }, { $set: { leaseToken: 'other-worker', leaseUntil: new Date(Date.now() - 1_000) } }).exec(); };
+    const lost = await r9.post('/identity/lifecycle-operations', { subject, email: 'lease-lost@vcprosperous.com', groups: [], active: true }, { idem: 'review-o12-lease-lost' });
+    expect(lost.status).toBe(503);
+    const row = await t.db.m.IdentityLifecycleOperation.findOne({ companyId: t.ids.companyId, idempotencyKey: 'review-o12-lease-lost' }).lean<any>();
+    expect(row).toMatchObject({ status: 'partial', lastError: 'LIFECYCLE_LEASE_LOST' });
+    const retried = await r9.post(`/identity/lifecycle-operations/${row._id}/reconcile`);
+    expect(retried).toMatchObject({ status: 200, body: expect.objectContaining({ status: 'done' }) });
   });
 });

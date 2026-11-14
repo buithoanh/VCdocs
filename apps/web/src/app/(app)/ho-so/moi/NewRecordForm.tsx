@@ -1,18 +1,54 @@
 'use client';
 
+import { UploadOutlined } from '@ant-design/icons';
+import { DatePicker, Form, Input, Radio, Select, Space, Steps, Upload, type UploadFile } from 'antd';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { api, getLimits, idem, unwrap } from '@/api/client';
 import { deptName, useAction, useApprovedCodes, useDepartments, useRecordTypes } from '@/api/queries';
 import type { Job } from '@/api/types';
+import { toDayjs, toISODate, toISOMonth } from '@/components/dates';
 import { JobProgress } from '@/components/jobs';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Button, Card, ErrorBox, Field, Notice, PageHeader, SelectField, TextField } from '@/components/ui';
+import { Button, Card, ErrorBox, Notice, PageHeader } from '@/components/ui';
 import { currentMonth } from '@/lib/format';
 import { recordKindLabel } from '@/lib/labels';
 import { canUseRecordType, emptyRecordForm, isBackdated, previewRecordName, toFormData, toRecordInput, validateRecordForm, type RecordFormValues } from '@/lib/records';
 
 const EXCLUDED_CODE_TYPES = new Set(['department', 'division']);
+
+/** Giá trị trong antd Form: ngày / tháng là dayjs, file là danh sách của Upload. */
+type FormValues = Omit<RecordFormValues, 'recordTypeId' | 'functionCode' | 'workMonth' | 'createdDate' | 'file'> & {
+  /** undefined (không phải '') để antd Select hiện placeholder. */
+  recordTypeId?: string;
+  functionCode?: string;
+  workMonth: Dayjs | null;
+  createdDate: Dayjs | null;
+  file?: UploadFile[];
+};
+
+/** Đưa về dạng chuỗi mà lib/records (kiểm tra, gửi API) đang dùng. */
+function toRecordValues(v: Partial<FormValues>): RecordFormValues {
+  return {
+    recordTypeId: v.recordTypeId ?? '',
+    functionCode: v.functionCode ?? '',
+    workMonth: toISOMonth(v.workMonth),
+    subject: v.subject ?? '',
+    identifier: v.identifier ?? '',
+    createdDate: toISODate(v.createdDate),
+    backdateReason: v.backdateReason ?? '',
+    source: v.source ?? 'template',
+    file: (v.file?.[0]?.originFileObj as File | undefined) ?? null,
+  };
+}
+
+function initialValues(workMonth: string, recordTypeId: string, functionCode = ''): FormValues {
+  const e = emptyRecordForm(workMonth);
+  return { ...e, recordTypeId: recordTypeId || undefined, functionCode: functionCode || undefined, workMonth: toDayjs(e.workMonth), createdDate: toDayjs(e.createdDate), file: [] };
+}
+
+const STEPS = [{ title: 'Loại và tháng' }, { title: 'Nội dung' }, { title: 'Lập' }];
 
 /** Lập hồ sơ: 1 màn hình, 3 phần, 1 nút (BA 9.3: tối đa 3 bước). */
 export function NewRecordForm() {
@@ -21,24 +57,43 @@ export function NewRecordForm() {
   const params = useSearchParams();
   const types = useRecordTypes();
   const depts = useDepartments();
-  const [v, setV] = useState<RecordFormValues>(() => ({ ...emptyRecordForm(currentMonth()), recordTypeId: params.get('loai') ?? '' }));
-  const [touched, setTouched] = useState(false);
+  const [form] = Form.useForm<FormValues>();
+  const [initial, setInitial] = useState(() => initialValues(currentMonth(), params.get('loai') ?? ''));
+  const [submitted, setSubmitted] = useState<RecordFormValues | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const set = <K extends keyof RecordFormValues>(k: K) => (x: RecordFormValues[K]) => setV((p) => ({ ...p, [k]: x }));
+
+  const recordTypeId = Form.useWatch('recordTypeId', form);
+  const functionCode = Form.useWatch('functionCode', form) ?? '';
+  const subject = Form.useWatch('subject', form) ?? '';
+  const identifier = Form.useWatch('identifier', form) ?? '';
+  const createdDate = toISODate(Form.useWatch('createdDate', form));
+  const source = Form.useWatch('source', form);
 
   const sortedTypes = useMemo(
     () => [...(types.data ?? [])].sort((a, b) => Number(b.departmentId === me.departmentId) - Number(a.departmentId === me.departmentId) || a.name.localeCompare(b.name, 'vi')),
     [types.data, me.departmentId],
   );
-  const type = types.data?.find((t) => t.id === v.recordTypeId);
+  const type = types.data?.find((t) => t.id === recordTypeId);
   const codes = useApprovedCodes(type?.departmentId);
   const codeOptions = (codes.data ?? []).filter((c) => !EXCLUDED_CODE_TYPES.has(c.type));
-  const errors = validateRecordForm(v, type);
-  const err = (k: keyof RecordFormValues) => (touched ? errors[k] : undefined);
-  const step = !type || !v.functionCode ? 1 : !v.subject.trim() ? 2 : 3;
+  const step = !type || !functionCode ? 0 : !subject.trim() ? 1 : 2;
+  const preview = previewRecordName(functionCode, type?.kind, subject, identifier, createdDate);
+
+  /**
+   * Mỗi ô kiểm bằng validateRecordForm (lib/records) để quy tắc và thông điệp chỉ có một nơi.
+   * Đọc loại hồ sơ từ giá trị form lúc kiểm (không dùng `type` của lần render trước) vì antd
+   * chạy validator ngay trong onChange, trước khi component render lại.
+   */
+  const ruleFor = (key: keyof RecordFormValues) => ({
+    validator: () => {
+      const values = toRecordValues(form.getFieldsValue(true));
+      const err = validateRecordForm(values, types.data?.find((t) => t.id === values.recordTypeId))[key];
+      return err ? Promise.reject(new Error(err)) : Promise.resolve();
+    },
+  });
 
   const create = useAction(
-    (_: void, key: string) => {
+    (v: RecordFormValues, key: string) => {
       const input = toRecordInput(v, type!.kind);
       if (v.source === 'upload' && v.file) {
         const fd = toFormData(input, v.file);
@@ -49,31 +104,39 @@ export function NewRecordForm() {
     { onSuccess: (r) => setJobId(r.jobId) },
   );
 
+  function onFinish(v: FormValues) {
+    const values = toRecordValues(v);
+    setSubmitted(values);
+    create.mutate(values);
+  }
+
   function onFinished(job: Job) {
     const r = job.result;
     if (job.status === 'done' && r && 'objectType' in r && r.objectType === 'record') router.push(`/ho-so/${r.objectId}`);
   }
 
-  if (jobId) {
+  if (jobId && submitted) {
+    // Form đã unmount nên `type` (theo useWatch) không còn; lấy loại theo giá trị đã gửi.
+    const sentType = types.data?.find((t) => t.id === submitted.recordTypeId);
     return (
       <>
         <PageHeader title="Đang lập hồ sơ" back={{ href: '/ho-so', label: 'Hồ sơ' }} />
         <Card>
           <p>
-            Tên dự kiến: <strong>{previewRecordName(v.functionCode, type?.kind, v.subject, v.identifier, v.createdDate)}</strong>
+            Tên dự kiến: <strong>{previewRecordName(submitted.functionCode, sentType?.kind, submitted.subject, submitted.identifier, submitted.createdDate)}</strong>
           </p>
           <JobProgress jobId={jobId} onFinished={onFinished} />
-          <div className="form-actions">
-            <Button
-              onClick={() => {
-                setJobId(null);
-                setV({ ...emptyRecordForm(v.workMonth), recordTypeId: v.recordTypeId, functionCode: v.functionCode });
-                setTouched(false);
-              }}
-            >
-              Lập hồ sơ khác
-            </Button>
-          </div>
+          <Button
+            style={{ marginTop: 12 }}
+            onClick={() => {
+              // Form đã unmount; đặt initialValues mới rồi mới mở lại để giữ loại, mã và tháng vừa dùng.
+              setInitial(initialValues(submitted.workMonth, submitted.recordTypeId, submitted.functionCode));
+              setSubmitted(null);
+              setJobId(null);
+            }}
+          >
+            Lập hồ sơ khác
+          </Button>
         </Card>
       </>
     );
@@ -82,85 +145,100 @@ export function NewRecordForm() {
   return (
     <>
       <PageHeader title="Lập hồ sơ" back={{ href: '/ho-so', label: 'Hồ sơ' }} subtitle="Phần mềm tự đặt tên và đặt đúng thư mục năm / tháng." />
-      <ol className="steps" aria-label="Các bước">
-        <li className={step === 1 ? 'is-current' : 'is-done'}>1. Loại và tháng</li>
-        <li className={step === 2 ? 'is-current' : step > 2 ? 'is-done' : ''}>2. Nội dung</li>
-        <li className={step === 3 ? 'is-current' : ''}>3. Lập</li>
-      </ol>
-      <form
-        className="form"
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault();
-          setTouched(true);
-          if (Object.keys(errors).length === 0) create.mutate();
+      <Steps size="small" current={step} items={STEPS} style={{ marginBottom: 16, maxWidth: 640 }} aria-label="Các bước" />
+      <Form<FormValues>
+        form={form}
+        layout="vertical"
+        initialValues={initial}
+        style={{ maxWidth: 640 }}
+        onFinish={onFinish}
+        onValuesChange={(changed) => {
+          if ('recordTypeId' in changed) form.setFieldValue('functionCode', undefined);
         }}
       >
         <Card title="1. Loại hồ sơ và tháng công việc">
-          <SelectField
-            label="Loại hồ sơ"
-            value={v.recordTypeId}
-            onChange={(x) => setV((p) => ({ ...p, recordTypeId: x, functionCode: '' }))}
-            required
-            error={err('recordTypeId')}
-            placeholder={types.isLoading ? 'Đang tải…' : '— Chọn loại hồ sơ —'}
-            options={sortedTypes.map((t) => ({
-              value: t.id,
-              label: `${t.name} (${recordKindLabel[t.kind]} · ${deptName(depts.data, t.departmentId)})${canUseRecordType(t) ? '' : ' – chưa duyệt thời hạn'}`,
-              disabled: !canUseRecordType(t),
-            }))}
-          />
+          <Form.Item name="recordTypeId" label="Loại hồ sơ" required rules={[ruleFor('recordTypeId')]}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              loading={types.isLoading}
+              placeholder={types.isLoading ? 'Đang tải…' : '— Chọn loại hồ sơ —'}
+              options={sortedTypes.map((t) => ({
+                value: t.id,
+                label: `${t.name} (${recordKindLabel[t.kind]} · ${deptName(depts.data, t.departmentId)})${canUseRecordType(t) ? '' : ' – chưa duyệt thời hạn'}`,
+                disabled: !canUseRecordType(t),
+              }))}
+            />
+          </Form.Item>
           {types.error && <ErrorBox error={types.error} />}
-          <SelectField
-            label="Mã chức năng"
-            value={v.functionCode}
-            onChange={set('functionCode')}
-            required
-            error={err('functionCode')}
-            disabled={!type}
-            placeholder={!type ? 'Chọn loại hồ sơ trước' : codes.isLoading ? 'Đang tải…' : '— Chọn mã —'}
-            options={codeOptions.map((c) => ({ value: c.code, label: `${c.code} – ${c.meaning}` }))}
-          />
-          <TextField label="Tháng công việc" type="month" value={v.workMonth} onChange={set('workMonth')} required error={err('workMonth')} />
+          <Form.Item name="functionCode" label="Mã chức năng" required rules={[ruleFor('functionCode')]}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              disabled={!type}
+              loading={codes.isLoading}
+              placeholder={!type ? 'Chọn loại hồ sơ trước' : codes.isLoading ? 'Đang tải…' : '— Chọn mã —'}
+              options={codeOptions.map((c) => ({ value: c.code, label: `${c.code} – ${c.meaning}` }))}
+            />
+          </Form.Item>
+          <Form.Item name="workMonth" label="Tháng công việc" required rules={[ruleFor('workMonth')]}>
+            <DatePicker picker="month" format="MM/YYYY" allowClear={false} disabledDate={(d) => d.isAfter(dayjs(), 'month')} style={{ width: '100%' }} />
+          </Form.Item>
         </Card>
 
         <Card title="2. Nội dung">
-          <TextField label="Nội dung ngắn" value={v.subject} onChange={set('subject')} required error={err('subject')} placeholder="Báo cáo tuần 42" maxLength={120} />
+          <Form.Item name="subject" label="Nội dung ngắn" required rules={[ruleFor('subject')]}>
+            <Input placeholder="Báo cáo tuần 42" maxLength={120} />
+          </Form.Item>
           {type?.kind === 'OPS' && (
-            <TextField label="Số định danh" value={v.identifier} onChange={set('identifier')} required error={err('identifier')} placeholder="Biển số, số PO, mã lớp…" />
+            <Form.Item name="identifier" label="Số định danh" required rules={[ruleFor('identifier')]}>
+              <Input placeholder="Biển số, số PO, mã lớp…" />
+            </Form.Item>
           )}
-          <TextField label="Ngày lập" type="date" value={v.createdDate} onChange={set('createdDate')} required error={err('createdDate')} />
-           {isBackdated(v.createdDate) && <TextField label="Lý do lập lùi ngày" hint={`Lùi quá ${getLimits().backdateWorkingDays} ngày làm việc phải ghi lý do.`} value={v.backdateReason} onChange={set('backdateReason')} required error={err('backdateReason')} multiline />}
-          <Field label="File hồ sơ">
-            <label className="checkbox">
-              <input type="radio" name="source" checked={v.source === 'template'} onChange={() => set('source')('template')} />
-              {type?.templateId ? 'Tạo file Google từ biểu mẫu' : 'Tạo file Google trống'}
-            </label>
-            <label className="checkbox">
-              <input type="radio" name="source" checked={v.source === 'upload'} onChange={() => set('source')('upload')} />
-              Tải file lên (ảnh, PDF, XML hoá đơn, Word, Excel…)
-            </label>
-          </Field>
-          {v.source === 'upload' && (
-            <Field label="Chọn file" required error={err('file')} htmlFor="file-ho-so" hint={`Tối đa ${getLimits().uploadMaxMb} MB. File Word, Excel, PowerPoint được đổi sang định dạng Google; hoá đơn, giấy tờ ký, scan giữ nguyên.`}>
-              <input id="file-ho-so" type="file" onChange={(e) => set('file')(e.target.files?.[0] ?? null)} />
-            </Field>
+          <Form.Item name="createdDate" label="Ngày lập" required rules={[ruleFor('createdDate')]}>
+            <DatePicker format="DD/MM/YYYY" allowClear={false} disabledDate={(d) => d.isAfter(dayjs(), 'day')} style={{ width: '100%' }} />
+          </Form.Item>
+          {isBackdated(createdDate) && (
+            <Form.Item name="backdateReason" label="Lý do lập lùi ngày" required rules={[ruleFor('backdateReason')]} extra={`Lùi quá ${getLimits().backdateWorkingDays} ngày làm việc phải ghi lý do.`}>
+              <Input.TextArea rows={3} />
+            </Form.Item>
+          )}
+          <Form.Item name="source" label="File hồ sơ">
+            <Radio.Group>
+              <Space orientation="vertical">
+                <Radio value="template">{type?.templateId ? 'Tạo file Google từ biểu mẫu' : 'Tạo file Google trống'}</Radio>
+                <Radio value="upload">Tải file lên (ảnh, PDF, XML hoá đơn, Word, Excel…)</Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+          {source === 'upload' && (
+            <Form.Item
+              name="file"
+              label="Chọn file"
+              required
+              valuePropName="fileList"
+              getValueFromEvent={(e: { fileList: UploadFile[] }) => e?.fileList}
+              rules={[ruleFor('file')]}
+              extra={`Tối đa ${getLimits().uploadMaxMb} MB. File Word, Excel, PowerPoint được đổi sang định dạng Google; hoá đơn, giấy tờ ký, scan giữ nguyên.`}
+            >
+              <Upload maxCount={1} beforeUpload={() => false}>
+                <Button icon={<UploadOutlined />}>Chọn file từ máy</Button>
+              </Upload>
+            </Form.Item>
           )}
         </Card>
 
         <Card title="3. Lập hồ sơ">
           <p>
-            Tên dự kiến: <strong className="mono">{previewRecordName(v.functionCode, type?.kind, v.subject, v.identifier, v.createdDate)}</strong>
+            Tên dự kiến: <strong className="mono">{preview}</strong>
           </p>
           {type?.requiresApproval && <Notice>Loại hồ sơ này cần trình duyệt trước khi chốt.</Notice>}
           <ErrorBox error={create.error} />
-          <div className="form-actions">
-            <Button type="submit" variant="primary" className="btn-lg" loading={create.isPending}>
-              Lập hồ sơ
-            </Button>
-          </div>
+          <Button type="submit" variant="primary" size="large" loading={create.isPending}>
+            Lập hồ sơ
+          </Button>
         </Card>
-      </form>
+      </Form>
     </>
   );
 }

@@ -1,15 +1,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Checkbox, Col, DatePicker, Form, Input, InputNumber, Row, Select } from 'antd';
+import type { Dayjs } from 'dayjs';
 import { useEffect, useState } from 'react';
 import { api, idem, unwrap } from '@/api/client';
 import { recordTypeName, useAction, useBlocks, useRecordTypes } from '@/api/queries';
 import type { Delegation } from '@/api/types';
 import { DataTable } from '@/components/DataTable';
-import { UserName, UserPicker } from '@/components/pickers';
+import { toDayjs, toISODate } from '@/components/dates';
+import { UserName, UserSelectInput } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Button, ErrorBox, Modal, Notice, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
+import { Button, ErrorBox, Modal, Notice, PageHeader, QueryState } from '@/components/ui';
 import { formatDate, formatNumber, todayISO } from '@/lib/format';
 import { hasAction } from '@/lib/permissions';
 
@@ -40,23 +43,47 @@ export default function DelegationsPage() {
           </Button>
         }
       />
-      <div className="filters">
-        <SelectField label="Khối" value={blockId} onChange={setBlock} options={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.code} – ${b.name}` }))} />
-      </div>
+      <Form layout="vertical" component={false} className="vc-filters">
+        <Row gutter={[12, 0]}>
+          <Col xs={24} sm={12} lg={8}>
+            <Form.Item label="Khối" htmlFor="khoi-uq">
+              <Select id="khoi-uq" value={blockId || undefined} onChange={setBlock} loading={blocks.isLoading} options={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.code} – ${b.name}` }))} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Form>
       <QueryState q={q}>
         <DataTable
           rows={q.data ?? []}
           rowKey={(d) => d.id}
           empty="Khối chưa có dòng uỷ quyền nào."
           columns={[
-            { key: 'type', header: 'Loại hồ sơ được duyệt', render: (d) => <>{recordTypeName(types.data, d.recordTypeId)}{d.task && <div className="muted small">{d.task}</div>}</> },
+            {
+              key: 'type',
+              header: 'Loại hồ sơ được duyệt',
+              render: (d) => (
+                <>
+                  {recordTypeName(types.data, d.recordTypeId)}
+                  {d.task && <div className="muted small">{d.task}</div>}
+                </>
+              ),
+            },
             { key: 'legal', header: 'Việc luật yêu cầu chữ ký', render: (d) => (d.isLegalSignature ? 'Có' : '—'), hideOnMobile: true },
             { key: 'limit', header: 'Hạn mức (đồng)', render: (d) => formatNumber(d.limitAmount), className: 'num' },
             { key: 'who', header: 'Người được uỷ quyền', render: (d) => <UserName id={d.delegateId} /> },
             { key: 'from', header: 'Từ ngày', render: (d) => formatDate(d.from) },
             { key: 'to', header: 'Đến ngày', render: (d) => (d.to ? formatDate(d.to) : 'Không thời hạn') },
             { key: 'state', header: 'Tình trạng', render: (d) => (d.from > today ? 'Chưa tới ngày' : d.to && d.to < today ? 'Hết hạn' : 'Đang hiệu lực'), hideOnMobile: true },
-            { key: 'edit', header: '', render: (d) => hasAction(d, 'update') && <Button variant="ghost" onClick={() => setEdit(d)}>Sửa</Button> },
+            {
+              key: 'edit',
+              header: '',
+              render: (d) =>
+                hasAction(d, 'update') && (
+                  <Button variant="ghost" size="small" onClick={() => setEdit(d)}>
+                    Sửa
+                  </Button>
+                ),
+            },
           ]}
         />
       </QueryState>
@@ -65,26 +92,39 @@ export default function DelegationsPage() {
   );
 }
 
+/** Giá trị trong antd Form: ngày là dayjs, hạn mức là số (undefined = không giới hạn). */
+type FormValues = { recordTypeId?: string; task: string; isLegalSignature: boolean; limitAmount?: number | null; delegateId?: string; from: Dayjs | null; to: Dayjs | null };
+
+const group = (v: string | number | undefined) => `${v ?? ''}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
 function DelegationForm({ initial, onClose }: { initial: Partial<Delegation>; onClose: () => void }) {
   const toast = useToast();
   const types = useRecordTypes();
-  const [recordTypeId, setType] = useState(initial.recordTypeId ?? '');
-  const [task, setTask] = useState(initial.task ?? '');
-  const [isLegalSignature, setLegal] = useState(initial.isLegalSignature ?? false);
-  const [limit, setLimit] = useState(initial.limitAmount !== undefined ? String(initial.limitAmount) : '');
-  const [delegateId, setDelegate] = useState(initial.delegateId ?? '');
-  const [from, setFrom] = useState(initial.from ?? todayISO());
-  const [to, setTo] = useState(initial.to ?? '');
-  const limitNum = limit ? Number(limit.replace(/\./g, '')) : undefined;
-  const valid = recordTypeId && !isLegalSignature && delegateId && from && (limitNum === undefined || (Number.isFinite(limitNum) && limitNum >= 0)) && (!to || to >= from);
+  const [form] = Form.useForm<FormValues>();
+  const isLegalSignature = Form.useWatch('isLegalSignature', form) ?? false;
   const save = useAction(
-    (_: void, key: string) => {
-      const body = { blockId: initial.blockId!, recordTypeId, task: task.trim() || undefined, isLegalSignature, limitAmount: limitNum, delegateId, from, to: to || undefined };
+    (v: FormValues, key: string) => {
+      const body = {
+        blockId: initial.blockId!,
+        recordTypeId: v.recordTypeId ?? '',
+        task: v.task?.trim() || undefined,
+        isLegalSignature: !!v.isLegalSignature,
+        limitAmount: v.limitAmount ?? undefined,
+        delegateId: v.delegateId ?? '',
+        from: toISODate(v.from),
+        to: toISODate(v.to) || undefined,
+      };
       return initial.id
         ? unwrap(api.PATCH('/delegations/{id}', { params: { path: { id: initial.id } }, body }))
         : unwrap(api.POST('/delegations', { body, ...idem(key) }));
     },
-    { invalidate: [['delegations']], onSuccess: () => (toast.success('Đã lưu dòng uỷ quyền.'), onClose()) },
+    {
+      invalidate: [['delegations']],
+      onSuccess: () => {
+        toast.success('Đã lưu dòng uỷ quyền.');
+        onClose();
+      },
+    },
   );
   return (
     <Modal
@@ -94,39 +134,68 @@ function DelegationForm({ initial, onClose }: { initial: Partial<Delegation>; on
       footer={
         <>
           <Button onClick={onClose}>Huỷ</Button>
-          <Button variant="primary" disabled={!valid} loading={save.isPending} onClick={() => save.mutate()}>
+          <Button variant="primary" disabled={isLegalSignature} loading={save.isPending} onClick={() => form.submit()}>
             Lưu
           </Button>
         </>
       }
     >
       <Notice>Hạn mức vượt mức tối đa của giám đốc khối, hoặc việc liên khối, việc luật yêu cầu người có thẩm quyền ký sẽ không lưu được.</Notice>
-      <SelectField
-        label="Loại hồ sơ được uỷ quyền duyệt"
-        value={recordTypeId}
-        onChange={setType}
-        required
-        placeholder={types.isLoading ? 'Đang tải…' : '— Chọn loại hồ sơ —'}
-        options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
-      />
-      <TextField label="Mô tả việc" value={task} onChange={setTask} placeholder="Đề xuất mua hàng dưới hạn mức" />
-      <label className="checkbox">
-        <input type="checkbox" checked={isLegalSignature} onChange={(e) => setLegal(e.target.checked)} />
-        Việc luật yêu cầu chữ ký người đại diện
-      </label>
-      {isLegalSignature && <Notice tone="warn">Việc luật yêu cầu chữ ký người đại diện không được uỷ quyền xuống (BR-24).</Notice>}
-      <TextField
-        label="Hạn mức (đồng)"
-        value={limit ? formatNumber(limitNum) : ''}
-        onChange={(v) => setLimit(v.replace(/[^\d]/g, ''))}
-        inputMode="numeric"
-        hint="Để trống nếu không giới hạn số tiền"
-      />
-      <UserPicker label="Người được uỷ quyền" value={delegateId} onChange={setDelegate} required />
-      <div className="form-row">
-        <TextField label="Từ ngày" type="date" value={from} onChange={setFrom} required />
-        <TextField label="Đến ngày" type="date" value={to} onChange={setTo} min={from} error={to && to < from ? 'Đến ngày phải sau Từ ngày.' : undefined} />
-      </div>
+      <Form<FormValues>
+        form={form}
+        layout="vertical"
+        initialValues={{
+          recordTypeId: initial.recordTypeId || undefined,
+          task: initial.task ?? '',
+          isLegalSignature: initial.isLegalSignature ?? false,
+          limitAmount: initial.limitAmount ?? undefined,
+          delegateId: initial.delegateId || undefined,
+          from: toDayjs(initial.from ?? todayISO()),
+          to: toDayjs(initial.to),
+        }}
+        onFinish={(v) => save.mutate(v)}
+      >
+        <Form.Item name="recordTypeId" label="Loại hồ sơ được uỷ quyền duyệt" rules={[{ required: true, message: 'Chọn loại hồ sơ.' }]}>
+          <Select showSearch optionFilterProp="label" loading={types.isLoading} placeholder={types.isLoading ? 'Đang tải…' : '— Chọn loại hồ sơ —'} options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name }))} />
+        </Form.Item>
+        <Form.Item name="task" label="Mô tả việc">
+          <Input placeholder="Đề xuất mua hàng dưới hạn mức" />
+        </Form.Item>
+        <Form.Item name="isLegalSignature" valuePropName="checked" style={{ marginBottom: 8 }}>
+          <Checkbox>Việc luật yêu cầu chữ ký người đại diện</Checkbox>
+        </Form.Item>
+        {isLegalSignature && <Notice tone="warn">Việc luật yêu cầu chữ ký người đại diện không được uỷ quyền xuống (BR-24).</Notice>}
+        <Form.Item name="limitAmount" label="Hạn mức (đồng)" extra="Để trống nếu không giới hạn số tiền">
+          <InputNumber min={0} step={1_000_000} style={{ width: '100%' }} formatter={group} parser={(v) => Number((v ?? '').replace(/\./g, ''))} />
+        </Form.Item>
+        <Form.Item name="delegateId" label="Người được uỷ quyền" rules={[{ required: true, message: 'Chọn người được uỷ quyền.' }]}>
+          <UserSelectInput required />
+        </Form.Item>
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item name="from" label="Từ ngày" rules={[{ required: true, message: 'Chọn ngày bắt đầu.' }]}>
+              <DatePicker format="DD/MM/YYYY" allowClear={false} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="to"
+              label="Đến ngày"
+              dependencies={['from']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator: (_, to: Dayjs | null) => {
+                    const from = getFieldValue('from') as Dayjs | null;
+                    return to && from && to.isBefore(from, 'day') ? Promise.reject(new Error('Đến ngày phải sau Từ ngày.')) : Promise.resolve();
+                  },
+                }),
+              ]}
+            >
+              <DatePicker format="DD/MM/YYYY" placeholder="Không thời hạn" style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Form>
       <ErrorBox error={save.error} />
     </Modal>
   );

@@ -18,6 +18,10 @@ BE đã làm theo cách an toàn; chỉ là thay đổi mô tả, không đổi 
 | R3 | PATCH /drive/items/{itemId} | Gửi lại đúng tên/thư mục hiện tại trả 200 (no-op) | Mô tả: 409 chỉ khi trùng với mục khác |
 | R4 | GET /mail/messages, GET /mail/threads/{id}, POST /mail/drafts, GET /mail/aliases và các endpoint mail khác dùng hộp thư cá nhân | 403 khi email người gọi không thuộc tên miền công ty (không có hộp thư nội bộ) hoặc không có quyền với hộp thư nhóm `mailbox` (audit 2/12) | Thêm `403 Forbidden` cho các endpoint mail chưa khai báo; mô tả hộp thư cá nhân = local-part của email đúng tên miền công ty |
 | R5 | POST /mail/aliases, POST /mail/shared-mailboxes | Audit 7/12: hộp thư nhóm chỉ R3/R9 tạo (`@Roles`), người khác 403. Alias: R3/R9 tạo tên tự do; người khác chỉ tạo `<local-part mình>+<nhãn>@vcworkspace.test` (nhãn `[a-z0-9._-]+`), tên khác 403 (409 trùng địa chỉ vẫn kiểm trước). Tạo user/đổi email tắt alias đang giữ địa chỉ cá nhân (audit `workspace_mail.alias.release`), hộp nhóm trùng chỉ gắn cờ (`workspace_mail.shared.conflict`); hộp thư cá nhân luôn thắng alias/hộp nhóm khi nhận, đọc, gửi | Thêm `403 Forbidden` cho hai route; mô tả quy tắc tên alias và vai trò tạo hộp thư nhóm; sửa summary POST /mail/shared-mailboxes thành "HCNS hoặc quản trị hệ thống tạo; người tạo có read, send và manage". Về sau có thể thêm trường `ownerEmail` để R3/R9 cấp alias tên tự do cho người khác (hiện alias R3/R9 tạo thuộc chính họ) |
+| R6 | POST /mail/labels (`mailbox` là hộp thư nhóm) | Review O14 (2026-10-26): tạo nhãn của hộp nhóm cần quyền `manage`, chỉ `read`/`send` thì 403. Gán nhãn (`PATCH /mail/messages/{id}/labels`) vẫn theo quyền `read` | Thêm `403 Forbidden` cho POST /mail/labels; mô tả quyền tạo và gán nhãn của hộp thư nhóm |
+| R7 | POST /drive/files, POST /drive/folders | Review O14: `parentId` phải là thư mục cùng không gian, chưa bỏ thùng rác, sai thì 404. Review O8: lượt cùng Idempotency-Key đang chạy thì 409 | Mô tả `parentId` và 409 khi lượt cùng key đang xử lý |
+| R8 | POST /drive/files/{fileId}/versions | Review O9: MIME phải trùng MIME tệp hiện tại (không đổi DOCX thành PDF), gói Office phải hợp lệ; sai MIME 415, gói hỏng 400 | Mô tả ràng buộc loại tệp của phiên bản mới |
+| R9 | GET /drive/files/{fileId}/editor-config, POST /drive/editor/callback | Review O2: forcesave (status 6) giữ phiên, `document.key` giữ key phiên đang mở tới khi status 2 đóng phiên hoặc có version không do phiên đó tạo | Mô tả `document.key` là key phiên, không phải luôn `v<versionNumber>` |
 
 ## Đề nghị Drive cơ bản VCworkspace (2026-10-23) – chờ duyệt hợp đồng
 
@@ -174,6 +178,24 @@ Chủ dự án đồng ý cả N1–N4; BE đã sửa:
 Cùng đợt: D19 (GET /blocks, /departments, /divisions, /delegations kèm `people`),
 D20 (gốc drive chỉ cho thư mục đánh số; year, month, entity thiếu parentId → 422 BR-11).
 
+## Đề nghị mới (sau hợp đồng 1.5.0-gd2, giai đoạn 2 M10, M15, 2026-10-20) – chờ chủ dự án
+
+| # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
+|---|---|---|---|---|
+| N6 | `PATCH /users/{id}` | Mô tả 1.5.0 ghi "biên bản executing, done → 409" nhưng phản hồi chưa khai báo 409 | Thêm `'409': Conflict` | Trả 409 STATE_INVALID (mã chung, test đã ghi nhận) |
+| N7 | `POST /handovers/{id}/export` (E11) | Chưa ghi khi BM-VCPV-08 chưa có bản hiệu lực; BM-VCPV-08 phải có chỗ giữ nào | Ghi rõ: chưa có → 422 (không mã BR); thêm danh sách chỗ giữ vào hợp đồng mục 6 như BM khung | 422 RULE_VIOLATION "Chưa có biểu mẫu BM-VCPV-08 đang hiệu lực". Chỗ giữ: `{{NGUOI_NGHI}}`, `{{EMAIL_NGUOI_NGHI}}`, `{{PHONG}}`, `{{NGAY_LAM_VIEC_CUOI}}`, `{{NGUOI_NHAN}}`, `{{NGAY_NHAN}}`, `{{HCNS_KIEM_TRA}}`, `{{NGAY_KIEM_TRA}}`, `{{TRANG_THAI}}`, `{{DANH_SACH}}` (mỗi dòng biên bản một dòng), `{{NGAY_XUAT}}`. File đặt ở thư mục tháng của `01 Kế hoạch – Báo cáo` drive HCNS |
+| N8 | `HandoverItem.toUserId` | Hợp đồng: "bỏ trống = người nhận của biên bản" – FE phải tự suy ra | Ghi: BE luôn trả `toUserId` đang áp dụng với dòng `reassign`, không trả với action khác | Như đề nghị |
+| N9 | `HandoverActions.execute` | Trước ngày làm việc cuối gọi execute → 422 BR-25; FE không biết trước | Giữ `execute` trong allowedActions (đủ quyền, đúng trạng thái); FE so `lastWorkingDay` với hôm nay để hiện câu nhắc | Như đề nghị |
+| N10 | Biên bản liệt kê (E5) | "registered → revising" chưa rõ có gồm `effective` | Chỉ tài liệu đang dở: registered, coded, drafting, feedback, submitted, approved, revising (không gồm effective, withdrawn – tài liệu hiệu lực đổi người soạn khi sửa đổi) | Như đề nghị. Phiếu `approval_to_decide` gồm cả phiếu người đó là người kiểm tra chưa kiểm; Drive của tôi liệt kê tối đa 1.000 file |
+| N11 | `auditor.view` (E16) | "Mọi lượt gọi của kiểm toán viên" – kiểm toán viên cũng là nhân viên dùng VCdocs hằng ngày | Chỉ ghi khi gọi các điểm cuối trong phạm vi kiểm toán: /documents, /records, /approvals, /audit-logs, /evidence-pack (kể cả GET) | Như đề nghị. Phiếu của phòng được cấp hiện ở `GET /approvals?box=all` (mặc định `inbox` chỉ phiếu chờ mình) |
+| N12 | `GET /audit-logs` (E14) | Ẩn before/after: "drive người gọi không được xem (drive Mật)" | Chỉ ẩn với drive Mật người gọi không là thành viên; drive phòng ban không ẩn với R1, R3, R9 | Như đề nghị |
+| N13 | Gói bằng chứng tài liệu (E17) | Trước 1.5.0 BE không giữ PDF từng phiên bản tài liệu ở kho riêng (chỉ hồ sơ chốt) | Ghi: tài liệu ban hành từ 1.5.0 có PDF mọi phiên bản; bản cũ chỉ có PDF hiện hành (lấy trên Drive) | Từ bản này mỗi lần ban hành lưu PDF vào kho riêng |
+| N14 | `GET /handovers` | Sai `status`, `sort` → 400 chưa khai báo | Thêm `'400': BadRequest` | Trả 400 VALIDATION (mã chung) |
+
+Quyền Google mới (E10) để chủ dự án thêm ở admin.google.com (uỷ quyền toàn miền của
+Client ID `vcdocs-backend`, 8 → 10 quyền): `admin.directory.group.member`,
+`admin.datatransfer`; bật Admin SDK Data Transfer API. Chi tiết `README.md`.
+
 ## Đề nghị mới (sau hợp đồng 1.3.0-gd1, 2026-10-20) – chờ chủ dự án
 
 | # | Điểm cuối / đối tượng | Vấn đề | Đề nghị | BE đang làm |
@@ -268,3 +290,16 @@ Nguồn: chủ dự án giao trực tiếp chat09 và cho phép sửa hợp đ�
 authorize cả mailbox nguồn và folder Drive đích, giữ provenance/hash và
 idempotency. Gửi attachment cố định version/hash lúc compose; gửi link không tự
 cấp ACL, yêu cầu đăng nhập và người nhận có quyền đọc sẵn.
+
+# Đề nghị: phân hệ VCworkspace tắt theo môi trường — CHỜ chủ dự án duyệt (2026-10-26)
+
+Nguồn: phiên chuẩn bị production (`docs/ke-hoach/vcworkspace-20-production-phuong-an.md`).
+BE đã có `WORKSPACE_STORAGE_MODE=disabled` / `MAIL_ENGINE_MODE=disabled` (mặc định production);
+khi tắt, route trả 503 `STORAGE_UNAVAILABLE`. Chưa sửa `contract/openapi.yaml`:
+
+1. Khai báo `'503': StorageUnavailable` cho `/spaces`, mọi `/drive/*` (gồm editor content/callback,
+   shared-links) và mọi `/mail/*` (gồm save-to-drive, send-drive-file). Hiện nhiều route chưa có
+   503 nên test ghi nhận là mã "undeclared".
+2. (Tuỳ chọn) thêm vào `Me` trường `workspaceModules: { drive: boolean, mail: boolean }` để FE ẩn/hiện
+   theo cấu hình API lúc chạy, thay cho cờ build `NEXT_PUBLIC_WORKSPACE_MODULES` (hiện phải giữ
+   khớp hai nơi bằng tay).

@@ -1,0 +1,103 @@
+{
+  "runId": "onlyoffice-mvp1kdst",
+  "engine": "onlyoffice",
+  "container": "vcworkspace-office-load-onlyoffice",
+  "startedAt": "2026-10-26T09:15:48.097Z",
+  "sessions": 12,
+  "docs": 3,
+  "usersPerDoc": 4,
+  "typeSeconds": 120,
+  "intervalMs": 5000,
+  "rampMs": 1000,
+  "keyDelayMs": 25,
+  "offline": {
+    "at": 30,
+    "for": 45,
+    "slots": [
+      1,
+      2
+    ]
+  },
+  "sharedContext": false,
+  "leanClient": true,
+  "processLimit": 0,
+  "abortReason": null,
+  "hostFreeMinGiB": 3.92,
+  "ready": 12,
+  "editMode": 12,
+  "viewMode": 0,
+  "warnings": 0,
+  "editorErrors": 0,
+  "openErrors": 0,
+  "focusErrors": 0,
+  "typeErrors": 0,
+  "crashes": 0,
+  "consoleErrors": 132,
+  "openMs": {
+    "p50": 1052,
+    "p95": 2187,
+    "max": 2187
+  },
+  "typeBurstMs": {
+    "p50": 226,
+    "p95": 254,
+    "max": 264
+  },
+  "markersTyped": 288,
+  "markersMissing": 108,
+  "markersMissingClientSide": 108,
+  "viewsCaptured": 12,
+  "docsConverged": 0,
+  "docsSaved": 3,
+  "saveAfterCloseMs": {
+    "p50": 7537,
+    "max": 8480
+  },
+  "docFetches": 3,
+  "phases": {
+    "idle": {
+      "seconds": 5,
+      "dsCpuAvg": 0.3,
+      "dsCpuP95": 0.5,
+      "dsCpuMax": 0.5,
+      "dsMemMaxMiB": 886,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 0,
+      "clientCpuAvg": null,
+      "samples": 9
+    },
+    "open": {
+      "seconds": 12,
+      "dsCpuAvg": 29.8,
+      "dsCpuP95": 88,
+      "dsCpuMax": 88,
+      "dsMemMaxMiB": 1193,
+      "dsPidsMax": 25,
+      "clientRssMaxMiB": 3438,
+      "clientCpuAvg": 102.1,
+      "samples": 24
+    },
+    "edit": {
+      "seconds": 125,
+      "dsCpuAvg": 5.9,
+      "dsCpuP95": 15.5,
+      "dsCpuMax": 88.3,
+      "dsMemMaxMiB": 945,
+      "dsPidsMax": 24,
+      "clientRssMaxMiB": 4090,
+      "clientCpuAvg": 54.6,
+      "samples": 250
+    },
+    "save": {
+      "seconds": 9,
+      "dsCpuAvg": 42.3,
+      "dsCpuP95": 123.1,
+      "dsCpuMax": 123.1,
+      "dsMemMaxMiB": 1299,
+      "dsPidsMax": 36,
+      "clientRssMaxMiB": 308,
+      "clientCpuAvg": 0.8,
+      "samples": 18
+    }
+  }
+}

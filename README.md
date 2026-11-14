@@ -4,6 +4,8 @@ Dự án trước đây có tên **VCdocs**, được đổi tên theo quyết �
 2026-10-23. Nghiệp vụ quản lý hồ sơ hiện có vẫn nằm trong repo; kiến trúc mở rộng
 workspace đang ở giai đoạn nghiên cứu và chưa mặc nhiên được duyệt triển khai.
 
+- **Team DEV mới bắt đầu:** [Bàn giao cho team DEV](docs/BAN_GIAO_DEV.md) — sản phẩm, cách chạy,
+  nhánh chờ gộp, việc ưu tiên.
 - [Sổ tay dự án](SO_TAY_DU_AN.md): quyết định, trạng thái và bàn giao giữa các phiên.
 - [Tài liệu](docs/README.md): BA, hợp đồng, kiến trúc và nghiên cứu.
 - [Quy tắc AI](AGENTS.md) và [cách bật 4 lớp, quyền Google/GCP/GitHub](docs/huong-dan/quan-tri-ai.md).

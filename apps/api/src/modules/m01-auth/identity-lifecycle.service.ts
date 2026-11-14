@@ -10,6 +10,8 @@ import { OidcService } from './oidc.service';
 import { MailBasicService } from '../mail-basic/mail-basic.service';
 import { IDENTITY_LIFECYCLE_PORT, IdentityLifecyclePort, IdentityProjection } from './identity-lifecycle.port';
 
+const LEASE_MS = 30_000;
+
 const STEP_NAMES = ['app-deny', 'authentik', 'nextcloud', 'app-commit'] as const;
 
 @Injectable()
@@ -97,6 +99,18 @@ export class IdentityLifecycleService {
     return row;
   }
 
+  /**
+   * Bàn giao (M10): người đã bị khoá (left) thì vô hiệu hoá danh tính ở IdP và Nextcloud, thu hồi mọi phiên.
+   * Không có binding OIDC (đăng nhập Google) hoặc lifecycle tắt thì bỏ qua (null). Khoá Idempotency theo người,
+   * nên gọi lại (việc 00:30 hôm sau, hay R9 reconcile) chạy tiếp đúng operation cũ.
+   */
+  async disableLeftUser(ctx: Ctx, user: any) {
+    if (this.cfg.identityLifecycle.mode === 'disabled') return null;
+    const binding = await this.db.m.OidcIdentity.findOne({ companyId: new Types.ObjectId(ctx.companyId), userId: user._id }).lean<any>();
+    if (!binding) return null;
+    return this.create(ctx, { subject: binding.subject, email: binding.email, groups: binding.groups ?? [], active: false, globalRevoke: true }, `handover-left-${user._id}`);
+  }
+
   async get(ctx: Ctx, id: string) {
     if (!Types.ObjectId.isValid(id)) throw Errors.notFound();
     const row = await this.db.m.IdentityLifecycleOperation.findOne({ _id: new Types.ObjectId(id), companyId: new Types.ObjectId(ctx.companyId) }).lean<any>();
@@ -123,7 +137,7 @@ export class IdentityLifecycleService {
     if (row.status === 'done' || row.status === 'superseded') return row;
     const subjectLease = await this.db.m.IdentityLifecycleSubject.findOneAndUpdate(
       { companyId: cid, subject: row.subject, revision: row.subjectRevision, $or: [{ leaseUntil: { $lt: now } }, { leaseUntil: { $exists: false } }] },
-      { $set: { status: 'running', leaseToken, leaseUntil: new Date(Date.now() + 30_000) } }, { new: true },
+      { $set: { status: 'running', leaseToken, leaseUntil: new Date(Date.now() + LEASE_MS) } }, { new: true },
     ).lean<any>();
     if (!subjectLease) {
       const state = await this.db.m.IdentityLifecycleSubject.findOne({ companyId: cid, subject: row.subject }).lean<any>();
@@ -135,7 +149,7 @@ export class IdentityLifecycleService {
     }
     row = await this.db.m.IdentityLifecycleOperation.findOneAndUpdate(
       { _id: oid, companyId: cid, status: { $nin: ['done', 'superseded'] }, $or: [{ leaseUntil: { $lt: now } }, { leaseUntil: { $exists: false } }] },
-      { $set: { status: 'running', leaseToken, leaseUntil: new Date(Date.now() + 30_000), updatedBy: new Types.ObjectId(ctx.user.id) }, $inc: { version: 1 } }, { new: true },
+      { $set: { status: 'running', leaseToken, leaseUntil: new Date(Date.now() + LEASE_MS), updatedBy: new Types.ObjectId(ctx.user.id) }, $inc: { version: 1 } }, { new: true },
     ).lean<any>();
     if (!row) {
       await this.releaseSubject(cid, subjectLease.subject, leaseToken, 'partial');
@@ -145,7 +159,7 @@ export class IdentityLifecycleService {
     try {
       for (const name of STEP_NAMES) {
         await this.assertFence(cid, row.subject, row.subjectRevision, leaseToken);
-        const started = await this.db.m.IdentityLifecycleOperation.updateOne({ _id: oid, companyId: cid, leaseToken }, { $set: { 'steps.$[step].status': 'running' }, $inc: { 'steps.$[step].attempts': 1 } }, { arrayFilters: [{ 'step.name': name }] });
+        const started = await this.db.m.IdentityLifecycleOperation.updateOne({ _id: oid, companyId: cid, leaseToken }, { $set: { 'steps.$[step].status': 'running', leaseUntil: new Date(Date.now() + LEASE_MS) }, $inc: { 'steps.$[step].attempts': 1 } }, { arrayFilters: [{ 'step.name': name }] });
         if (started.matchedCount !== 1) throw new Error('LIFECYCLE_LEASE_LOST');
         if (name === 'app-deny') await this.denyApp(cid, desired, row.subjectRevision);
         if (name === 'authentik') { await this.port.applyAuthentik(desired); if (!this.same(await this.port.readAuthentik(desired.subject), desired)) throw new Error('AUTHENTIK_READBACK_MISMATCH'); }
@@ -180,9 +194,18 @@ export class IdentityLifecycleService {
     return this.db.m.IdentityLifecycleOperation.findOne({ _id: oid, companyId: cid }).lean<any>();
   }
 
+  /**
+   * Fence trước/sau mỗi bước và gia hạn lease. Còn giữ token (kể cả lease đã quá 30 giây mà chưa process nào nhận)
+   * thì đi tiếp; chỉ revision mới hơn mới là SUPERSEDED (review O12: bước chậm trước đây bị coi là superseded vĩnh viễn).
+   * Token đã đổi (process khác nhận lại) thì LEASE_LOST: operation thành partial, retry được.
+   */
   private async assertFence(cid: Types.ObjectId, subject: string, revision: number, leaseToken: string) {
-    const state = await this.db.m.IdentityLifecycleSubject.exists({ companyId: cid, subject, revision, leaseToken, leaseUntil: { $gt: new Date() } });
-    if (!state) throw new Error('LIFECYCLE_SUPERSEDED');
+    const renewed = await this.db.m.IdentityLifecycleSubject.updateOne({ companyId: cid, subject, revision, leaseToken },
+      { $set: { leaseUntil: new Date(Date.now() + LEASE_MS) } });
+    if (renewed.matchedCount === 1) return;
+    const current = await this.db.m.IdentityLifecycleSubject.findOne({ companyId: cid, subject }).lean<any>();
+    if (current && current.revision > revision) throw new Error('LIFECYCLE_SUPERSEDED');
+    throw new Error('LIFECYCLE_LEASE_LOST');
   }
 
   private async releaseSubject(cid: Types.ObjectId, subject: string, leaseToken: string, status: 'pending' | 'partial') {
