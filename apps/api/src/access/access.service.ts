@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Db } from '../db/db.service';
 import { Errors } from '../common/errors';
-import type { Ctx, RequestCtx } from '../common/context';
+import type { AuditorScope, Ctx, RequestCtx } from '../common/context';
 import { DriveRole, SecurityLevel, SystemRole, driveRoleAtLeast } from '../common/enums';
 
 export interface DeptInfo {
@@ -68,6 +68,45 @@ export class AccessService {
     // Drive Nội bộ (00 VCPV Chung) ai đăng nhập cũng xem được
     for (const d of depts) if (d.securityLevel === 'internal') visible.add(d.driveId);
     ctx.visibleDriveIds = [...visible];
+  }
+
+  /** Quyền xem tạm của kiểm toán viên còn hiệu lực (E16); hết hạn thì bỏ qua (việc nền đổi sang expired) */
+  async auditorScope(companyId: string, userId: string): Promise<AuditorScope | undefined> {
+    const rows = await this.db.m.AuditorAccess.find({
+      companyId: new Types.ObjectId(companyId),
+      userId: new Types.ObjectId(userId),
+      status: 'active',
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ expiresAt: -1 })
+      .lean<any[]>();
+    if (!rows.length) return undefined;
+    const departmentIds = [...new Set(rows.flatMap((r) => (r.departmentIds ?? []).map(String)))];
+    const depts = await this.departments(companyId);
+    return {
+      accessIds: rows.map((r) => String(r._id)),
+      departmentIds,
+      driveIds: depts.filter((d) => departmentIds.includes(d.id)).map((d) => d.driveId),
+      expiresAt: rows[0].expiresAt,
+      primaryId: String(rows[0]._id),
+    };
+  }
+
+  /** Kiểm toán viên được xem phòng / drive này (E16) */
+  auditorCovers(ctx: RequestCtx, p: { departmentId?: string; driveId?: string }): boolean {
+    const a = ctx.auditor;
+    if (!a) return false;
+    return (!!p.departmentId && a.departmentIds.includes(String(p.departmentId))) || (!!p.driveId && a.driveIds.includes(p.driveId));
+  }
+
+  /** Các phòng thuộc khối người gọi làm giám đốc (R2) */
+  async blockDeptIds(ctx: Ctx): Promise<Set<string>> {
+    const out = new Set<string>();
+    if (!this.hasRole(ctx, 'R2')) return out;
+    const blocks = await this.db.m.Block.find({ companyId: new Types.ObjectId(ctx.companyId), directorId: new Types.ObjectId(ctx.user.id) }, { _id: 1 }).lean<any[]>();
+    const ids = new Set(blocks.map((b) => String(b._id)));
+    for (const d of await this.departments(ctx.companyId)) if (d.blockId && ids.has(d.blockId)) out.add(d.id);
+    return out;
   }
 
   // ───── tầng 1: vai trò hệ thống ─────

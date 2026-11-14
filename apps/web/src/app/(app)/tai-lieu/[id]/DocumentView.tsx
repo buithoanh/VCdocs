@@ -16,6 +16,7 @@ import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, MultiUserPicker, UserName } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
+import { AuditTools } from '@/components/AuditTools';
 import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Field, LinkButton, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
@@ -106,6 +107,7 @@ export function DocumentView({ id }: { id: string }) {
               <DriveLink fileId={d.current?.fileId ?? d.fileId}>Mở file trên Drive</DriveLink>
               <DriveLink fileId={d.current?.pdfFileId}>Mở bản PDF</DriveLink>
               {d.current?.approvalId && <LinkButton href={`/phe-duyet/${d.current.approvalId}`}>Phiếu duyệt</LinkButton>}
+              <AuditTools target={{ documentId: d.id }} departmentId={d.departmentId} />
             </Space>
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}

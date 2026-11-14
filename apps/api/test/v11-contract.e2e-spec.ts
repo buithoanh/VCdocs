@@ -20,7 +20,7 @@ describe('Hợp đồng 1.1: people, allowedActions, limits, lookup, 413, gốc 
   it('/me có limits lấy từ cấu hình và blockId của giám đốc khối (D12)', async () => {
     const me = (await gdk.get('/me')).body;
     expect(me.blockId).toBe(t.ids.blocks.KD);
-    expect(me.limits).toEqual({ shareMaxDays: 21, backdateWorkingDays: 3, approvalDueDays: 3, minorUnlockDays: 3, uploadMaxMb: 100 });
+    expect(me.limits).toEqual({ shareMaxDays: 21, backdateWorkingDays: 3, approvalDueDays: 3, minorUnlockDays: 3, uploadMaxMb: 100, auditorMaxDays: 30, evidencePackDays: 7 });
     expect((await nv.get('/me')).body.blockId).toBeUndefined();
     expect(me.user.allowedActions).toEqual([]);
   });
