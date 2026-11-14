@@ -87,6 +87,17 @@ describe('chi tiết biên bản', () => {
     expect(screen.getAllByText('Trần Thị B').length).toBeGreaterThan(0);
   });
 
+  it('dòng "Lập": biên bản lập tay hiện tên người lập, biên bản tự lập ghi rõ', async () => {
+    useHandover(makeHandover({ isAuto: false, createdBy: ids.me }));
+    const view = renderApp(<HandoverView id={ids.handover} />);
+    expect(await screen.findByText('Nguyễn Văn A')).toBeInTheDocument();
+    expect(screen.queryByText('Kiểm soát tài liệu lập')).toBeNull();
+    view.unmount();
+    useHandover(makeHandover({ isAuto: true }));
+    renderApp(<HandoverView id={ids.handover} />);
+    expect(await screen.findByText('Tự lập khi ghi ngày nghỉ việc')).toBeInTheDocument();
+  });
+
   it('sửa một mục: chỉ cho cách xử lý hợp loại, gửi PATCH items', async () => {
     let body: Record<string, unknown> | undefined;
     useHandover(makeHandover());

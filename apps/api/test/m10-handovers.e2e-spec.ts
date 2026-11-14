@@ -92,6 +92,10 @@ describe('M10 Bàn giao (giai đoạn 2, E3–E12)', () => {
       expect(by('approval_submitted')[0]).toMatchObject({ objectId: submittedId });
       expect(by('external_share')[0]).toMatchObject({ objectId: shareId, action: 'reassign' });
       expect(by('delegation')[0]).toMatchObject({ objectId: delegationId, action: 'end' });
+      // Cột chi tiết là chữ cho người đọc, không phải mã trạng thái hay mã loại đối tượng
+      expect(by('record')[0].detail).toBe('Đang lập · người lập');
+      expect(by('document')[0].detail).toBe('Đã đăng ký · người soạn');
+      expect(by('approval_to_decide')[0].detail).toMatch(/^Hồ sơ · người duyệt/);
       expect(by('my_drive_file')[0]).toMatchObject({ name: 'Ghi chú cá nhân', action: 'transfer' });
       expect(by('my_drive_file')[0].toUserId).toBeUndefined();
       expect(by('group_membership').map((i: any) => i.groupEmail)).toEqual(expect.arrayContaining([`11-mkt-dong-gop@vcprosperous.com`]));

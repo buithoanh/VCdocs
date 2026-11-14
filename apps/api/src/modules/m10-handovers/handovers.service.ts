@@ -45,6 +45,10 @@ const ITEM_STATUS_LABEL: Record<string, string> = { pending: 'Chờ', done: 'Xon
 export const UNFINISHED: HandoverStatus[] = ['listing', 'open', 'received', 'verified', 'executing'];
 /** Tài liệu đang dở: registered → revising (E5), không gồm đã hiệu lực, đã huỷ bỏ */
 const DOC_OPEN = ['registered', 'coded', 'drafting', 'feedback', 'submitted', 'approved', 'revising'];
+/** Chữ hiện ở cột chi tiết của dòng bàn giao (người đọc là HCNS, người nhận), không dùng mã trạng thái. */
+const DOC_STATUS_TEXT: Record<string, string> = { registered: 'Đã đăng ký', coded: 'Đã cấp mã', drafting: 'Đang soạn', feedback: 'Đang lấy góp ý', submitted: 'Chờ phê duyệt', approved: 'Đã duyệt, chờ ban hành', revising: 'Đang sửa đổi' };
+const RECORD_STATUS_TEXT: Record<string, string> = { drafting: 'Đang lập', submitted: 'Chờ phê duyệt' };
+const APPROVAL_OBJECT_TEXT: Record<string, string> = { document: 'Tài liệu', document_withdrawal: 'Huỷ bỏ tài liệu', record: 'Hồ sơ', code: 'Mã mới', retention: 'Thời hạn lưu', external_share: 'Chia sẻ ra ngoài', disposal: 'Huỷ hồ sơ', delegation: 'Uỷ quyền' };
 const MY_DRIVE_MAX = 1000;
 export const HANDOVER_TEMPLATE_CODE = 'BM-VCPV-08';
 
@@ -422,16 +426,16 @@ export class HandoversService {
     const docs = await m.Document.find({ companyId: cid, status: { $in: DOC_OPEN }, $or: [{ drafterId: u }, { checkerId: u }] }).lean<any[]>();
     for (const d of docs) {
       const roles = [String(d.drafterId) === String(u) ? 'người soạn' : '', String(d.checkerId) === String(u) ? 'người kiểm tra' : ''].filter(Boolean).join(', ');
-      out.push({ key: `document:${d._id}`, kind: 'document', objectType: 'document', objectId: d._id, fileId: d.fileId, name: [d.code, d.title].filter(Boolean).join(' '), detail: `${d.status} · ${roles}` });
+      out.push({ key: `document:${d._id}`, kind: 'document', objectType: 'document', objectId: d._id, fileId: d.fileId, name: [d.code, d.title].filter(Boolean).join(' '), detail: `${DOC_STATUS_TEXT[d.status] ?? d.status} · ${roles}` });
     }
     const recs = await m.Record.find({ companyId: cid, createdBy: u, status: { $in: ['drafting', 'submitted'] } }).lean<any[]>();
-    for (const r of recs) out.push({ key: `record:${r._id}`, kind: 'record', objectType: 'record', objectId: r._id, fileId: r.fileId, name: `${r.number} ${r.fileName ?? r.subject}`, detail: `${r.status} · người lập` });
+    for (const r of recs) out.push({ key: `record:${r._id}`, kind: 'record', objectType: 'record', objectId: r._id, fileId: r.fileId, name: `${r.number} ${r.fileName ?? r.subject}`, detail: `${RECORD_STATUS_TEXT[r.status] ?? r.status} · người lập` });
     const apps = await m.Approval.find({ companyId: cid, status: 'pending', $or: [{ approverId: u }, { checkerId: u, checkedAt: { $exists: false } }, { submittedBy: u }] }).lean<any[]>();
     for (const a of apps) {
       const decides = String(a.approverId) === String(u) || (String(a.checkerId) === String(u) && !a.checkedAt);
       const kind: Kind = decides ? 'approval_to_decide' : 'approval_submitted';
       const role = decides ? (String(a.approverId) === String(u) ? 'người duyệt' : 'người kiểm tra') : 'người trình';
-      out.push({ key: `${kind}:${a._id}`, kind, objectType: 'approval', objectId: a._id, name: a.objectTitle ?? `Phiếu ${a.objectType}`, detail: `${a.objectType} · ${role}${a.dueAt ? ` · hạn ${dateVN(a.dueAt)}` : ''}` });
+      out.push({ key: `${kind}:${a._id}`, kind, objectType: 'approval', objectId: a._id, name: a.objectTitle ?? `Phiếu ${APPROVAL_OBJECT_TEXT[a.objectType] ?? a.objectType}`, detail: `${APPROVAL_OBJECT_TEXT[a.objectType] ?? a.objectType} · ${role}${a.dueAt ? ` · hạn ${dateVN(a.dueAt)}` : ''}` });
     }
     const shares = await m.ExternalShare.find({ companyId: cid, sharedBy: u, status: 'active' }).lean<any[]>();
     for (const s of shares) out.push({ key: `external_share:${s._id}`, kind: 'external_share', objectType: 'external_share', objectId: s._id, fileId: s.fileId, name: `${s.fileName ?? s.fileId} → ${s.email}`, detail: `${s.role}${s.expiresAt ? ` · hết hạn ${dateVN(s.expiresAt)}` : ''}` });

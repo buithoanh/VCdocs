@@ -118,7 +118,7 @@ export function HandoverView({ id }: { id: string }) {
                 ['Phòng', <DeptName key="d" id={h.departmentId} />],
                 ['Ngày làm việc cuối', formatDate(h.lastWorkingDay)],
                 ['Người nhận', <UserName key="r" id={h.receiverId} />],
-                ['Lập', h.isAuto ? 'Tự lập khi ghi ngày nghỉ việc' : 'Kiểm soát tài liệu lập'],
+                ['Lập', h.isAuto ? 'Tự lập khi ghi ngày nghỉ việc' : h.createdBy ? <span key="c"><UserName id={h.createdBy} /> · {formatDateTime(h.createdAt)}</span> : 'HCNS lập'],
                 ['Tiến độ', countsText(h.counts)],
                 ['Người nhận xác nhận', h.receipt ? <span key="rc">{formatDateTime(h.receipt.at)}{h.receipt.note ? ` – ${h.receipt.note}` : ''}</span> : '—'],
                 [
