@@ -129,12 +129,18 @@ export class StalwartMailPort implements MailPort {
   private async kickImapSessions(principal:string){if(!/^[a-z0-9._%+-]+@vcworkspace\.test$/.test(principal.toLowerCase()))throw new Error('MAIL_PRINCIPAL_INVALID');const socket=net.connect({host:this.cfg.host,port:this.cfg.controlPort}),read=bufferedReader(socket);await new Promise<void>((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});socket.write(`AUTH ${this.cfg.controlToken} KICK IMAP ${principal.toLowerCase()}\n`);await read(/^OK \d+$/m);socket.end();}
   async setSharedMember(address:string,member:string,enabled:boolean){const [group,user]=await Promise.all([this.account(address),this.account(member)]),ids={...(user.memberGroupIds??{})};if(enabled)ids[group.id]=true;else delete ids[group.id];await this.jmap([['x:Account/set',{update:{[user.id]:{memberGroupIds:ids}}},'u']]);const verified=await this.account(member);if((verified.memberGroupIds?.[group.id]===true)!==enabled)throw new Error('MAIL_GROUP_READBACK_FAILED');if(!enabled)await this.kickImapSessions(member);}
   async offboardUser(address:string){const user=await this.account(address),aliases=Object.fromEntries(Object.entries(user.aliases??{}).map(([key,value]:[string,any])=>[key,{...value,enabled:false}]));await this.jmap([['x:Account/set',{update:{[user.id]:{memberGroupIds:{},aliases,secrets:[]}}},'u']]);const verified=await this.account(address);if(Object.keys(verified.memberGroupIds??{}).length||Object.values(verified.aliases??{}).some((x:any)=>x.enabled!==false)||(verified.secrets??[]).length)throw new Error('MAIL_OFFBOARD_READBACK_FAILED');await this.kickImapSessions(address);}
-  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string){
+  async listFolder(accessOwner:string,folder='inbox',engineMailbox?:string,known?:(engineId:string)=>Promise<boolean>){
     return this.withImap(accessOwner,async io=>{
       await this.imapCommand(io,'s1',`SELECT "${this.engineFolder(folder,engineMailbox,accessOwner)}"`);
       const searched=await this.imapCommand(io,'s2','UID SEARCH ALL'),uids=searched.flatMap(x=>/^\* SEARCH((?: \d+)*)\s*$/i.exec(x.text)?.[1].trim().split(/\s+/).filter(Boolean)??[]),items:{engineId:string;raw:Buffer}[]=[];
-      let index=3;
+      if(!uids.length)return items;
+      // Đọc Message-ID của cả thư mục trước (review O7): thư đã có trong CSDL không tải lại toàn bộ nội dung.
+      const heads=new Map<string,string|undefined>();
+      if(known)for(const row of fetchedLiterals(await this.imapCommand(io,'s3','UID FETCH 1:* (UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])'),/BODY\[HEADER\.FIELDS \([^\]]*\)\]/))heads.set(row.uid,await headerMessageId(row.literal));
+      let index=4;
       for(const uid of uids){
+        const head=heads.get(uid);
+        if(known&&(!head||await known(head)))continue;
         const fetched=fetchedLiterals(await this.imapCommand(io,`s${index++}`,`UID FETCH ${uid} BODY.PEEK[]`),/BODY\[\]/).find(x=>x.uid===uid);
         if(!fetched)continue;
         // Thư thiếu Message-ID ở header không có khoá engine ổn định nên bị bỏ qua, không làm hỏng cả danh sách.

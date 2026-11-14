@@ -258,7 +258,7 @@ p { margin: .4rem 0; }
 .mail-pane-toolbar { min-height: 73px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--mail-line); }
 .mail-pane-toolbar h2 { max-width: 680px; font-size: 1.2rem; line-height: 1.35; }
 .mail-download-button { display: inline-flex; align-items: center; gap: .4rem; flex: 0 0 auto; padding: .45rem .65rem; color: #334155; border: 1px solid var(--mail-line); border-radius: 6px; font-size: .82rem; }
-.mail-reader-actions { display: flex; align-items: center; gap: .4rem; }
+.mail-reader-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .4rem; min-width: 0; }
 button.mail-download-button { background: #fff; font: inherit; cursor: pointer; }
 .mail-download-button:hover { background: #f8fafc; text-decoration: none; }
 .mail-sender { display: flex; align-items: center; gap: .75rem; padding: 1.2rem 1.4rem; }
@@ -402,11 +402,20 @@ button.mail-download-button { background: #fff; font: inherit; cursor: pointer; 
   .drive-space-name small { display: none; }
   .drive-shell .mail-reading-pane { max-height: none; }
 }
-@media (max-width: 1100px) { .mail-shell { grid-template-columns: 180px 310px minmax(360px, 1fr); } .mail-account { display: none; } }
-@media (max-width: 850px) {
+/* Bố cục theo bề rộng thật của vùng Email (container), không theo màn hình: thanh bên 240px làm vùng nội dung
+   hẹp hơn màn hình nên lưới ba cột từng bị cắt cột đọc ở màn 850–1215px (review O15). */
+.mail-page { container-type: inline-size; }
+@container (max-width: 940px) { .mail-shell { grid-template-columns: 180px minmax(260px, 310px) minmax(0, 1fr); } .mail-account { display: none; } }
+@container (max-width: 1180px) {
+  /* Cột đọc hẹp: tiêu đề thư ở trên, hàng nút xuống dòng dưới tiêu đề thay vì tràn ra ngoài khung. */
+  .mail-reader > .mail-pane-toolbar { flex-wrap: wrap; align-items: flex-start; }
+  .mail-reader > .mail-pane-toolbar > div:first-child { flex: 1 1 100%; min-width: 0; }
+  .mail-reader-actions { justify-content: flex-start; }
+}
+@container (max-width: 800px) {
   .mail-titlebar { grid-template-columns: 1fr auto; }
   .mail-search { grid-row: 2; grid-column: 1 / -1; }
-  .mail-shell { grid-template-columns: 72px minmax(260px, 40%) 1fr; min-height: calc(100vh - 220px); }
+  .mail-shell { grid-template-columns: 72px minmax(240px, 40%) minmax(0, 1fr); min-height: calc(100vh - 220px); }
   .mail-folders { padding: .75rem .55rem; align-items: center; }
   .mail-compose-button { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
   .mail-nav-label, .mail-folder-button span { display: none; }

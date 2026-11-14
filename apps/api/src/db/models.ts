@@ -275,6 +275,8 @@ const WorkspaceSpaceMember = mk({
 });
 WorkspaceSpaceMember.index({ companyId: 1, spaceId: 1, userId: 1 }, { unique: true });
 
+export const WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'workspace_drive_item_live_name';
+export const LEGACY_WORKSPACE_DRIVE_ITEM_NAME_INDEX = 'companyId_1_spaceId_1_parentId_1_name_1';
 const WorkspaceDriveItem = mk({
   spaceId: { type: OID, required: true },
   parentId: OID,
@@ -290,7 +292,9 @@ const WorkspaceDriveItem = mk({
   trashedFromParentId: OID,
   trashedRootId: OID,
 });
-WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1 }, { unique: true });
+// Tên chỉ duy nhất trong các mục chưa bỏ thùng rác: mục đang dùng có trashedAt null, mục trong thùng rác mang
+// thời điểm bỏ nên không chặn tên mới. Index cũ (không có trashedAt) được Db.ready() gỡ.
+WorkspaceDriveItem.index({ companyId: 1, spaceId: 1, parentId: 1, name: 1, trashedAt: 1 }, { unique: true, name: WORKSPACE_DRIVE_ITEM_NAME_INDEX });
 
 const WorkspaceDriveVersion = mk({
   fileId: { type: OID, required: true },
@@ -310,6 +314,9 @@ const UploadAttempt = mk({
   fingerprint: { type: String, required: true },
   state: { type: String, enum: ['pending', 'done', 'failed'], required: true },
   itemId: OID,
+  // Lượt pending đang có request giữ; hết hạn thì retry cùng key được nhận lại.
+  leaseToken: String,
+  leaseUntil: Date,
   errorCode: String,
 });
 UploadAttempt.index({ companyId: 1, userId: 1, idempotencyKey: 1 }, { unique: true });
@@ -320,6 +327,8 @@ const WorkspaceEditorSave = mk({
   callbackFingerprint: { type: String, required: true },
   status: { type: String, enum: ['saving', 'saved', 'failed'], required: true },
   versionId: OID,
+  // Mã trạng thái callback ONLYOFFICE đã tạo version: 6 = forcesave (phiên soạn còn mở, key giữ nguyên), 2 = đóng phiên.
+  callbackStatus: Number,
   errorCode: String,
 });
 WorkspaceEditorSave.index({ companyId: 1, fileId: 1, callbackFingerprint: 1 }, { unique: true });
@@ -331,8 +340,10 @@ const WorkspaceDriveShareLink = mk({
   recipients: { type: [String], required: true },
   idempotencyKey: { type: String, required: true },
   fingerprint: { type: String, required: true },
-  token: { type: String, required: true },
+  // Token rõ chỉ giữ tới khi thư chứa link gửi xong (retry cần đúng nội dung thư); sau đó chỉ còn tokenHash.
+  token: String,
   tokenHash: { type: String, required: true },
+  sentMessageId: OID,
   expiresAt: { type: Date, required: true },
   revokedAt: Date,
 });

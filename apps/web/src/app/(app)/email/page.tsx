@@ -3,7 +3,7 @@
 import Icon, { CloseOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PaperClipOutlined, ReloadOutlined, SearchOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Avatar, Button, Card, Col, Empty, Flex, Form, Input, Row, Select, Space, Spin, Tag, Typography, Upload } from 'antd';
-import { memo, useCallback, useMemo, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { API_BASE, getCsrfToken, newId } from '@/api/client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { ErrorBox } from '@/components/ui';
@@ -136,6 +136,12 @@ export default function EmailPage() {
   const [selectedId, setSelectedId] = useState('');
   const [composing, setComposing] = useState(false);
   const [search, setSearch] = useState('');
+  // Chỉ gọi danh sách khi ngừng gõ 300 ms; mỗi lần gọi đồng bộ với mail server (review O7).
+  const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [mailbox, setMailbox] = useState('');
   const [managing, setManaging] = useState(false);
   const [to, setTo] = useState('');
@@ -162,9 +168,9 @@ export default function EmailPage() {
   const aliases = useQuery({ queryKey: ['mail-aliases'], queryFn: () => json('/mail/aliases').then((value) => value.items as { id: string; address: string }[]) });
   const shared = useQuery({ queryKey: ['mail-shared'], queryFn: () => json('/mail/shared-mailboxes').then((value) => value.items as SharedMailbox[]) });
   const messages = useQuery({
-    queryKey: ['mail', folder, mailbox, search],
+    queryKey: ['mail', folder, mailbox, searchQuery],
     queryFn: () =>
-      json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${search.trim() ? `&q=${encodeURIComponent(search.trim())}&scope=all` : ''}`).then(
+      json(`/mail/messages?folder=${encodeURIComponent(folder)}${mailbox ? `&mailbox=${encodeURIComponent(mailbox)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}&scope=all` : ''}`).then(
         (value) => value.items as Message[],
       ),
   });
@@ -272,22 +278,37 @@ export default function EmailPage() {
     setComposing(true);
     setEditorFocus((value) => value + 1);
   }
+  /**
+   * Bấm Gửi lại sau lỗi hay bấm hai lần với đúng nội dung cũ dùng lại Idempotency-Key cũ để server không gửi đôi
+   * (review O11); nội dung đã sửa thì là thư khác, key mới.
+   */
+  const lastSend = useRef<{ payload: string; key: string } | null>(null);
+  const [sending, setSending] = useState(false);
   async function send() {
-    const response = await fetch(`${API_BASE}/mail/send`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: headers(true),
-      body: JSON.stringify({
-        ...recipients(),
-        subject,
-        ...content(),
-        draftId: draftId || undefined,
-        attachments: attachment ? [attachment] : [],
-        fromIdentity: fromIdentity || sendableMailbox || undefined,
-        ...(replyRefs ? { ...replyRefs, mailbox: mailbox || undefined } : {}),
-      }),
+    const payload = JSON.stringify({
+      ...recipients(),
+      subject,
+      ...content(),
+      draftId: draftId || undefined,
+      attachments: attachment ? [attachment] : [],
+      fromIdentity: fromIdentity || sendableMailbox || undefined,
+      ...(replyRefs ? { ...replyRefs, mailbox: mailbox || undefined } : {}),
     });
+    if (lastSend.current?.payload !== payload) lastSend.current = { payload, key: newId() };
+    setSending(true);
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/mail/send`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { ...headers(), 'Idempotency-Key': lastSend.current.key },
+        body: payload,
+      });
+    } finally {
+      setSending(false);
+    }
     if (!response.ok) throw new Error('Mail server chưa xác nhận gửi.');
+    lastSend.current = null;
     setNotice('Mail server đã nhận thư.');
     setDraftId('');
     setReplyRefs(null);
@@ -592,7 +613,7 @@ export default function EmailPage() {
               )}
               <Notice notice={notice} error={error} />
               <Flex gap={8} wrap align="center" className="mail-compose-actions">
-                <Button type="primary" icon={<SendOutlined aria-hidden />} disabled={!parseAddressList(to).length || !subject} onClick={() => void run(send)}>
+                <Button type="primary" icon={<SendOutlined aria-hidden />} disabled={sending || !parseAddressList(to).length || !subject} onClick={() => void run(send)}>
                   Gửi
                 </Button>
                 <AttachButton onFile={choose} />
