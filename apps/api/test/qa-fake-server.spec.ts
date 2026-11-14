@@ -12,7 +12,8 @@ describeQa('QA fake server', () => {
   let testApp: TestApp;
 
   beforeAll(async () => {
-    testApp = await createTestApp({ port, publicApiOrigin: webOrigin, webOrigin });
+    // Bật bộ chạy việc nền để luồng lập hồ sơ / chốt / xuất file đi hết trên trình duyệt (mặc định test tắt, drain tay).
+    testApp = await createTestApp({ port, publicApiOrigin: webOrigin, webOrigin, jobsPollMs: Number(process.env.QA_JOBS_POLL_MS || 1000) });
     await testApp.app.listen(port, '127.0.0.1');
     console.log(`VCworkspace QA fake server ready at http://127.0.0.1:${port}`);
   });

@@ -1,18 +1,26 @@
 'use client';
 
+import { SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
+import { Checkbox, Col, Form, Input, Row, Select } from 'antd';
 import { useState } from 'react';
 import { api, unwrap } from '@/api/client';
 import { recordTypeName, useRecordTypes } from '@/api/queries';
 import type { RecordKind, RecordStatus } from '@/api/types';
-import { DataTable, Pagination } from '@/components/DataTable';
+import { DataTable } from '@/components/DataTable';
+import { MonthPicker } from '@/components/dates';
 import { DeptName, DeptSelect } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Badge, LinkButton, PageHeader, QueryState, SelectField, TextField } from '@/components/ui';
+import { Badge, LinkButton, PageHeader, QueryState } from '@/components/ui';
 import { formatDate, formatMonth } from '@/lib/format';
 import { recordKindLabel, recordStatusLabel } from '@/lib/labels';
 
 const LIMIT = 50;
+const KIND_OPTIONS = (Object.keys(recordKindLabel) as RecordKind[]).map((k) => ({ value: k, label: recordKindLabel[k] }));
+const STATUS_OPTIONS = (Object.keys(recordStatusLabel) as RecordStatus[]).map((s) => ({ value: s, label: recordStatusLabel[s] }));
+/** Ô chọn đứng hai cột cả trên điện thoại; ô gõ chữ chiếm trọn hàng. */
+const COL = { xs: 12, sm: 12, lg: 8, xl: 6 };
+const COL_WIDE = { xs: 24, sm: 12, lg: 8, xl: 6 };
 
 export default function RecordsPage() {
   const { can, me } = useAuth();
@@ -50,7 +58,13 @@ export default function RecordsPage() {
       ),
     placeholderData: (prev) => prev,
   });
-  const reset = () => setPage(1);
+  /** Đổi bộ lọc thì về trang 1. */
+  const filter =
+    <V,>(set: (v: V) => void) =>
+    (v: V) => {
+      set(v);
+      setPage(1);
+    };
 
   return (
     <>
@@ -68,28 +82,67 @@ export default function RecordsPage() {
           </>
         }
       />
-      <div className="filters">
-        <div className="field">
-          <label htmlFor="tim-hs">Tìm</label>
-          <input id="tim-hs" type="search" placeholder="Số hồ sơ hoặc nội dung" value={q} onChange={(e) => (setQ(e.target.value), reset())} />
-        </div>
-        <TextField label="Số định danh" value={identifier} onChange={(v) => (setIdentifier(v), reset())} placeholder="Biển số, PO…" />
-        <SelectField label="Loại hồ sơ" value={recordTypeId} onChange={(v) => (setType(v), reset())} placeholder="Tất cả" options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name }))} />
-        <SelectField label="Loại" value={kind} onChange={(v) => (setKind(v), reset())} placeholder="Tất cả" options={(Object.keys(recordKindLabel) as RecordKind[]).map((k) => ({ value: k, label: recordKindLabel[k] }))} />
-        <DeptSelect value={departmentId} onChange={(v) => (setDept(v), reset())} allowAll />
-        <TextField label="Tháng công việc" type="month" value={workMonth} onChange={(v) => (setMonth(v), reset())} />
-        <SelectField label="Trạng thái" value={status} onChange={(v) => (setStatus(v), reset())} placeholder="Tất cả" options={(Object.keys(recordStatusLabel) as RecordStatus[]).map((s) => ({ value: s, label: recordStatusLabel[s] }))} />
-      </div>
-      <label className="checkbox">
-        <input type="checkbox" checked={mine} onChange={(e) => (setMine(e.target.checked), reset())} />
-        Chỉ hồ sơ tôi lập
-      </label>
+      <Form layout="vertical" component={false} className="vc-filters">
+        <Row gutter={[12, 0]}>
+          <Col {...COL_WIDE}>
+            <Form.Item label="Tìm" htmlFor="tim-hs">
+              <Input id="tim-hs" allowClear prefix={<SearchOutlined />} placeholder="Số hồ sơ hoặc nội dung" value={q} onChange={(e) => filter(setQ)(e.target.value)} />
+            </Form.Item>
+          </Col>
+          <Col {...COL_WIDE}>
+            <Form.Item label="Số định danh" htmlFor="dinh-danh-hs">
+              <Input id="dinh-danh-hs" allowClear placeholder="Biển số, PO…" value={identifier} onChange={(e) => filter(setIdentifier)(e.target.value)} />
+            </Form.Item>
+          </Col>
+          <Col {...COL}>
+            <Form.Item label="Loại hồ sơ" htmlFor="loai-hs">
+              <Select
+                id="loai-hs"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Tất cả"
+                loading={types.isLoading}
+                value={recordTypeId || undefined}
+                onChange={(v) => filter(setType)(v ?? '')}
+                options={(types.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col {...COL}>
+            <Form.Item label="Loại" htmlFor="kind-hs">
+              <Select id="kind-hs" allowClear placeholder="Tất cả" value={kind || undefined} onChange={(v) => filter(setKind)(v ?? '')} options={KIND_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col {...COL}>
+            <DeptSelect value={departmentId} onChange={filter(setDept)} allowAll />
+          </Col>
+          <Col {...COL}>
+            <Form.Item label="Tháng công việc" htmlFor="thang-hs">
+              <MonthPicker id="thang-hs" value={workMonth} onChange={filter(setMonth)} allowClear placeholder="Tất cả" />
+            </Form.Item>
+          </Col>
+          <Col {...COL}>
+            <Form.Item label="Trạng thái" htmlFor="trang-thai-hs">
+              <Select id="trang-thai-hs" allowClear placeholder="Tất cả" value={status || undefined} onChange={(v) => filter(setStatus)(v ?? '')} options={STATUS_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col {...COL_WIDE}>
+            <Form.Item label=" " colon={false}>
+              <Checkbox checked={mine} onChange={(e) => filter(setMine)(e.target.checked)}>
+                Chỉ hồ sơ tôi lập
+              </Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+      </Form>
       <QueryState q={list}>
         <DataTable
           rows={list.data?.items ?? []}
           rowKey={(r) => r.id}
           rowHref={(r) => `/ho-so/${r.id}`}
           empty="Không có hồ sơ phù hợp."
+          pagination={list.data ? { page, limit: LIMIT, total: list.data.total, onPage: setPage } : undefined}
           columns={[
             { key: 'num', header: 'Số hồ sơ', render: (r) => <span className="mono nowrap">{r.number}</span> },
             { key: 'name', header: 'Tên', render: (r) => <strong>{r.fileName ?? r.subject}</strong> },
@@ -109,7 +162,6 @@ export default function RecordsPage() {
             },
           ]}
         />
-        {list.data && <Pagination page={page} limit={LIMIT} total={list.data.total} onPage={setPage} />}
       </QueryState>
     </>
   );

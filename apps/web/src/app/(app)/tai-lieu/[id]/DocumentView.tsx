@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Checkbox, InputNumber, Radio, Space } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -10,11 +11,12 @@ import type { Document, RevisionKind } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
 import { ApproverPreview } from '@/components/ApproverPreview';
 import { DataTable } from '@/components/DataTable';
+import { DateField } from '@/components/dates';
 import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, MultiUserPicker, UserName } from '@/components/pickers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
+import { Badge, Button, Card, DefList, DriveLink, ErrorBox, Field, LinkButton, Notice, PageHeader, QueryState, TextField } from '@/components/ui';
 import { formatDate, formatDateTime, todayISO } from '@/lib/format';
 import { docLevelLabel, docStatusLabel, docTypeLabel, securityLabel } from '@/lib/labels';
 import { hasAction } from '@/lib/permissions';
@@ -100,15 +102,11 @@ export function DocumentView({ id }: { id: string }) {
                 ['Hiệu lực từ', formatDate(d.current?.effectiveFrom)],
               ]}
             />
-            <div className="actions" style={{ marginTop: '1rem' }}>
+            <Space wrap style={{ marginTop: 16 }}>
               <DriveLink fileId={d.current?.fileId ?? d.fileId}>Mở file trên Drive</DriveLink>
               <DriveLink fileId={d.current?.pdfFileId}>Mở bản PDF</DriveLink>
-              {d.current?.approvalId && (
-                <Link className="btn btn-secondary" href={`/phe-duyet/${d.current.approvalId}`}>
-                  Phiếu duyệt
-                </Link>
-              )}
-            </div>
+              {d.current?.approvalId && <LinkButton href={`/phe-duyet/${d.current.approvalId}`}>Phiếu duyệt</LinkButton>}
+            </Space>
           </Card>
           {d.type === 'EXT' && <ExternalCard doc={d} />}
           {showFeedback && hasAction(d, 'feedback') && <OpenCommentsCard id={id} />}
@@ -221,7 +219,7 @@ function ExternalCard({ doc }: { doc: Document }) {
         ]}
       />
       {hasAction(doc, 'update-external') && (
-        <div className="actions" style={{ marginTop: '1rem' }}>
+        <Space wrap style={{ marginTop: 16 }}>
           <Button onClick={() => patch.mutate({ lastCheckedAt: new Date().toISOString() })} loading={patch.isPending}>
             Đã kiểm tra: vẫn hiệu lực
           </Button>
@@ -230,7 +228,7 @@ function ExternalCard({ doc }: { doc: Document }) {
               Đánh dấu bị thay thế
             </Button>
           )}
-        </div>
+        </Space>
       )}
       <ErrorBox error={patch.error} />
       {(related ?? (ext?.isSuperseded ? doc.relatedIds : null))?.length ? (
@@ -275,16 +273,15 @@ function FeedbackDialog({ id, onClose }: { id: string; onClose: () => void }) {
       onClose={onClose}
     >
       <MultiUserPicker label="Người góp ý" value={reviewerIds} onChange={setReviewers} />
-      <fieldset className="field">
-        <legend>Phòng góp ý</legend>
-        {depts.data?.map((d) => (
-          <label key={d.id} className="checkbox">
-            <input type="checkbox" checked={departmentIds.includes(d.id)} onChange={(e) => setDepts(e.target.checked ? [...departmentIds, d.id] : departmentIds.filter((x) => x !== d.id))} />
-            {d.number} {d.code} – {d.name}
-          </label>
-        ))}
-      </fieldset>
-      <TextField label="Hạn góp ý" type="date" value={dueDate} onChange={setDue} required min={todayISO()} />
+      <Field label="Phòng góp ý">
+        <Checkbox.Group
+          className="vc-check-list"
+          value={departmentIds}
+          onChange={(v) => setDepts(v as string[])}
+          options={(depts.data ?? []).map((d) => ({ value: d.id, label: `${d.number} ${d.code} – ${d.name}` }))}
+        />
+      </Field>
+      <DateField label="Hạn góp ý" value={dueDate} onChange={setDue} required disabledPast />
     </ActionDialog>
   );
 }
@@ -325,10 +322,9 @@ function SubmitDialog({ doc, onClose }: { doc: Document; onClose: () => void }) 
       {open > 0 && (
         <>
           <Notice tone="warn">File còn {open} nhận xét chưa đóng. Nên xử lý hết trước khi trình.</Notice>
-          <label className="checkbox">
-            <input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />
+          <Checkbox checked={override} onChange={(e) => setOverride(e.target.checked)}>
             Vẫn trình (chỉ trưởng phòng được bỏ qua)
-          </label>
+          </Checkbox>
           {override && <TextField label="Lý do bỏ qua" value={reason} onChange={setReason} required multiline />}
         </>
       )}
@@ -360,7 +356,7 @@ function IssueDialog({ doc, onClose }: { doc: Document; onClose: () => void }) {
       onDone={(r) => jobs.track({ jobId: r.jobId, label: `Ban hành ${doc.code ?? ''}`, invalidate: [['document', doc.id], ['documents']] })}
       onClose={onClose}
     >
-      <TextField label="Hiệu lực từ ngày" type="date" value={effectiveFrom} onChange={setFrom} required />
+      <DateField label="Hiệu lực từ ngày" value={effectiveFrom} onChange={setFrom} required />
       <TextField label="Gửi thông báo tới nhóm Google" value={groups} onChange={setGroups} hint="Email nhóm, cách nhau bằng dấu phẩy. Để trống nếu không cần." />
     </ActionDialog>
   );
@@ -383,15 +379,17 @@ function ReviseDialog({ id, onClose }: { id: string; onClose: () => void }) {
       invalidate={[['document', id], ['documents']]}
       onClose={onClose}
     >
-      <label className="checkbox">
-        <input type="radio" name="kind" checked={kind === 'minor'} onChange={() => setKind('minor')} />
-        Sửa nhỏ – không đổi phiên bản, không cần duyệt, ghi một dòng lịch sử
-      </label>
-      <label className="checkbox">
-        <input type="radio" name="kind" checked={kind === 'major'} onChange={() => setKind('major')} />
-        Sửa lớn – lên phiên bản mới, đi lại góp ý, trình duyệt, ban hành; bản cũ vẫn hiệu lực
-      </label>
-      {kind === 'minor' && <TextField label="Mở khoá trong (ngày)" type="number" min={1} value={days} onChange={setDays} required inputMode="numeric" />}
+      <Radio.Group value={kind} onChange={(e) => setKind(e.target.value as RevisionKind)}>
+        <Space orientation="vertical">
+          <Radio value="minor">Sửa nhỏ – không đổi phiên bản, không cần duyệt, ghi một dòng lịch sử</Radio>
+          <Radio value="major">Sửa lớn – lên phiên bản mới, đi lại góp ý, trình duyệt, ban hành; bản cũ vẫn hiệu lực</Radio>
+        </Space>
+      </Radio.Group>
+      {kind === 'minor' && (
+        <Field label="Mở khoá trong (ngày)" required>
+          <InputNumber min={1} value={Number(days) || undefined} onChange={(v) => setDays(v == null ? '' : String(v))} style={{ width: 160 }} />
+        </Field>
+      )}
     </ActionDialog>
   );
 }
@@ -453,12 +451,15 @@ function ReviewDialog({ id, onClose }: { id: string; onClose: () => void }) {
       invalidate={[['document', id], ['documents']]}
       onClose={onClose}
     >
-      {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
-        <label key={k} className="checkbox">
-          <input type="radio" name="review" checked={result === k} onChange={() => setResult(k)} />
-          {labels[k]}
-        </label>
-      ))}
+      <Radio.Group value={result} onChange={(e) => setResult(e.target.value as keyof typeof labels)}>
+        <Space orientation="vertical">
+          {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
+            <Radio key={k} value={k}>
+              {labels[k]}
+            </Radio>
+          ))}
+        </Space>
+      </Radio.Group>
     </ActionDialog>
   );
 }

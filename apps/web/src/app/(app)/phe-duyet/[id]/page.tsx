@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
+import { Affix, Space } from 'antd';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { api, unwrap } from '@/api/client';
@@ -9,7 +9,7 @@ import { useAction } from '@/api/queries';
 import { DecideDialog, approvalObjectHref, type DecideKind } from '@/components/approvals/approvalUi';
 import { UserName } from '@/components/pickers';
 import { useToast } from '@/components/providers/ToastProvider';
-import { Badge, Button, Card, DefList, ErrorBox, Notice, PageHeader, QueryState } from '@/components/ui';
+import { Badge, Button, Card, DefList, ErrorBox, LinkButton, Notice, PageHeader, QueryState } from '@/components/ui';
 import { formatDateTime } from '@/lib/format';
 import { approvalObjectLabel, approvalStatusLabel } from '@/lib/labels';
 import { hasAction } from '@/lib/permissions';
@@ -48,17 +48,13 @@ export default function ApprovalDetailPage() {
             }
           />
           {a.status === 'invalidated' && <Notice tone="warn">Phiếu mất hiệu lực: {a.invalidatedReason ?? 'file đã bị sửa sau khi trình'}. Người trình cần trình lại.</Notice>}
-          <div className="actions" style={{ marginBottom: '1rem' }}>
+          <Space wrap style={{ marginBottom: 16 }}>
             {a.snapshot?.viewUrl && (
-              <a className="btn btn-primary btn-lg" href={a.snapshot.viewUrl} target="_blank" rel="noreferrer">
+              <LinkButton href={a.snapshot.viewUrl} variant="primary" size="large">
                 Xem đúng bản đã trình
-              </a>
+              </LinkButton>
             )}
-            {objectHref && (
-              <Link className="btn btn-secondary" href={objectHref}>
-                Mở {approvalObjectLabel[a.objectType].toLowerCase()}
-              </Link>
-            )}
+            {objectHref && <LinkButton href={objectHref}>Mở {approvalObjectLabel[a.objectType].toLowerCase()}</LinkButton>}
             {hasAction(a, 'remind') && (
               <Button onClick={() => remind.mutate()} loading={remind.isPending}>
                 Nhắc người duyệt
@@ -69,7 +65,7 @@ export default function ApprovalDetailPage() {
                 Rút phiếu
               </Button>
             )}
-          </div>
+          </Space>
           <ErrorBox error={cancel.error || remind.error} />
           <Card title="Thông tin phiếu">
             <DefList
@@ -110,23 +106,25 @@ export default function ApprovalDetailPage() {
             </Card>
           )}
           {(canDecide || canCheck) && (
-            <div className="sticky-decide">
-              {canCheck && (
-                <Button variant="primary" className="btn-lg" onClick={() => setDeciding('check')}>
-                  Xác nhận kiểm tra
-                </Button>
-              )}
-              {canDecide && (
-                <>
-                  <Button variant="danger" className="btn-lg" onClick={() => setDeciding('changes_requested')}>
-                    Yêu cầu sửa
+            <Affix offsetBottom={0}>
+              <div className="vc-decide-bar">
+                {canCheck && (
+                  <Button variant="primary" size="large" onClick={() => setDeciding('check')}>
+                    Xác nhận kiểm tra
                   </Button>
-                  <Button variant="success" className="btn-lg" onClick={() => setDeciding('approve')}>
-                    Đồng ý
-                  </Button>
-                </>
-              )}
-            </div>
+                )}
+                {canDecide && (
+                  <>
+                    <Button variant="danger" size="large" onClick={() => setDeciding('changes_requested')}>
+                      Yêu cầu sửa
+                    </Button>
+                    <Button variant="success" size="large" onClick={() => setDeciding('approve')}>
+                      Đồng ý
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Affix>
           )}
           {deciding && (
             <DecideDialog

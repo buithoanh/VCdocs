@@ -1,6 +1,9 @@
 'use client';
 
+import { UploadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
+import { DatePicker, Form, Input, Space, Upload } from 'antd';
+import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -10,6 +13,7 @@ import { recordTypeName, useAction, useRecordTypes } from '@/api/queries';
 import type { VcRecord } from '@/api/types';
 import { ActionDialog } from '@/components/ActionDialog';
 import { ApproverPreview } from '@/components/ApproverPreview';
+import { toDayjs, toISOMonth } from '@/components/dates';
 import { useJobs } from '@/components/jobs';
 import { ActionBar, DeptName, UserName } from '@/components/pickers';
 import { useToast } from '@/components/providers/ToastProvider';
@@ -81,12 +85,12 @@ export function RecordView({ id }: { id: string }) {
                 ['Lưu đến', r.retention?.until ? formatDate(r.retention.until) : r.retention?.years === 0 ? 'Vĩnh viễn' : '—'],
               ]}
             />
-            <div className="actions" style={{ marginTop: '1rem' }}>
+            <Space wrap style={{ marginTop: 16 }}>
               <DriveLink fileId={r.fileId}>Mở file</DriveLink>
               <DriveLink fileId={r.finalized?.pdfFileId}>Mở bản PDF đã chốt</DriveLink>
               {r.approvalId && <LinkButton href={`/phe-duyet/${r.approvalId}`}>Phiếu duyệt</LinkButton>}
               {r.fileId && hasAction(r, 'share') && <LinkButton href={`/chia-se/moi?fileId=${encodeURIComponent(r.fileId)}&ten=${encodeURIComponent(r.fileName ?? r.subject)}`}>Chia sẻ ra ngoài</LinkButton>}
-            </div>
+            </Space>
           </Card>
           {r.finalized && <FinalizedCard r={r} />}
           {r.hold?.isActive && (
@@ -215,21 +219,26 @@ function FinalizedCard({ r }: { r: VcRecord }) {
   );
 }
 
+type EditValues = { subject: string; identifier: string; workMonth: Dayjs | null; paperLocation: string };
+
 function EditDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
   const toast = useToast();
-  const [subject, setSubject] = useState(r.subject);
-  const [identifier, setIdentifier] = useState(r.identifier ?? '');
-  const [workMonth, setMonth] = useState(r.workMonth);
-  const [paperLocation, setPaper] = useState(r.paperLocation ?? '');
+  const [form] = Form.useForm<EditValues>();
   const save = useAction(
-    () =>
+    (v: EditValues) =>
       unwrap(
         api.PATCH('/records/{id}', {
           params: { path: { id: r.id } },
-          body: { subject: subject.trim(), identifier: identifier.trim() || undefined, workMonth, paperLocation: paperLocation.trim() || undefined },
+          body: { subject: v.subject.trim(), identifier: v.identifier?.trim() || undefined, workMonth: toISOMonth(v.workMonth), paperLocation: v.paperLocation?.trim() || undefined },
         }),
       ),
-    { invalidate: [['record', r.id], ['records']], onSuccess: () => (toast.success('Đã lưu hồ sơ.'), onClose()) },
+    {
+      invalidate: [['record', r.id], ['records']],
+      onSuccess: () => {
+        toast.success('Đã lưu hồ sơ.');
+        onClose();
+      },
+    },
   );
   return (
     <Modal
@@ -239,16 +248,33 @@ function EditDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
       footer={
         <>
           <Button onClick={onClose}>Huỷ</Button>
-          <Button variant="primary" disabled={!subject.trim() || (r.kind === 'OPS' && !identifier.trim())} loading={save.isPending} onClick={() => save.mutate()}>
+          <Button variant="primary" loading={save.isPending} onClick={() => form.submit()}>
             Lưu
           </Button>
         </>
       }
     >
-      <TextField label="Nội dung ngắn" value={subject} onChange={setSubject} required />
-      {r.kind === 'OPS' && <TextField label="Số định danh" value={identifier} onChange={setIdentifier} required />}
-      <TextField label="Tháng công việc" type="month" value={workMonth} onChange={setMonth} required />
-      <TextField label="Vị trí bản giấy" value={paperLocation} onChange={setPaper} placeholder="Tủ 2, ngăn 3" />
+      <Form<EditValues>
+        form={form}
+        layout="vertical"
+        initialValues={{ subject: r.subject, identifier: r.identifier ?? '', workMonth: toDayjs(r.workMonth), paperLocation: r.paperLocation ?? '' }}
+        onFinish={(v) => save.mutate(v)}
+      >
+        <Form.Item name="subject" label="Nội dung ngắn" rules={[{ required: true, whitespace: true, message: 'Nhập nội dung ngắn.' }]}>
+          <Input maxLength={120} />
+        </Form.Item>
+        {r.kind === 'OPS' && (
+          <Form.Item name="identifier" label="Số định danh" rules={[{ required: true, whitespace: true, message: 'Hồ sơ vận hành phải có số định danh.' }]}>
+            <Input />
+          </Form.Item>
+        )}
+        <Form.Item name="workMonth" label="Tháng công việc" rules={[{ required: true, message: 'Chọn tháng công việc.' }]}>
+          <DatePicker picker="month" format="MM/YYYY" allowClear={false} style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="paperLocation" label="Vị trí bản giấy">
+          <Input placeholder="Tủ 2, ngăn 3" />
+        </Form.Item>
+      </Form>
       <ErrorBox error={save.error} />
     </Modal>
   );
@@ -258,13 +284,14 @@ function ScanDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
   const jobs = useJobs();
   const [file, setFile] = useState<File | null>(null);
   const [paperLocation, setPaper] = useState(r.paperLocation ?? '');
+  const tooLarge = isTooLarge(file);
   return (
     <ActionDialog
       open
       title="Gắn bản scan"
       description="Vị trí bản giấy được ghi cả vào phần Mô tả của file trên Drive."
       confirmLabel="Tải lên"
-      canConfirm={!!file && !isTooLarge(file) && !!paperLocation.trim()}
+      canConfirm={!!file && !tooLarge && !!paperLocation.trim()}
       run={() => {
         const fd = new FormData();
         fd.append('file', file!);
@@ -274,8 +301,18 @@ function ScanDialog({ r, onClose }: { r: VcRecord; onClose: () => void }) {
       onDone={(res) => jobs.track({ jobId: res.jobId, label: 'Gắn bản scan', invalidate: [['record', r.id]] })}
       onClose={onClose}
     >
-      <Field label="File scan" required htmlFor="scan-file" error={isTooLarge(file) ? `File quá lớn (tối đa ${getLimits().uploadMaxMb} MB).` : undefined}>
-        <input id="scan-file" type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <Field label="File scan" required error={tooLarge ? `File quá lớn (tối đa ${getLimits().uploadMaxMb} MB).` : undefined}>
+        <Upload
+          maxCount={1}
+          accept="application/pdf,image/*"
+          beforeUpload={(f) => {
+            setFile(f);
+            return false;
+          }}
+          onRemove={() => setFile(null)}
+        >
+          <Button icon={<UploadOutlined />}>Chọn file scan</Button>
+        </Upload>
       </Field>
       <TextField label="Vị trí bản giấy" value={paperLocation} onChange={setPaper} required placeholder="Tủ 2, ngăn 3, kệ B" />
     </ActionDialog>

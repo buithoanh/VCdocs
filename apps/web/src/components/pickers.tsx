@@ -2,11 +2,17 @@
 
 import { Select, Space, Spin } from 'antd';
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { getPeopleVersion, getPerson, subscribePeople } from '@/api/client';
+import { getPeopleVersion, getPerson, rememberPeople, subscribePeople } from '@/api/client';
 import { deptName, useDepartments, useUserLookup } from '@/api/queries';
 import { shortId } from '@/lib/format';
 import { hasAction } from '@/lib/permissions';
 import { Button, Field } from './ui';
+
+/*
+ * Ô chọn phòng / nhân sự. Bản `…Input` chỉ là antd Select (value/onChange/id) để đặt trong
+ * `Form.Item name=…` của antd Form; bản có nhãn (DeptSelect, UserPicker, MultiUserPicker) bọc thêm Field
+ * cho trang còn giữ trạng thái bằng useState.
+ */
 
 /** Tên nhân sự lấy từ `people` của các phản hồi (D10); không gọi /users/{id}. */
 export function usePerson(id?: string) {
@@ -30,6 +36,38 @@ export function DeptName({ id }: { id?: string }) {
   return <>{deptName(q.data, id)}</>;
 }
 
+type InputCommon = { id?: string; disabled?: boolean; status?: 'error' | 'warning'; placeholder?: string };
+
+/** Ô chọn phòng, chỉ Select. `allowAll` thêm mục "Tất cả phòng" (giá trị ''). */
+export function DeptSelectInput({
+  value,
+  onChange,
+  allowAll,
+  required,
+  placeholder,
+  ...rest
+}: InputCommon & { value?: string; onChange?: (v: string | undefined) => void; allowAll?: boolean; required?: boolean }) {
+  const q = useDepartments();
+  const options = [
+    ...(allowAll ? [{ value: '', label: 'Tất cả phòng' }] : []),
+    ...(q.data ?? []).map((d) => ({ value: d.id, label: `${d.number} ${d.code} – ${d.name}` })),
+  ];
+  return (
+    <Select
+      value={allowAll ? (value ?? '') : value || undefined}
+      onChange={(v) => onChange?.(v)}
+      options={options}
+      loading={q.isLoading}
+      placeholder={placeholder ?? (q.isLoading ? 'Đang tải…' : '— Chọn phòng —')}
+      allowClear={!required && !allowAll}
+      showSearch
+      optionFilterProp="label"
+      style={{ width: '100%' }}
+      {...rest}
+    />
+  );
+}
+
 export function DeptSelect({
   value,
   onChange,
@@ -45,26 +83,10 @@ export function DeptSelect({
   allowAll?: boolean;
   hint?: ReactNode;
 }) {
-  const q = useDepartments();
   const id = useId();
-  const options = [
-    ...(allowAll ? [{ value: '', label: 'Tất cả phòng' }] : []),
-    ...(q.data ?? []).map((d) => ({ value: d.id, label: `${d.number} ${d.code} – ${d.name}` })),
-  ];
   return (
     <Field label={label} required={required} htmlFor={id} hint={hint}>
-      <Select
-        id={id}
-        value={allowAll ? value : value || undefined}
-        onChange={(v) => onChange(v ?? '')}
-        options={options}
-        loading={q.isLoading}
-        placeholder={q.isLoading ? 'Đang tải…' : '— Chọn phòng —'}
-        allowClear={!required && !allowAll}
-        showSearch
-        optionFilterProp="label"
-        style={{ width: '100%' }}
-      />
+      <DeptSelectInput id={id} value={value} onChange={(v) => onChange(v ?? '')} allowAll={allowAll} required={required} />
     </Field>
   );
 }
@@ -81,20 +103,69 @@ function useDebounced(value: string, ms = 250) {
 const SEARCH_ERROR = 'Không tìm được người, vui lòng thử lại.';
 const SEARCH_PLACEHOLDER = 'Gõ tên hoặc email để tìm';
 
-function notFound(debounced: string, loading: boolean) {
+function notFound(debounced: string, loading: boolean, failed: boolean) {
+  if (failed) return SEARCH_ERROR;
   if (!debounced) return SEARCH_PLACEHOLDER;
   if (loading) return <Spin size="small" />;
   return 'Không thấy ai phù hợp';
 }
 
-/** Chọn một nhân sự (tìm theo tên/email qua /users/lookup). */
+/** Nhớ người vừa tìm được để nhãn còn hiện sau khi antd xoá chữ tìm (và UserName dùng chung). */
+function useRememberLookup(items: { id: string; name: string; email: string }[] | undefined) {
+  useEffect(() => {
+    if (items?.length) rememberPeople(Object.fromEntries(items.map((u) => [u.id, u])));
+  }, [items]);
+}
+
+function personLabel(id: string) {
+  const p = getPerson(id);
+  return p ? `${p.name} · ${p.email}` : `Nhân sự ${shortId(id)}`;
+}
+
+/** Chọn một nhân sự (tìm theo tên/email qua /users/lookup), chỉ Select. */
+export function UserSelectInput({
+  value,
+  onChange,
+  required,
+  excludeIds = [],
+  ...rest
+}: InputCommon & { value?: string; onChange?: (id: string | undefined) => void; required?: boolean; excludeIds?: string[] }) {
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const search = useUserLookup(debounced);
+  useRememberLookup(search.data);
+  useSyncExternalStore(subscribePeople, getPeopleVersion, getPeopleVersion);
+  const options = (search.data ?? []).filter((u) => !excludeIds.includes(u.id)).map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }));
+  if (value && !options.some((o) => o.value === value)) options.unshift({ value, label: personLabel(value) });
+  return (
+    <Select
+      showSearch
+      value={value || undefined}
+      onSearch={setQ}
+      filterOption={false}
+      onChange={(v) => {
+        onChange?.(v);
+        setQ('');
+      }}
+      options={options}
+      allowClear={!required}
+      placeholder={SEARCH_PLACEHOLDER}
+      notFoundContent={notFound(debounced, search.isLoading, !!search.error)}
+      loading={search.isLoading}
+      status={search.error ? 'error' : undefined}
+      style={{ width: '100%' }}
+      {...rest}
+    />
+  );
+}
+
 export function UserPicker({
   label,
   value,
   onChange,
   required,
   hint,
-  excludeIds = [],
+  excludeIds,
 }: {
   label: string;
   value: string;
@@ -103,69 +174,50 @@ export function UserPicker({
   hint?: ReactNode;
   excludeIds?: string[];
 }) {
-  const [q, setQ] = useState('');
-  const debounced = useDebounced(q);
-  const search = useUserLookup(debounced);
   const id = useId();
-  const selected = usePerson(value);
-  const options = (search.data ?? []).filter((u) => !excludeIds.includes(u.id)).map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }));
-  if (value && !options.some((o) => o.value === value)) {
-    options.unshift({ value, label: selected ? `${selected.name} · ${selected.email}` : 'Đã chọn' });
-  }
   return (
-    <Field label={label} required={required} htmlFor={id} hint={hint} error={search.error ? SEARCH_ERROR : undefined}>
-      <Select
-        id={id}
-        showSearch
-        value={value || undefined}
-        onSearch={setQ}
-        filterOption={false}
-        onChange={(v) => {
-          onChange(v ?? '');
-          setQ('');
-        }}
-        options={options}
-        allowClear={!required}
-        placeholder={SEARCH_PLACEHOLDER}
-        notFoundContent={notFound(debounced, search.isLoading)}
-        loading={search.isLoading}
-        style={{ width: '100%' }}
-      />
+    <Field label={label} required={required} htmlFor={id} hint={hint}>
+      <UserSelectInput id={id} value={value} onChange={(v) => onChange(v ?? '')} required={required} excludeIds={excludeIds} />
     </Field>
   );
 }
 
-/** Chọn nhiều nhân sự; người đã chọn hiện thành thẻ trong ô. */
-export function MultiUserPicker({ label, value, onChange, hint }: { label: string; value: string[]; onChange: (ids: string[]) => void; hint?: ReactNode }) {
+/** Chọn nhiều nhân sự, chỉ Select; người đã chọn hiện thành thẻ trong ô. */
+export function MultiUserSelectInput({ value = [], onChange, ...rest }: InputCommon & { value?: string[]; onChange?: (ids: string[]) => void }) {
   const [q, setQ] = useState('');
   const debounced = useDebounced(q);
   const search = useUserLookup(debounced);
-  const id = useId();
+  useRememberLookup(search.data);
   useSyncExternalStore(subscribePeople, getPeopleVersion, getPeopleVersion);
-  const chosen = value.map((uid) => {
-    const p = getPerson(uid);
-    return { value: uid, label: p ? `${p.name} · ${p.email}` : `Nhân sự ${shortId(uid)}` };
-  });
+  const chosen = value.map((uid) => ({ value: uid, label: personLabel(uid) }));
   const found = (search.data ?? []).filter((u) => !value.includes(u.id)).map((u) => ({ value: u.id, label: `${u.name} · ${u.email}` }));
   return (
-    <Field label={label} htmlFor={id} hint={hint} error={search.error ? SEARCH_ERROR : undefined}>
-      <Select
-        id={id}
-        mode="multiple"
-        showSearch
-        value={value}
-        onSearch={setQ}
-        filterOption={false}
-        onChange={(ids) => {
-          onChange(ids);
-          setQ('');
-        }}
-        options={[...chosen, ...found]}
-        placeholder={SEARCH_PLACEHOLDER}
-        notFoundContent={notFound(debounced, search.isLoading)}
-        loading={search.isLoading}
-        style={{ width: '100%' }}
-      />
+    <Select
+      mode="multiple"
+      showSearch
+      value={value}
+      onSearch={setQ}
+      filterOption={false}
+      onChange={(ids) => {
+        onChange?.(ids);
+        setQ('');
+      }}
+      options={[...chosen, ...found]}
+      placeholder={SEARCH_PLACEHOLDER}
+      notFoundContent={notFound(debounced, search.isLoading, !!search.error)}
+      loading={search.isLoading}
+      status={search.error ? 'error' : undefined}
+      style={{ width: '100%' }}
+      {...rest}
+    />
+  );
+}
+
+export function MultiUserPicker({ label, value, onChange, hint }: { label: string; value: string[]; onChange: (ids: string[]) => void; hint?: ReactNode }) {
+  const id = useId();
+  return (
+    <Field label={label} htmlFor={id} hint={hint}>
+      <MultiUserSelectInput id={id} value={value} onChange={onChange} />
     </Field>
   );
 }
