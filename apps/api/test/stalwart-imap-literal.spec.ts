@@ -147,4 +147,64 @@ describe('StalwartMailPort tách phản hồi IMAP theo literal {N}', () => {
     expect(commands).toContain('UID FETCH 2 BODY.PEEK[]');
     expect(sockets[0].destroyedByClient || sockets[0].ended).toBe(true);
   });
+
+  /** Như `mailbox` nhưng hiểu thêm khoảng `n:*` của đồng bộ gia tăng; `n:*` luôn trả thư cuối (RFC 3501 §6.4.8). */
+  function ranged(messages: Record<string, Buffer>, uidValidity = 7): Handler {
+    const base = mailbox(messages), all = Object.keys(messages);
+    const inRange = (from: number) => { const hit = all.filter((uid) => Number(uid) >= from); return hit.length ? hit : all.slice(-1); };
+    return (tag, command) => {
+      if (command.startsWith('SELECT ')) return `* ${all.length} EXISTS\r\n* OK [UIDVALIDITY ${uidValidity}] ok\r\n${tag} OK [READ-WRITE] SELECT completed\r\n`;
+      const search = /^UID SEARCH UID (\d+):\*$/.exec(command);
+      if (search) return `* SEARCH ${inRange(Number(search[1])).join(' ')}\r\n${tag} OK SEARCH completed\r\n`;
+      const heads = /^UID FETCH (\d+):\* \(UID BODY\.PEEK\[HEADER\.FIELDS \(MESSAGE-ID\)\]\)$/.exec(command);
+      if (heads && heads[1] !== '1') {
+        return inRange(Number(heads[1])).map((uid) => {
+          const id = /^Message-ID:\s*<([^>]+)>/mi.exec(messages[uid].toString('utf8').split('\r\n\r\n')[0])?.[1];
+          return `* ${all.indexOf(uid) + 1} FETCH (UID ${uid} BODY[HEADER.FIELDS (MESSAGE-ID)] ${literal(header(id))})\r\n`;
+        }).join('') + `${tag} OK UID FETCH completed\r\n`;
+      }
+      return base(tag, command);
+    };
+  }
+  const message4 = mail(['Message-ID: <m4@vcworkspace.test>', 'Subject: Thư bốn', '', 'bốn']);
+  const message5 = mail(['Message-ID: <m5@vcworkspace.test>', 'Subject: Thư năm', '', 'năm']);
+
+  it('đồng bộ gia tăng: con trỏ cùng UIDVALIDITY thì chỉ hỏi và tải UID lớn hơn lastUid', async () => {
+    const sockets = connectWith(ranged({ '1': message2, '2': message4, '5': message5 }));
+    const state: any = { cursor: { uidValidity: '7', lastUid: 2 } };
+    const items = await (port() as any).listFolder(OWNER, 'inbox', undefined, async () => false, state);
+    expect(items.map((x: any) => ({ engineId: x.engineId, uid: x.uid }))).toEqual([{ engineId: 'm5@vcworkspace.test', uid: 5 }]);
+    expect(state.next).toEqual({ uidValidity: '7', lastUid: 5 });
+    const commands = sockets[0].commands.map((x) => x.replace(/^\S+ /, ''));
+    expect(commands).toContain('UID SEARCH UID 3:*');
+    expect(commands).not.toContain('UID SEARCH ALL');
+    expect(commands.filter((x) => /BODY\.PEEK\[\]$/.test(x))).toEqual(['UID FETCH 5 BODY.PEEK[]']);
+    expect(commands.some((x) => x.startsWith('UID FETCH 1:*'))).toBe(false);
+  });
+
+  it('đồng bộ gia tăng: không có thư mới thì không tải gì dù `n:*` trả lại thư cuối', async () => {
+    const sockets = connectWith(ranged({ '1': message2, '2': message4 }));
+    const state: any = { cursor: { uidValidity: '7', lastUid: 2 } };
+    expect(await (port() as any).listFolder(OWNER, 'inbox', undefined, async () => false, state)).toEqual([]);
+    expect(state.next).toEqual({ uidValidity: '7', lastUid: 2 });
+    expect(sockets[0].commands.some((x) => /UID FETCH/.test(x))).toBe(false);
+  });
+
+  it('đồng bộ gia tăng: UIDVALIDITY khác con trỏ thì đọc lại từ đầu và trả con trỏ mới', async () => {
+    const sockets = connectWith(ranged({ '1': message2, '2': message4 }, 8));
+    const state: any = { cursor: { uidValidity: '7', lastUid: 40 } };
+    const items = await (port() as any).listFolder(OWNER, 'inbox', undefined, async (id: string) => id === 'm2@vcworkspace.test', state);
+    expect(items.map((x: any) => x.engineId)).toEqual(['m4@vcworkspace.test']);
+    expect(state.next).toEqual({ uidValidity: '8', lastUid: 2 });
+    const commands = sockets[0].commands.map((x) => x.replace(/^\S+ /, ''));
+    expect(commands).toContain('UID SEARCH ALL');
+    expect(commands.filter((x) => /BODY\.PEEK\[\]$/.test(x))).toEqual(['UID FETCH 2 BODY.PEEK[]']);
+  });
+
+  it('findByMessageId: tìm bản đã gửi chỉ bằng header, không tải BODY[]', async () => {
+    const sockets = connectWith(mailbox({ '1': message2, '2': message4 }));
+    expect(await (port() as any).findByMessageId(OWNER, 'm4@vcworkspace.test', 'sent')).toBe('m4@vcworkspace.test');
+    expect(await (port() as any).findByMessageId(OWNER, 'khong-co@vcworkspace.test', 'sent')).toBeUndefined();
+    expect(sockets.flatMap((s) => s.commands).some((x) => /BODY\.PEEK\[\]$/.test(x))).toBe(false);
+  });
 });

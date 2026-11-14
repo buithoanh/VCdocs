@@ -6,7 +6,7 @@ import { AuditActor, AuditService } from '../../audit/audit.service';
 import { Ctx } from '../../common/context';
 import { Errors } from '../../common/errors';
 import { toApi } from '../../common/util';
-import { MAIL_PORT, MailAttachment, MailDeliveryError, MailPort, attachmentHash } from './mail.port';
+import { MAIL_PORT, FolderSyncState, MailAttachment, MailDeliveryError, MailPort, attachmentHash } from './mail.port';
 import { buildMime, safePreview, sanitizeHtml } from './mime';
 import { hasRemoteResources, htmlToText } from './html-sanitizer';
 import { simpleParser } from 'mailparser';
@@ -27,11 +27,15 @@ export function mailboxAddress(email: string, companyDomain: string) {
   return `${value.slice(0,at)}@vcworkspace.test`;
 }
 
+/** Phạm vi một lượt đồng bộ: công ty tường minh, người ghi nhận và hộp thư có credential đọc engine. */
+export type MailSyncScope = { companyId: string; actorId: string; accessOwner: string };
+type Tenant = Pick<Ctx, 'companyId'>;
+
 @Injectable()
 export class MailBasicService {
   private readonly log = new Logger('MailBasicService');
   constructor(private readonly db: Db, private readonly audit: AuditService, @Inject(MAIL_PORT) private readonly mail: MailPort) {}
-  private cid(ctx: Ctx) { return new Types.ObjectId(ctx.companyId); }
+  private cid(ctx: Tenant) { return new Types.ObjectId(ctx.companyId); }
   private uid(ctx: Ctx) { return new Types.ObjectId(ctx.user.id); }
   private normalize(address: string) { const value=String(address||'').trim().toLowerCase(); if(!/^[a-z0-9._%+-]+@vcworkspace\.test$/.test(value)) throw Errors.validation('Chỉ dùng địa chỉ nội bộ @vcworkspace.test'); return value; }
   private domains = new Map<string, string>();
@@ -65,8 +69,34 @@ export class MailBasicService {
   private async shared(ctx:Ctx,mailbox:string,permission:'read'|'send'|'manage'){const owner=(await this.owner(ctx)),address=this.normalize(mailbox);if(address===owner)return null;if(await this.isPersonalMailbox(ctx,address))throw Errors.forbidden('Địa chỉ là hộp thư cá nhân của người dùng khác');const row=await this.db.m.WorkspaceSharedMailbox.findOne({companyId:this.cid(ctx),address,members:{$elemMatch:{email:owner,roles:permission}}}).lean<any>();if(!row)throw Errors.forbidden('Bạn không có quyền với hộp thư nhóm này');return row;}
   private async readableMailbox(ctx:Ctx,mailbox?:string){const address=mailbox?this.normalize(mailbox):(await this.owner(ctx));await this.shared(ctx,address,'read');return address;}
   private async parseEngineRaw(raw:Buffer){const parsed=await simpleParser(raw),addresses=(value:any)=>{const rows=Array.isArray(value)?value:value?[value]:[];return rows.flatMap((row:any)=>row.value??[]).map((x:any)=>String(x.address??'').toLowerCase()).filter(Boolean);},html=typeof parsed.html==='string'?sanitizeHtml(parsed.html):'',body=(parsed.text??htmlToText(html)).replace(/\s+/g,' ').trim(),internetMessageId=String(parsed.messageId??'').replace(/[<>]/g,''),references=Array.isArray(parsed.references)?parsed.references:parsed.references?[parsed.references]:[];if(!internetMessageId)throw new Error('MAIL_MESSAGE_ID_MISSING');return{from:addresses(parsed.from)[0]??'unknown@vcworkspace.test',to:addresses(parsed.to),cc:addresses(parsed.cc),subject:parsed.subject??'',internetMessageId,inReplyTo:parsed.inReplyTo?String(parsed.inReplyTo).replace(/[<>]/g,''):undefined,references:references.map(x=>String(x).replace(/[<>]/g,'')),sentAt:parsed.date??new Date(),body};}
-  private async ownIdentity(ctx:Ctx,mailboxOwner:string,from:string){return from===mailboxOwner||!!(await this.db.m.WorkspaceMailAlias.exists({companyId:this.cid(ctx),ownerEmail:mailboxOwner,address:from}));}
-  private async syncFolder(ctx:Ctx,mailboxOwner:string,folder:string){const accessOwner=(await this.owner(ctx)),engineMailbox=mailboxOwner;let items;try{items=await this.mail.listFolder(accessOwner,folder,engineMailbox,async engineId=>!!(await this.db.m.WorkspaceMailMessage.exists({companyId:this.cid(ctx),mailboxOwner,engineId})));}catch{throw Errors.storageUnavailable('Không thể đồng bộ đầy đủ mailbox từ mail server');}for(const item of items){if(await this.db.m.WorkspaceMailMessage.exists({companyId:this.cid(ctx),mailboxOwner,engineId:item.engineId}))continue;let parsed;try{parsed=await this.parseEngineRaw(item.raw);}catch(error){/* Một thư hỏng (vd. thiếu Message-ID) không được làm hỏng cả danh sách (audit 12/12). */this.log.warn(`Bỏ qua thư engine không đọc được: ${(error as Error)?.message}`);continue;}/* Stalwart để bản Đã gửi trong INBOX (deliver RCPT thêm hộp gửi), nên đồng bộ 'sent' chỉ nhận thư do chính hộp thư này gửi, không xếp thư người khác gửi đến vào Đã gửi (review O7). */if(folder==='sent'&&!await this.ownIdentity(ctx,mailboxOwner,parsed.from))continue;const metadata=mailboxOwner===accessOwner?await this.deliveryMetadata(ctx,mailboxOwner,{from:parsed.from,to:parsed.to,subject:parsed.subject,body:parsed.body}):{labels:[],folder},actualFolder=folder==='inbox'?metadata.folder:folder,searchBody=parsed.body.toLowerCase();await this.db.m.WorkspaceMailMessage.updateOne({companyId:this.cid(ctx),mailboxOwner,engineId:item.engineId},{$setOnInsert:{engineOwner:engineMailbox,threadId:parsed.inReplyTo??parsed.internetMessageId,internetMessageId:parsed.internetMessageId,inReplyTo:parsed.inReplyTo,references:parsed.references,from:parsed.from,to:parsed.to,cc:parsed.cc,subject:parsed.subject,sentAt:parsed.sentAt,folder:actualFolder,labels:metadata.labels,searchBody,searchText:`${parsed.from} ${parsed.to.join(' ')} ${parsed.cc.join(' ')} ${parsed.subject} ${searchBody}`.toLowerCase(),deliveryStatus:'accepted',createdBy:this.uid(ctx),updatedBy:this.uid(ctx)}},{upsert:true});}}
+  private async ownIdentity(ctx:Tenant,mailboxOwner:string,from:string){return from===mailboxOwner||!!(await this.db.m.WorkspaceMailAlias.exists({companyId:this.cid(ctx),ownerEmail:mailboxOwner,address:from}));}
+  private async syncFolder(ctx:Ctx,mailboxOwner:string,folder:string){return this.syncMailbox({companyId:ctx.companyId,actorId:ctx.user.id,accessOwner:await this.owner(ctx)},mailboxOwner,folder);}
+  /**
+   * Đồng bộ gia tăng một thư mục của hộp thư vào chỉ mục. Con trỏ (UIDVALIDITY + UID lớn nhất) lưu theo
+   * công ty + hộp thư + thư mục logic; lượt sau chỉ đọc UID mới. UIDVALIDITY đổi thì adapter đọc lại từ đầu,
+   * dòng đã có được nhận ra bằng engineId nên không sinh dòng trùng. Con trỏ chỉ ghi sau khi xử lý xong cả lượt:
+   * lỗi giữa chừng thì lượt sau đọc lại đúng khoảng đó. Dùng cho cả yêu cầu HTTP lẫn việc nền (không có Ctx).
+   */
+  async syncMailbox(scope:MailSyncScope,mailboxOwner:string,folder:string){
+    const companyId=new Types.ObjectId(scope.companyId),actor=new Types.ObjectId(scope.actorId),tenant={companyId:scope.companyId},key={companyId,mailboxOwner,folder};
+    const saved=await this.db.m.WorkspaceMailSyncCursor.findOne(key).lean<any>();
+    const state:FolderSyncState={cursor:saved?{uidValidity:String(saved.uidValidity),lastUid:Number(saved.lastUid)}:undefined};
+    let items;
+    try{items=await this.mail.listFolder(scope.accessOwner,folder,mailboxOwner,async engineId=>!!(await this.db.m.WorkspaceMailMessage.exists({companyId,mailboxOwner,engineId})),state);}catch{throw Errors.storageUnavailable('Không thể đồng bộ đầy đủ mailbox từ mail server');}
+    for(const item of items){
+      if(await this.db.m.WorkspaceMailMessage.exists({companyId,mailboxOwner,engineId:item.engineId}))continue;
+      let parsed;try{parsed=await this.parseEngineRaw(item.raw);}catch(error){/* Một thư hỏng (vd. thiếu Message-ID) không được làm hỏng cả danh sách (audit 12/12). */this.log.warn(`Bỏ qua thư engine không đọc được: ${(error as Error)?.message}`);continue;}
+      /* Stalwart để bản Đã gửi trong INBOX (deliver RCPT thêm hộp gửi), nên đồng bộ 'sent' chỉ nhận thư do chính hộp thư này gửi, không xếp thư người khác gửi đến vào Đã gửi (review O7). */
+      if(folder==='sent'&&!await this.ownIdentity(tenant,mailboxOwner,parsed.from))continue;
+      const metadata=mailboxOwner===scope.accessOwner?await this.deliveryMetadata(tenant,mailboxOwner,{from:parsed.from,to:parsed.to,subject:parsed.subject,body:parsed.body}):{labels:[],folder},actualFolder=folder==='inbox'?metadata.folder:folder,searchBody=parsed.body.toLowerCase();
+      try{await this.db.m.WorkspaceMailMessage.updateOne({companyId,mailboxOwner,engineId:item.engineId},{$setOnInsert:{engineOwner:mailboxOwner,threadId:parsed.inReplyTo??parsed.internetMessageId,internetMessageId:parsed.internetMessageId,inReplyTo:parsed.inReplyTo,references:parsed.references,from:parsed.from,to:parsed.to,cc:parsed.cc,subject:parsed.subject,sentAt:parsed.sentAt,folder:actualFolder,labels:metadata.labels,searchBody,searchText:`${parsed.from} ${parsed.to.join(' ')} ${parsed.cc.join(' ')} ${parsed.subject} ${searchBody}`.toLowerCase(),deliveryStatus:'accepted',createdBy:actor,updatedBy:actor}},{upsert:true});}
+      catch(error){/* Hai lượt đồng bộ song song (người dùng + việc nền) cùng chèn một thư: lượt thua bỏ qua. */if((error as any)?.code!==11000)throw error;}
+    }
+    const next=state.next;
+    if(next&&(!saved||String(saved.uidValidity)!==next.uidValidity||Number(saved.lastUid)!==next.lastUid)){
+      try{await this.db.m.WorkspaceMailSyncCursor.updateOne(key,{$set:{uidValidity:next.uidValidity,lastUid:next.lastUid,updatedBy:actor},$setOnInsert:{createdBy:actor}},{upsert:true});}catch(error){if((error as any)?.code!==11000)throw error;}
+    }
+  }
   private async assertAddressFree(ctx:Ctx,address:string){
     const email=await this.userEmailOf(ctx,address);
     if(email&&await this.db.m.User.exists({companyId:this.cid(ctx),email}))throw Errors.duplicate('Địa chỉ trùng mailbox cá nhân');
@@ -91,9 +121,10 @@ export class MailBasicService {
   private async sendingIdentity(ctx:Ctx,requested?:string){const owner=(await this.owner(ctx));if(!requested||this.normalize(requested)===owner)return{from:owner,sentOwner:owner};const address=this.normalize(requested);if(await this.db.m.WorkspaceMailAlias.exists({companyId:this.cid(ctx),ownerEmail:owner,address,active:true})){if(await this.isPersonalMailbox(ctx,address))throw Errors.forbidden('Địa chỉ là hộp thư cá nhân của người dùng khác');return{from:address,sentOwner:owner};}await this.shared(ctx,address,'send');return{from:address,sentOwner:address};}
   private async recipientMailbox(ctx:Ctx,recipient:string){if(await this.isPersonalMailbox(ctx,recipient))return{mailboxOwner:recipient,engineMailbox:recipient,filterOwner:recipient};const alias=await this.db.m.WorkspaceMailAlias.findOne({companyId:this.cid(ctx),address:recipient,active:true}).lean<any>();if(alias)return{mailboxOwner:String(alias.ownerEmail),engineMailbox:String(alias.ownerEmail),filterOwner:String(alias.ownerEmail)};const shared=await this.db.m.WorkspaceSharedMailbox.findOne({companyId:this.cid(ctx),address:recipient}).lean<any>();if(shared)return{mailboxOwner:recipient,engineMailbox:recipient};return{mailboxOwner:recipient,engineMailbox:recipient,filterOwner:recipient};}
   private matches(value:string,condition?:string){return !condition||value.toLowerCase().includes(condition.toLowerCase());}
-  private async deliveryMetadata(ctx:Ctx,recipient:string,data:{from:string;to:string[];subject:string;body:string}){const filters=await this.db.m.WorkspaceMailFilter.find({companyId:this.cid(ctx),ownerEmail:recipient,enabled:true,$or:[{publishStatus:'active'},{publishStatus:{$exists:false}}]}).sort({_id:1}).lean<any[]>();const labels=new Set<string>();let folder='inbox';for(const f of filters){const actual=f.field==='to'?data.to.join(' '):String((data as any)[f.field]??'');const matched=f.operator==='equals'?actual.toLowerCase()===f.value:actual.toLowerCase().includes(f.value);if(matched){for(const label of f.addLabels??[])labels.add(String(label));if(f.moveToFolder)folder=this.folder(f.moveToFolder);if(f.stop)break;}}return{labels:[...labels],folder};}
+  private async deliveryMetadata(ctx:Tenant,recipient:string,data:{from:string;to:string[];subject:string;body:string}){const filters=await this.db.m.WorkspaceMailFilter.find({companyId:this.cid(ctx),ownerEmail:recipient,enabled:true,$or:[{publishStatus:'active'},{publishStatus:{$exists:false}}]}).sort({_id:1}).lean<any[]>();const labels=new Set<string>();let folder='inbox';for(const f of filters){const actual=f.field==='to'?data.to.join(' '):String((data as any)[f.field]??'');const matched=f.operator==='equals'?actual.toLowerCase()===f.value:actual.toLowerCase().includes(f.value);if(matched){for(const label of f.addLabels??[])labels.add(String(label));if(f.moveToFolder)folder=this.folder(f.moveToFolder);if(f.stop)break;}}return{labels:[...labels],folder};}
 
-  private async reconcileSent(owner:string,sentMailbox:string,internetMessageId:string,attempts=3){for(let pass=0;pass<attempts;pass++){const rows=await this.mail.listFolder(owner,'sent',sentMailbox);for(const row of rows){try{if((await this.parseEngineRaw(row.raw)).internetMessageId===internetMessageId)return row.engineId;}catch{continue;}}}return undefined;}
+  /** Đối soát sau gửi: tìm bản "Đã gửi" theo Message-ID chỉ bằng header, không tải nội dung cả thư mục. */
+  private async reconcileSent(owner:string,sentMailbox:string,internetMessageId:string,attempts=3){for(let pass=0;pass<attempts;pass++){const engineId=await this.mail.findByMessageId(owner,internetMessageId,'sent',sentMailbox);if(engineId)return engineId;}return undefined;}
   async send(ctx:Ctx,input:any,idem:string,files:Express.Multer.File[]=[]){
     const owner=(await this.owner(ctx)),identity=await this.sendingIdentity(ctx,input.fromIdentity),parent=await this.replyParent(ctx,input,owner,identity.sentOwner),from=identity.from,{to,cc,bcc}=this.recipients(input,true),envelopeRecipients=[...to,...cc,...bcc];const subject=this.clean(input.subject||''),textBody=String(input.text||'');if(input.html!==undefined&&input.html!==null&&String(input.html).length>MAX_HTML_INPUT)throw Errors.validation('Nội dung HTML quá lớn');
     const attachments:MailAttachment[]=files.map(f=>({filename:f.originalname,contentType:f.mimetype||'application/octet-stream',bytes:f.buffer,sha256:attachmentHash(f.buffer)}));for(const a of input.attachments??[]){const bytes=Buffer.from(String(a.contentBase64??''),'base64');if(!bytes.length||bytes.length>10*1024*1024)throw Errors.validation('Attachment base64 không hợp lệ hoặc quá lớn');attachments.push({filename:String(a.filename),contentType:String(a.contentType||'application/octet-stream'),bytes,sha256:attachmentHash(bytes)});}

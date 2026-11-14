@@ -378,6 +378,15 @@ WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, engineId: 1 }, { uni
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, threadId: 1, sentAt: 1 });
 WorkspaceMailMessage.index({ companyId: 1, mailboxOwner: 1, folder: 1, sentAt: -1 });
 
+/** Con trỏ đồng bộ gia tăng theo hộp thư + thư mục logic: UID chỉ có nghĩa trong cùng UIDVALIDITY. */
+const WorkspaceMailSyncCursor = mk({
+  mailboxOwner: { type: String, required: true, lowercase: true },
+  folder: { type: String, required: true },
+  uidValidity: { type: String, required: true },
+  lastUid: { type: Number, required: true },
+});
+WorkspaceMailSyncCursor.index({ companyId: 1, mailboxOwner: 1, folder: 1 }, { unique: true });
+
 const WorkspaceMailDraft = mk({
   ownerEmail: { type: String, required: true, lowercase: true },
   to: { type: [String], default: [] }, cc: { type: [String], default: [] }, bcc: { type: [String], default: [] },
@@ -699,6 +708,7 @@ export const MODEL_DEFS = {
   WorkspaceEditorSave: { schema: WorkspaceEditorSave, collection: 'workspace_editor_saves' },
   WorkspaceDriveShareLink: { schema: WorkspaceDriveShareLink, collection: 'workspace_drive_share_links' },
   WorkspaceMailMessage: { schema: WorkspaceMailMessage, collection: 'workspace_mail_messages' },
+  WorkspaceMailSyncCursor: { schema: WorkspaceMailSyncCursor, collection: 'workspace_mail_sync_cursors' },
   WorkspaceMailDraft: { schema: WorkspaceMailDraft, collection: 'workspace_mail_drafts' },
   WorkspaceMailSend: { schema: WorkspaceMailSend, collection: 'workspace_mail_sends' },
   WorkspaceMailLabel: { schema: WorkspaceMailLabel, collection: 'workspace_mail_labels' },
