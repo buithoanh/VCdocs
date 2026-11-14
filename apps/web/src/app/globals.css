@@ -83,6 +83,8 @@ p { margin: .4rem 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .vc-card { margin-bottom: 1rem; }
 .vc-card-title { font-size: 1rem; font-weight: 600; margin: 0; }
+/* Khung xem file tài liệu nhúng trong trang chi tiết */
+.doc-preview { display: block; width: 100%; height: min(80vh, 900px); border: 1px solid #E8EDF3; border-radius: 4px; background: #fff; }
 .card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 1rem; margin-bottom: 1rem;
