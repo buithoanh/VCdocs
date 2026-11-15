@@ -35,11 +35,15 @@ cổng chỉ mở trên loopback:
 - `backup.sh` rồi `khoi-phuc.sh` sang bộ volume mới: thư cũ còn đủ, gửi thư mới được. Sao lưu lỗi giữa
   chừng vẫn chạy lại máy chủ. Khôi phục vào volume đang có dữ liệu bị từ chối.
 
+- Ngày 2026-11-15: đi hết 5 màn hình cài đặt bằng trình duyệt, rồi mở các trang Accounts, Domains, View
+  Zone File, Queued, Create user. Máy thử không tải được gói giao diện từ GitHub nên gói chính thức
+  (webui v1.0.11) được phục vụ qua một lớp đặt phía trước; trên máy chủ thật Stalwart tự tải.
+
 Chưa thử, phải kiểm khi triển khai thật:
 
 - Máy chủ AWS, IP tĩnh, mở cổng 25, PTR.
 - Nhập bản ghi ở iNET. Phần tra cứu mạng của `kiem-tra-dns.mjs` (mạng của máy thử chỉ trả bản ghi A).
-- Chứng chỉ TLS thật (Let's Encrypt), trang quản trị trên trình duyệt.
+- Chứng chỉ TLS thật (Let's Encrypt).
 - Gửi/nhận với Gmail, Outlook thật; thư có vào spam không.
 - Gửi qua Amazon SES thật; tải `BACKUP_S3` lên S3.
 - Giới hạn `ulimits` trong compose (máy thử không cho đặt).
@@ -118,8 +122,8 @@ Các màn hình cài đặt (theo tài liệu Stalwart):
    (`vcparts.vn`). Giữ bật xin chứng chỉ TLS tự động và sinh khoá DKIM.
 2. **Storage:** giữ mặc định (RocksDB ở `/var/lib/stalwart/`).
 3. **Directory:** giữ thư mục nội bộ.
-4. **Logging:** chọn **Console**. Chạy trong container không có `/var/log/stalwart/`.
-5. **DNS:** chọn quản lý thủ công (iNET không nằm trong danh sách tự động).
+4. **Logging:** ở ô Log Destination đổi `Log file` thành **Console**. Chạy trong container không có `/var/log/stalwart/`.
+5. **DNS:** giữ `Manual DNS server management` (iNET không nằm trong danh sách tự động), bấm Finish setup.
 
 Kết thúc, trang hiện tài khoản quản trị lâu dài `admin@<tên miền>` và mật khẩu. **Ghi lại ngay**, nó
 không hiện lần hai và không ghi vào log.

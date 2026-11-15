@@ -338,6 +338,11 @@ Mỗi phiên **đọc file này khi bắt đầu** và **ghi lại khi kết th�
 
 ## 6. Nhật ký các phiên
 
+### 2026-11-15 · Stalwart độc lập: xem giao diện quản trị trên máy thử
+- Đã chạy: Stalwart 0.16.27 trong Docker của máy phiên (mạng host), gói giao diện chính thức webui v1.0.11 phục vụ qua lớp phía trước vì container không ra được GitHub. Đi hết 5 bước cài đặt bằng trình duyệt (Server Identity, Storage, Account Directory, Logging → Console, Automatic DNS Management → Manual), khởi động lại, tạo hai hộp thư mẫu, gửi 3 thư thử, mở Accounts, Domains, View Zone File, Queued, Create user. Ảnh chụp đã gửi chủ dự án trong phiên, không lưu vào repo. README mục "Đã thử" và bước 4–5 của cài đặt được chỉnh theo đúng nhãn trên giao diện.
+- Ghi nhận: trang Dashboard, Tenants, lịch sử Inbound/Outbound Delivery bị khoá ở bản cộng đồng (giao diện mời dùng thử Enterprise). PR #19 đang được phiên này theo dõi.
+- Chưa chạy: phần Settings của giao diện (route SES, chính sách mật khẩu) chưa mở bằng trình duyệt; hạ tầng thật như các phiên trước.
+
 ### 2026-11-15 · Stalwart độc lập: kiểm DNS `vcparts.vn`, chi phí AWS, ghim bản, mở PR
 - Chủ dự án trả lời câu hỏi: tự kiểm nơi `vcparts.vn` nhận thư; hỏi chi phí AWS; ba câu còn lại làm theo đề xuất (mục 2).
 - Đã làm: tra DNS công khai qua DNS-over-HTTPS của hai nhà cung cấp (kết quả ở mục 5). Đọc bảng giá niêm yết của AWS vùng Singapore (tệp giá công khai, bản 2026-11-14) cho EC2, IPv4 công cộng, SES; ghi vào `deploy/mail/README.md` mục 2. Ghim image Stalwart theo digest trong compose, `.env.example`, `backup.sh`, `khoi-phuc.sh`.
