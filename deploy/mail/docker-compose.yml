@@ -6,8 +6,8 @@ name: vcmail
 
 services:
   stalwart:
-    # Cùng bản đã dùng ở các PoC của dự án (0.16.27). Ghim theo digest trong .env khi đã chốt bản chạy thật.
-    image: ${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}
+    # Stalwart 0.16.27 ghim theo digest: cùng bản đã dùng ở các PoC của dự án và đã thử với bộ này.
+    image: ${STALWART_IMAGE:-stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c}
     init: true
     restart: unless-stopped
     hostname: ${MAIL_HOSTNAME:?Thiếu MAIL_HOSTNAME trong deploy/mail/.env}

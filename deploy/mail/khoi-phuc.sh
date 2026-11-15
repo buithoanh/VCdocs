@@ -13,7 +13,7 @@ set -a; source "$ENV_FILE"; set +a
 STAMP=${1:?Cách dùng: ./khoi-phuc.sh <mốc thời gian, ví dụ 2026-11-14_020000>}
 
 PROJECT=${COMPOSE_PROJECT_NAME:-vcmail}
-IMAGE=${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}
+IMAGE=${STALWART_IMAGE:-stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c}
 
 echo "[$(date -Is)] kiểm SHA-256 bộ vcmail_${STAMP}"
 (cd "$BACKUP_DIR" && sha256sum -c "vcmail_${STAMP}.sha256")

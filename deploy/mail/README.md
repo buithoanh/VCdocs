@@ -46,18 +46,21 @@ Chưa thử, phải kiểm khi triển khai thật:
 
 ## 1. Việc cần quyết trước
 
-- **Tên miền đang nhận thư ở đâu?** Nếu `vcparts.vn` đang dùng dịch vụ thư khác, đổi bản ghi MX là
-  thao tác cắt chuyển: thư mới về Stalwart, thư cũ nằm lại nơi cũ. Tạo đủ hộp thư trước, chọn giờ
-  thấp điểm, hạ TTL của MX xuống 300 từ hôm trước.
+- **Tên miền đang nhận thư ở đâu?** Tra bản ghi MX hiện có trước khi làm. Nếu tên miền đang dùng dịch
+  vụ thư khác, đổi MX là thao tác cắt chuyển: thư mới về Stalwart, thư cũ nằm lại nơi cũ. Khi đó tạo
+  đủ hộp thư trước, chọn giờ thấp điểm, hạ TTL của MX xuống 300 từ hôm trước. Tên miền chưa có MX thì
+  không có gì để cắt chuyển.
 - **Gửi ra bằng đường nào?** Gửi thẳng cổng 25 từ IP của mình (phải xin AWS mở và tự giữ uy tín IP),
-  hoặc qua Amazon SES (mục 8).
+  hoặc qua Amazon SES (mục 8). Tên miền đã được xác minh sẵn trong SES thì nên đi SES: không phải
+  xin mở cổng 25 và không phụ thuộc uy tín của một IP mới.
 - **Ai vận hành?** Cần một người theo dõi hàng đợi, dung lượng đĩa, sao lưu và cập nhật.
 
 ## 2. Máy chủ AWS
 
 Việc này làm trong tài khoản AWS của công ty, không làm từ phiên viết mã.
 
-- EC2 Linux, gợi ý 2 vCPU / 4 GB RAM. Tài liệu Stalwart nêu giới hạn bộ nhớ mặc định khoảng 2,4 GiB.
+- EC2 Linux, gợi ý 2 vCPU / 4 GB RAM. Tài liệu Stalwart nêu giới hạn bộ nhớ mặc định khoảng 2,4 GiB,
+  nên máy 2 GB là sát nút.
 - Đĩa: khoảng 1 GB đĩa cho mỗi 1 GB thư, cộng chỗ cho bản sao lưu tại chỗ.
 - **Elastic IP** gắn vào máy. IP phải cố định.
 - Security Group mở vào: 25, 465, 993, 443 từ mọi nơi; 22 chỉ từ IP quản trị. **Không** mở 8080.
@@ -68,6 +71,21 @@ Việc này làm trong tài khoản AWS của công ty, không làm từ phiên 
 - **PTR (reverse DNS):** đặt cho Elastic IP về đúng `MAIL_HOSTNAME`, ở phía AWS. Bản ghi này không
   nằm ở iNET.
 - Cài Docker Engine và plugin compose.
+
+Chi phí ước tính ở vùng Singapore, giá niêm yết trả theo giờ (bảng giá AWS đọc ngày 2026-11-14, 730
+giờ/tháng; chưa gồm thuế, chưa trừ ưu đãi tài khoản mới hay gói cam kết):
+
+| Khoản | Đơn giá | Mỗi tháng |
+|---|---|---|
+| EC2 `t4g.medium` (2 vCPU, 4 GiB, ARM) | 0,0424 USD/giờ | khoảng 31 USD |
+| EC2 `t3.medium` (2 vCPU, 4 GiB, x86) | 0,0528 USD/giờ | khoảng 38,5 USD |
+| EC2 `t4g.small` (2 vCPU, 2 GiB, ARM) | 0,0212 USD/giờ | khoảng 15,5 USD |
+| Địa chỉ IPv4 công cộng (Elastic IP) | 0,005 USD/giờ | khoảng 3,65 USD |
+| Amazon SES, thư gửi ra | 0,10 USD / 1.000 thư | theo lượng gửi |
+| Đĩa EBS, sao lưu S3, lưu lượng ra | chưa tra giá | tính thêm theo dung lượng |
+
+Cấu hình gợi ý (`t4g.medium` + một IP) vào khoảng 35 USD/tháng trước tiền đĩa. Image Stalwart ghim
+trong `.env.example` có cả bản ARM và x86.
 
 ## 3. DNS bước 1 (ở iNET): bản ghi A
 
@@ -258,9 +276,10 @@ Rồi thử tay với bên ngoài:
 
 ## 13. Bản Stalwart
 
-Bộ này dùng nhánh 0.16 vì mọi PoC của dự án và các bước ở trên đã chạy với 0.16.27. Tài liệu Stalwart
-hiện khuyên dùng nhánh 1.x (`stalwartlabs/stalwart:v1`) cho máy mới. Chọn 1.x thì chạy lại toàn bộ
-mục "Đã thử" trên máy thử trước, vì tên trường có chỗ khác (ví dụ mục 8).
+Bộ này ghim Stalwart 0.16.27 theo digest (chủ dự án chốt 2026-11-15) vì mọi PoC của dự án và các bước
+ở trên đã chạy với đúng bản này. Tài liệu Stalwart hiện khuyên nhánh 1.x (`stalwartlabs/stalwart:v1`)
+cho máy mới. Lên 1.x là một việc riêng: chạy lại toàn bộ mục "Đã thử" trên máy thử trước, vì tên
+trường có chỗ khác (ví dụ mục 8), rồi mới đổi `STALWART_IMAGE`.
 
 Nguồn: tài liệu Stalwart (stalw.art/docs) các trang install/platform/docker, install/dns,
 install/security, install/requirements, mta/outbound/routing, mta/outbound/strategy; đọc ngày 2026-11-14.

@@ -13,7 +13,7 @@ set -a; source "$ENV_FILE"; set +a
 : "${BACKUP_DIR:?Thiếu BACKUP_DIR trong $ENV_FILE}"
 
 PROJECT=${COMPOSE_PROJECT_NAME:-vcmail}
-IMAGE=${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}
+IMAGE=${STALWART_IMAGE:-stalwartlabs/stalwart@sha256:c429b311c93db5606598abc1c68225a85a6953183848ae01bee9c6a98885836c}
 KEEP=${BACKUP_KEEP:-7}
 STAMP=$(date +%Y-%m-%d_%H%M%S)
 compose() { docker compose --env-file "$ENV_FILE" "$@"; }
